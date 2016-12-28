@@ -1,5 +1,5 @@
 group 'com.soywiz'
-version "0.2.0"
+version kimageVersion
 
 buildscript {
     repositories {
@@ -43,7 +43,7 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    compile "com.soywiz:korio:0.2.0"
+    compile "com.soywiz:korio:$korioVersion"
     testCompile "junit:junit:4.11"
 }
 
@@ -148,4 +148,7 @@ if (project.hasProperty('BINTRAY_USER')) {
             vcsUrl = 'https://github.com/soywiz/kimage.git'
         }
     }
+}
+
+task deploy(dependsOn: ['install', 'bintrayUpload', 'uploadArchives']) {
 }
