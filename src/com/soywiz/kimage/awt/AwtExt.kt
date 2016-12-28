@@ -35,3 +35,16 @@ fun showImage(image: BufferedImage): JFrame {
 }
 
 fun showImage(bitmap: Bitmap) = showImage(bitmap.toBMP32().toAwt())
+
+fun convertImage(image: BufferedImage): BufferedImage {
+	val out = BufferedImage(image.width, image.height, BufferedImage.TYPE_INT_ARGB)
+	out.graphics.drawImage(image, 0, 0, null)
+	return out
+}
+
+fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
+	val ints = (out.raster.dataBuffer as DataBufferInt).data
+	System.arraycopy(this.data, 0, ints, 0, this.width * this.height)
+	out.flush()
+	return out
+}
