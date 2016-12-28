@@ -8,6 +8,15 @@
 
 Use with gradle:
 
+Use with gradle:
+
+I'm uploading it to bintray and maven central:
+
+For bintray:
 ```
-compile "com.soywiz:kimage:0.0.1"
+maven { url "https://dl.bintray.com/soywiz/soywiz-maven" }
+```
+
+```
+compile "com.soywiz:kimage:kimageVersion"
 ```
