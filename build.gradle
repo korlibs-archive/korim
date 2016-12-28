@@ -1,5 +1,5 @@
 group 'com.soywiz'
-version "0.0.2"
+version "0.1.4"
 
 buildscript {
     repositories {
@@ -43,7 +43,7 @@ repositories {
 
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-    compile "com.soywiz:korio:0.1.3"
+    compile "com.soywiz:korio:0.1.4"
     testCompile "junit:junit:4.11"
 }
 
@@ -137,6 +137,7 @@ if (project.hasProperty('BINTRAY_USER')) {
         user = BINTRAY_USER
         key = BINTRAY_KEY
         publications = ['MyPublication']
+        publish = true
         override = true
 
         pkg {
