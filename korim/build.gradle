@@ -86,7 +86,7 @@ if (project.hasProperty('sonatypeUsername')) {
                 pom.project {
                     name "${project.name}"
                     packaging 'jar'
-                    description 'Kotlin Imaging utilities without dependencies'
+                    description 'Kotlin cORoutines IMaging utilities for JVM, Node.JS and Browser using JTransc'
                     url 'https://github.com/soywiz/korim/'
                     inceptionYear '2016'
 
