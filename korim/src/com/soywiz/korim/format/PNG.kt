@@ -80,11 +80,11 @@ object PNG : ImageFormat() {
 		}
 
 		fun writeChunk(name: String, callback: SyncStream.() -> Unit) {
-			return writeChunk(name, MemorySyncStream().apply { callback() }.toByteArray())
+			return writeChunk(name, MemorySyncStreamToByteArray { callback() })
 		}
 
 		fun writeChunkCompressed(name: String, callback: SyncStream.() -> Unit) {
-			return writeChunk(name, compress(MemorySyncStream().apply { callback() }.toByteArray()))
+			return writeChunk(name, compress(MemorySyncStreamToByteArray { callback() }))
 		}
 
 		fun writeHeader(colorspace: Colorspace) {
