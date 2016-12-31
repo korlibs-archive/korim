@@ -5,15 +5,15 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readAll
-import com.soywiz.korio.stream.readS32_be
+import com.soywiz.korio.stream.readU16_be
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
 object JPEG : ImageFormat() {
-	const val MAGIC = 0xFFD8FFE1.toInt()
+	const val MAGIC = 0xFFD8
 
 	override fun check(s: SyncStream): Boolean {
-		val magic = s.readS32_be()
+		val magic = s.readU16_be()
 		return magic == MAGIC
 	}
 

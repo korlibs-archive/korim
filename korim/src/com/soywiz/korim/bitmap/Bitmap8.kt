@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korio.util.UByteArray
 
 class Bitmap8(
 	width: Int,
@@ -8,9 +9,14 @@ class Bitmap8(
 	val data: ByteArray = ByteArray(width * height),
 	var palette: IntArray = IntArray(255)
 ) : Bitmap(width, height) {
-	operator fun set(x: Int, y: Int, color: Int) = Unit.apply { data[index(x, y)] = color.toByte() }
-	operator fun get(x: Int, y: Int): Int = data[index(x, y)].toInt() and 0xFF
+	val datau = UByteArray(data)
+	operator fun set(x: Int, y: Int, color: Int) = Unit.apply { datau[index(x, y)] = color }
+	operator fun get(x: Int, y: Int): Int = datau[index(x, y)]
 	override fun get32(x: Int, y: Int): Int = palette[get(x, y)]
+
+	fun setRow(y: Int, row: UByteArray) {
+		System.arraycopy(row.data, 0, data, index(0, y), width)
+	}
 
 	fun setRow(y: Int, row: ByteArray) {
 		System.arraycopy(row, 0, data, index(0, y), width)
