@@ -1,14 +1,14 @@
-# kimage
+## Korim: Kotlin cORoutines IMaging utilities depending on Korio Edit
 
-[![Build Status](https://travis-ci.org/soywiz/kimage.svg?branch=master)](https://travis-ci.org/soywiz/kimage)
+[![Build Status](https://travis-ci.org/soywiz/korim.svg?branch=master)](https://travis-ci.org/soywiz/korim)
 
-[![Maven Version](https://img.shields.io/github/tag/soywiz/kimage.svg?style=flat&label=maven)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22kimage%22)
-
-## Kotlin Imaging utilities without dependencies
+[![Maven Version](https://img.shields.io/github/tag/soywiz/korim.svg?style=flat&label=maven)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22korim%22)
 
 Use with gradle:
 
-Use with gradle:
+```
+compile "com.soywiz:korim:korimVersion"
+```
 
 I'm uploading it to bintray and maven central:
 
@@ -17,6 +17,26 @@ For bintray:
 maven { url "https://dl.bintray.com/soywiz/soywiz-maven" }
 ```
 
-```
-compile "com.soywiz:kimage:kimageVersion"
-```
+### Bitmap classes
+
+Bitmap base class + Bitmap8 and Bitmap32
+
+### Image Formats
+
+Korim provides utilities for reading and writing some image formats without any kind of additional dependency.
+
+BMP, JPG, PNG and TGA.
+
+### Color Formats
+
+Korim provides color formats to convert easily and fast.
+
+### AWT Utilities
+
+Korim provides AWT utilities to convert bitmaps into AWT BufferedImages, and to display them.
+These are just extensions so not referenced from the main code.
+
+### Korio integration
+
+Korim provides korio integration adding `VfsFile.readBitmap()` that allows Bitmap reading easily
+and faster (with native implementations) in some targets like browsers.
