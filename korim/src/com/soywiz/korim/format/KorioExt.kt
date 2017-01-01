@@ -1,39 +1,21 @@
 package com.soywiz.korim.format
 
 import com.jtransc.annotation.JTranscMethodBody
+import com.soywiz.korim.awt.awtReadImage
+import com.soywiz.korim.awt.toBMP32
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.asyncFun
-import com.soywiz.korio.async.spawn
 import com.soywiz.korio.stream.AsyncStream
 import com.soywiz.korio.stream.readAll
-import com.soywiz.korio.util.OS
-import com.soywiz.korio.vfs.ResourcesVfs
-import com.soywiz.korio.vfs.Vfs
 import com.soywiz.korio.vfs.VfsFile
 import kotlin.coroutines.CoroutineIntrinsics
 
-fun Vfs.registerBitmapReading() {
-	this.registerReadSpecial<Bitmap> { file, onProgress ->
-		spawn<Bitmap> {
-			if (OS.isJs) {
-				val bytes = file.read()
-				val img = BrowserImage.loadjsimg(bytes)
-				val width = BrowserImage.imgWidth(img)
-				val height = BrowserImage.imgHeight(img)
-				val data = kotlin.IntArray(width * height)
-				BrowserImage.imgData(img, data)
-				Bitmap32(width, height, data)
-			} else {
-				throw kotlin.UnsupportedOperationException()
-			}
-		}
-	}
-}
-
-@Suppress("unused")
-private val init = run {
-	ResourcesVfs.vfs.registerBitmapReading()
+@JTranscMethodBody(target = "js", value = """
+	{% SMETHOD com.soywiz.korim.format.BrowserImage:gen %}(p0, p1);
+""")
+private suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
+	AwtImage.gen(bytes)
 }
 
 suspend fun ImageFormat.decode(s: VfsFile) = asyncFun { this.read(s.readAsSyncStream()) }
@@ -41,12 +23,15 @@ suspend fun ImageFormat.decode(s: AsyncStream) = asyncFun { this.read(s.readAll(
 
 suspend fun VfsFile.readBitmap(): Bitmap = asyncFun {
 	try {
-		this.readSpecial<Bitmap>()
-	} catch (u: Throwable) {
+		val bytes = this.read()
+		com.soywiz.korim.format.gen(bytes)
+	} catch (t: Throwable) {
+		t.printStackTrace()
 		ImageFormats.decode(this)
 	}
 }
 
+@Suppress("unused")
 object BrowserImage {
 	@JTranscMethodBody(target = "js", value = """
         var bytes = p0, continuation = p1;
@@ -101,6 +86,22 @@ object BrowserImage {
 	""")
 	external fun imgData(canvas: Any?, out: IntArray): Unit
 
+	@JvmStatic suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
+		val img = BrowserImage.loadjsimg(bytes)
+		val width = BrowserImage.imgWidth(img)
+		val height = BrowserImage.imgHeight(img)
+		val data = kotlin.IntArray(width * height)
+		BrowserImage.imgData(img, data)
+		Bitmap32(width, height, data)
+	}
+
 	@Suppress("unused")
 	private fun getSuspended() = CoroutineIntrinsics.SUSPENDED
+}
+
+object AwtImage {
+	@JvmStatic suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
+		//println("AwtImage.gen!")
+		awtReadImage(bytes).toBMP32()
+	}
 }

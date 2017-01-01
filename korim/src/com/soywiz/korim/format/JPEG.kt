@@ -6,6 +6,7 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.stream.readU16_be
+import com.soywiz.korio.util.UByteArray
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
 
@@ -24,16 +25,18 @@ object JPEG : ImageFormat() {
 		val height = decoder.imageHeight
 		//val format = Texture.Format.RGBA;
 		decoder.startDecode();
-		val bb = ByteBuffer.allocate(width * height * 4)
+		val data = ByteArray(width * height * 4)
+		val udata = UByteArray(data)
+		val bb = ByteBuffer.wrap(data)
 		decoder.decodeRGB(bb, width * 4, decoder.numMCURows)
 		val out = Bitmap32(width, height)
 		var n = 0
 		for (y in 0 until height) {
 			for (x in 0 until width) {
-				val b = bb[n++].toInt() and 0xFF
-				val g = bb[n++].toInt() and 0xFF
-				val r = bb[n++].toInt() and 0xFF
-				val a = bb[n++].toInt() and 0xFF
+				val r = udata[n++]
+				val g = udata[n++]
+				val b = udata[n++]
+				val a = udata[n++]
 				out[x, y] = RGBA.packFast(r, g, b, a)
 			}
 		}

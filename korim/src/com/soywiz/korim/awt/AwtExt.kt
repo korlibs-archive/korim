@@ -6,6 +6,8 @@ import com.soywiz.korim.color.RGBA
 import java.awt.BorderLayout
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferInt
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
@@ -42,9 +44,24 @@ fun convertImage(image: BufferedImage): BufferedImage {
 	return out
 }
 
+fun convertImageIfRequired(image: BufferedImage): BufferedImage = if (image.type == BufferedImage.TYPE_INT_ARGB) image else convertImage(image)
+
 fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 	val ints = (out.raster.dataBuffer as DataBufferInt).data
 	System.arraycopy(this.data, 0, ints, 0, this.width * this.height)
 	out.flush()
 	return out
 }
+
+fun BufferedImage.toBMP32(): Bitmap32 {
+	//println("Convert BufferedImage into BMP32!")
+	val image = convertImageIfRequired(this)
+	val ints = (image.raster.dataBuffer as DataBufferInt).data
+	val area = image.width * image.height
+	for (n in 0 until area) ints[n] = RGBA.rgbaToBgra(ints[n])
+	return Bitmap32(image.width, image.height, ints)
+}
+
+fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data))
+
+//var image = ImageIO.read(File("/Users/al/some-picture.jpg"))
