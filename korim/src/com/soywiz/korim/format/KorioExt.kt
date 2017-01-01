@@ -12,7 +12,7 @@ import com.soywiz.korio.vfs.VfsFile
 import kotlin.coroutines.CoroutineIntrinsics
 
 @JTranscMethodBody(target = "js", value = """
-	{% SMETHOD com.soywiz.korim.format.BrowserImage:gen %}(p0, p1);
+	return {% SMETHOD com.soywiz.korim.format.BrowserImage:gen %}(p0, p1);
 """)
 private suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
 	AwtImage.gen(bytes)

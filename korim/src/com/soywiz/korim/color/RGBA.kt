@@ -38,4 +38,18 @@ object RGBA : ColorFormat() {
 
 	@JvmStatic fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
 	@JvmStatic fun packf(rgb: Int, a: Float): Int = packRGB_A(rgb, f2i(a))
+
+	@JvmStatic fun mix(dst: Int, src: Int): Int {
+		val a = RGBA.getA(src)
+		return when (a) {
+			0x000 -> dst
+			0xFF -> src
+			else -> {
+				RGBA.packRGB_A(
+						RGBA.blend(dst, src, a * 256 / 255),
+						RGBA.clampFF(RGBA.getA(dst) + RGBA.getA(src))
+				)
+			}
+		}
+	}
 }

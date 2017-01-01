@@ -7,6 +7,8 @@ class Bitmap32(
 	height: Int,
 	val data: IntArray = IntArray(width * height)
 ) : Bitmap(width, height) {
+	private val temp = IntArray(Math.max(width, height))
+
 	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height, IntArray(width * height) { generator(it % width, it / width) })
 
 	operator fun set(x: Int, y: Int, color: Int) = apply { data[index(x, y)] = color }
@@ -26,7 +28,7 @@ class Bitmap32(
 			val dstOffset = dst.index(dx, dy + y)
 			val srcOffset = src.index(sleft, stop + y)
 			if (mix) {
-				for (x in 0 until width) dst.data[dstOffset + x] = mix(dst.data[dstOffset + x], src.data[srcOffset + x])
+				for (x in 0 until width) dst.data[dstOffset + x] = RGBA.mix(dst.data[dstOffset + x], src.data[srcOffset + x])
 			} else {
 				for (x in 0 until width) dst.data[dstOffset + x] = src.data[srcOffset + x]
 			}
@@ -67,20 +69,6 @@ class Bitmap32(
 		return out
 	}
 
-	fun mix(dst: Int, src: Int): Int {
-		val a = RGBA.getA(src)
-		return when (a) {
-			0x000 -> dst
-			0xFF -> src
-			else -> {
-				RGBA.packRGB_A(
-					RGBA.blend(dst, src, a * 256 / 255),
-					RGBA.clampFF(RGBA.getA(dst) + RGBA.getA(src))
-				)
-			}
-		}
-	}
-
 	inline fun setEach(callback: (x: Int, y: Int) -> Int) {
 		for (y in 0 until height) {
 			for (x in 0 until width) {
@@ -109,11 +97,10 @@ class Bitmap32(
 	}
 
 	companion object {
-		fun createWithAlpha(color: Bitmap32, alpha: Bitmap32): Bitmap32 {
+		fun createWithAlpha(color: Bitmap32, alpha: Bitmap32, alphaChannel: BitmapChannel = BitmapChannel.RED): Bitmap32 {
 			val out = Bitmap32(color.width, color.height)
-			for (n in 0 until out.area) {
-				out.data[n] = (color.data[n] and 0x00FFFFFF) or (alpha.data[n] shl 24)
-			}
+			out.put(color)
+			out.writeChannel(BitmapChannel.ALPHA, alpha, BitmapChannel.RED)
 			return out
 		}
 	}
@@ -136,11 +123,8 @@ class Bitmap32(
 		val s0 = index(0, y0)
 		val s1 = index(0, y1)
 
-		for (x in 0 until width) {
-			val v0 = this.data[s0 + x]
-			val v1 = this.data[s1 + x]
-			this.data[s1 + x] = v0
-			this.data[s0 + x] = v1
-		}
+		System.arraycopy(data, index(0, y0), temp, 0, width)
+		System.arraycopy(data, index(0, y1), data, index(0, y0), width)
+		System.arraycopy(temp, 0, data, index(0, y1), width)
 	}
 }
