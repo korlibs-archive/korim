@@ -1,10 +1,7 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
-import com.soywiz.korio.stream.MemorySyncStreamToByteArray
-import com.soywiz.korio.stream.SyncStream
-import com.soywiz.korio.stream.openSync
-import com.soywiz.korio.stream.slice
+import com.soywiz.korio.stream.*
 import java.io.File
 
 open class ImageFormat {
@@ -35,6 +32,6 @@ object ImageFormats : ImageFormat() {
 				return format.read(s.slice())
 			}
 		}
-		throw UnsupportedOperationException("Not suitable image format")
+		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
 	}
 }

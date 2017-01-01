@@ -101,7 +101,12 @@ object BrowserImage {
 
 object AwtImage {
 	@JvmStatic suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
-		//println("AwtImage.gen!")
-		awtReadImage(bytes).toBMP32()
+		try {
+			//println("AwtImage.gen!")
+			awtReadImage(bytes).toBMP32()
+		} catch (t: Throwable) {
+			//t.printStackTrace()
+			ImageFormats.decode(bytes)
+		}
 	}
 }
