@@ -1,22 +1,22 @@
 package com.soywiz.korim.format
 
 import com.jtransc.annotation.JTranscMethodBody
+import com.jtransc.js.*
 import com.soywiz.korim.awt.awtReadImage
 import com.soywiz.korim.awt.toBMP32
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.html.HtmlImage
 import com.soywiz.korio.async.asyncFun
 import com.soywiz.korio.stream.AsyncStream
 import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.vfs.VfsFile
+import com.soywiz.korio.vfs.js.jsObject
 import kotlin.coroutines.CoroutineIntrinsics
+import kotlin.coroutines.suspendCoroutine
 
-@JTranscMethodBody(target = "js", value = """
-	return {% SMETHOD com.soywiz.korim.format.BrowserImage:gen %}(p0, p1);
-""")
-private suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
-	AwtImage.gen(bytes)
-}
+@JTranscMethodBody(target = "js", value = """return {% SMETHOD com.soywiz.korim.format.BrowserImage:gen %}(p0, p1);""")
+private suspend fun gen(bytes: ByteArray): Bitmap = asyncFun { AwtImage.gen(bytes) }
 
 suspend fun ImageFormat.decode(s: VfsFile) = asyncFun { this.read(s.readAsSyncStream()) }
 suspend fun ImageFormat.decode(s: AsyncStream) = asyncFun { this.read(s.readAll()) }
@@ -33,63 +33,34 @@ suspend fun VfsFile.readBitmap(): Bitmap = asyncFun {
 
 @Suppress("unused")
 object BrowserImage {
-	@JTranscMethodBody(target = "js", value = """
-        var bytes = p0, continuation = p1;
+	suspend fun loadjsimg(bytes: ByteArray): JsDynamic? = suspendCoroutine { continuation ->
+		val blob = jsNew("Blob", jsArray(bytes), jsObject("type" to "image/png"))
+		val blobURL = global["URL"].methods["createObjectURL"](blob);
 
-		var blob = new Blob([bytes.data], {type: 'image/png'});
-		var blobURL = URL.createObjectURL(blob);
-
-		var img = new Image();
-		img.onload = function() {
-			var canvas = document.createElement('canvas');
-			canvas.width = img.width;
-			canvas.height = img.height;
-			var ctx = canvas.getContext('2d');
-			ctx.drawImage(img, 0, 0);
-			URL.revokeObjectURL(blobURL);
-
-			//console.log('decoded image:', canvas);
-			continuation['{% METHOD kotlin.coroutines.Continuation:resume %}'](canvas);
+		val img = jsNew("Image")
+		img["onload"] = jsFunctionRaw0 {
+			val canvas = document.methods["createElement"]("canvas");
+			canvas["width"] = img["width"]
+			canvas["height"] = img["height"]
+			val ctx = canvas.methods["getContext"]("2d");
+			ctx.methods["drawImage"](img, 0, 0);
+			global["URL"].methods["revokeObjectURL"](blobURL);
+			continuation.resume(canvas)
 		};
-		img.onerror = function() {
-			//console.log('error decoding image:', img);
-			continuation['{% METHOD kotlin.coroutines.Continuation:resumeWithException %}'](N.createRuntimeException('error loading image'));
+		img["onerror"] = jsFunctionRaw0 {
+			continuation.resumeWithException(RuntimeException("error loading image"))
 		};
-		//console.log(blobURL);
-		img.src = blobURL;
+		img["src"] = blobURL;
+	}
 
-		return this['{% METHOD #CLASS:getSuspended %}']();
-    """)
-	external suspend fun loadjsimg(bytes: ByteArray): Any?
-
-	@JTranscMethodBody(target = "js", value = """return p0 ? p0.width : -1;""")
-	external fun imgWidth(img: Any?): Int
-
-	@JTranscMethodBody(target = "js", value = """return p0 ? p0.height : -1;""")
-	external fun imgHeight(img: Any?): Int
-
-	@JTranscMethodBody(target = "js", value = """
-		var canvas = p0, out = p1;
-		var width = canvas.width, height = canvas.height, len = width * height;
-		var ctx = canvas.getContext('2d')
-		var data = ctx.getImageData(0, 0, width, height);
-		var ddata = data.data;
-		var m = 0;
-		for (var n = 0; n < len; n++) {
-			var r = ddata[m++];
-			var g = ddata[m++];
-			var b = ddata[m++];
-			var a = ddata[m++];
-			out.data[n] = (r << 0) | (g << 8) | (b << 16) | (a << 24);
-		}
-		//console.log(out);
-	""")
-	external fun imgData(canvas: Any?, out: IntArray): Unit
+	fun imgData(canvas: JsDynamic?, out: IntArray): Unit {
+		HtmlImage.renderHtmlCanvasIntoBitmap(canvas, out)
+	}
 
 	@JvmStatic suspend fun gen(bytes: ByteArray): Bitmap = asyncFun {
 		val img = BrowserImage.loadjsimg(bytes)
-		val width = BrowserImage.imgWidth(img)
-		val height = BrowserImage.imgHeight(img)
+		val width = img["width"].toInt()
+		val height = img["height"].toInt()
 		val data = kotlin.IntArray(width * height)
 		BrowserImage.imgData(img, data)
 		Bitmap32(width, height, data)
