@@ -38,7 +38,7 @@ class HtmlFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 			glyphs += BitmapFont.GlyphInfo(char, IRect(x, 0, width, height), width)
 			x += width + 2
 		}
-		return BitmapFont(CanvasNativeImage(canvas).toBMP32(), glyphs)
+		return BitmapFont(CanvasNativeImage(canvas).toBMP32(), size.toInt(), size.toInt(), glyphs)
 	}
 }
 

@@ -64,12 +64,7 @@ class Bitmap32(
 		val x2 = clampX(x + width - 1)
 		val y1 = clampY(y)
 		val y2 = clampY(y + height - 1)
-		for (cy in y1..y2) {
-			val idx1 = index(x1, cy)
-			val idx2 = index(x2, cy)
-			//println("$cy: $idx1, $idx2")
-			Arrays.fill(this.data, idx1, idx2 + 1, color)
-		}
+		for (cy in y1..y2) Arrays.fill(this.data, index(x1, cy), index(x2, cy) + 1, color)
 	}
 
 	fun _draw(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0, mix: Boolean) {
@@ -115,9 +110,9 @@ class Bitmap32(
 	}
 
 	fun writeChannel(destination: BitmapChannel, input: Bitmap32, source: BitmapChannel) {
-		val sourceShift = source.index * 8
-		val destShift = destination.index * 8
-		val destClear = (0xFF shl destShift).inv()
+		val sourceShift = source.shift
+		val destShift = destination.shift
+		val destClear = destination.clearMask
 		val thisData = this.data
 		val inputData = input.data
 		for (n in 0 until area) {
@@ -133,6 +128,15 @@ class Bitmap32(
 			val c = input.data[n].toInt() and 0xFF
 			this.data[n] = (this.data[n] and destClear) or (c shl destShift)
 		}
+	}
+
+	fun extractChannel(channel: BitmapChannel): Bitmap8 {
+		val out = Bitmap8(width, height)
+		val shift = channel.shift
+		for (n in 0 until area) {
+			out.data[n] = ((data[n] ushr shift) and 0xFF).toByte()
+		}
+		return out
 	}
 
 	companion object {

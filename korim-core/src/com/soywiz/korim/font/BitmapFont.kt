@@ -2,10 +2,13 @@ package com.soywiz.korim.font
 
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap32Slice
+import com.soywiz.korim.color.Colors
 import com.soywiz.korim.geom.IRect
 
 class BitmapFont(
 	val atlas: Bitmap32,
+	val size: Int,
+	val lineHeight: Int,
 	val glyphInfos: List<GlyphInfo>
 ) {
 	val glyphsById = glyphInfos.map { it.id to Glyph(atlas.slice(it.bounds), it) }.toMap()
@@ -19,13 +22,18 @@ class BitmapFont(
 		return x
 	}
 
-	fun drawText(bmp: Bitmap32, str: String, x: Int = 0, y: Int) {
+	fun drawText(bmp: Bitmap32, str: String, x: Int = 0, y: Int, color: Int = Colors.WHITE) {
+		var py = y
 		var px = x
 		for (c in str) {
 			val g = glyphsById[c.toInt()]
 			if (g != null) {
-				bmp.draw(g.bmp, px, y)
+				bmp.draw(g.bmp, px, py)
 				px += g.advance
+			}
+			if (c == '\n') {
+				py += lineHeight
+				px = x
 			}
 		}
 	}

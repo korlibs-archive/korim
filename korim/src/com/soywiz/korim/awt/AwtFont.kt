@@ -30,7 +30,7 @@ class AwtFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 			glyphs += BitmapFont.GlyphInfo(char, IRect(x, 0, width, bi.height), width)
 			x += width + 2
 		}
-		return BitmapFont(AwtNativeImage(bi).toBMP32(), glyphs)
+		return BitmapFont(AwtNativeImage(bi).toBMP32(), size.toInt(), size.toInt(), glyphs)
 	}
 }
 
