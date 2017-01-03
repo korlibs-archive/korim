@@ -16,8 +16,8 @@ class HtmlFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 		metricsCtx["textBaseline"] = "top"
 		metricsCtx["fillStyle"] = "white"
 
-		val widths = chars.map { metricsCtx.methods["measureText"](String(intArrayOf(it), 0, 1))["width"].toInt() }
-		val widthsSum = widths.sum()
+		val widths = chars.map { metricsCtx.methods["measureText"](String(charArrayOf(it.toChar())))["width"].toInt() }
+		val widthsSum = widths.map { it + 2 }.sum()
 
 		val height = (size * 1.2).toInt()
 		val canvas = document.methods["createElement"]("canvas")
@@ -34,9 +34,9 @@ class HtmlFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 		var x = 0
 		for ((index, char) in chars.withIndex()) {
 			val width = widths[index]
-			ctx.methods["fillText"](String(intArrayOf(char), 0, 1), 0, 0)
+			ctx.methods["fillText"](String(intArrayOf(char), 0, 1), x, 0)
 			glyphs += BitmapFont.GlyphInfo(char, IRect(x, 0, width, height), width)
-			x += width
+			x += width + 2
 		}
 		return BitmapFont(CanvasNativeImage(canvas).toBMP32(), glyphs)
 	}
