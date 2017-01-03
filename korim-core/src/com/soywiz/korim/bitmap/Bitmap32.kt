@@ -1,15 +1,19 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.geom.IRect
+import java.util.*
 
 class Bitmap32(
 	width: Int,
 	height: Int,
 	val data: IntArray = IntArray(width * height)
-) : Bitmap(width, height) {
+) : Bitmap(width, height), Iterable<Int> {
 	private val temp = IntArray(Math.max(width, height))
 
-	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height, IntArray(width * height) { generator(it % width, it / width) })
+	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height) {
+		setEach(generator)
+	}
 
 	operator fun set(x: Int, y: Int, color: Int) = apply { data[index(x, y)] = color }
 	operator fun get(x: Int, y: Int): Int = data[index(x, y)]
@@ -19,8 +23,7 @@ class Bitmap32(
 		System.arraycopy(row, 0, data, index(0, y), width)
 	}
 
-	fun _draw(other: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
-		val src = other
+	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
 		val dst = this
 		val width = sright - sleft
 		val height = sbottom - stop
@@ -56,12 +59,40 @@ class Bitmap32(
 		_draw(other, dx, dy, sleft, stop, sright, sbottom, mix)
 	}
 
-	fun put(other: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, other, dx, dy)
-	fun draw(other: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(true, other, dx, dy)
+	fun fill(color: Int, x: Int = 0, y: Int = 0, width: Int = this.width, height: Int = this.height) {
+		val x1 = clampX(x)
+		val x2 = clampX(x + width - 1)
+		val y1 = clampY(y)
+		val y2 = clampY(y + height - 1)
+		for (cy in y1..y2) {
+			val idx1 = index(x1, cy)
+			val idx2 = index(x2, cy)
+			//println("$cy: $idx1, $idx2")
+			Arrays.fill(this.data, idx1, idx2 + 1, color)
+		}
+	}
 
-	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32 = sliceWithSize(left, top, right - left, bottom - top)
+	fun _draw(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0, mix: Boolean) {
+		val b = src.bounds
 
-	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32 {
+		val availableWidth = width - dx
+		val availableHeight = height - dy
+
+		val awidth = Math.min(availableWidth, b.width)
+		val aheight = Math.min(availableHeight, b.height)
+
+		_draw(src.bmp, dx, dy, b.x, b.y, b.x + awidth, b.y + aheight, mix = mix)
+	}
+
+	fun put(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, src, dx, dy)
+	fun draw(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(true, src, dx, dy)
+
+	fun put(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = false)
+	fun draw(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = true)
+
+	fun copySliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32 = copySliceWithSize(left, top, right - left, bottom - top)
+
+	fun copySliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32 {
 		val out = Bitmap32(width, height)
 		for (yy in 0 until height) for (xx in 0 until width) {
 			out[xx, y] = this[x + xx, y + yy]
@@ -69,21 +100,29 @@ class Bitmap32(
 		return out
 	}
 
+	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32Slice = Bitmap32Slice(this, IRect(left, top, right - left, bottom - top))
+	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32Slice = Bitmap32Slice(this, IRect(x, y, width, height))
+
+	fun slice(bounds: IRect): Bitmap32Slice = Bitmap32Slice(this, bounds)
+
+	inline fun forEach(callback: (n: Int, x: Int, y: Int) -> Unit) {
+		var n = 0
+		for (y in 0 until height) for (x in 0 until width) callback(n++, x, y)
+	}
+
 	inline fun setEach(callback: (x: Int, y: Int) -> Int) {
-		for (y in 0 until height) {
-			for (x in 0 until width) {
-				this[x, y] = callback(x, y)
-			}
-		}
+		forEach { n, x, y -> this.data[n] = callback(x, y) }
 	}
 
 	fun writeChannel(destination: BitmapChannel, input: Bitmap32, source: BitmapChannel) {
 		val sourceShift = source.index * 8
 		val destShift = destination.index * 8
 		val destClear = (0xFF shl destShift).inv()
+		val thisData = this.data
+		val inputData = input.data
 		for (n in 0 until area) {
-			val c = (input.data[n] ushr sourceShift) and 0xFF
-			this.data[n] = (this.data[n] and destClear) or (c shl destShift)
+			val c = (inputData[n] ushr sourceShift) and 0xFF
+			thisData[n] = (thisData[n] and destClear) or (c shl destShift)
 		}
 	}
 
@@ -114,17 +153,16 @@ class Bitmap32(
 	override fun toString(): String = "Bitmap32($width, $height)"
 
 	fun flipY() {
-		for (y in 0 until height / 2) {
-			swapRows(y, height - y - 1)
-		}
+		for (y in 0 until height / 2) swapRows(y, height - y - 1)
 	}
 
 	fun swapRows(y0: Int, y1: Int) {
 		val s0 = index(0, y0)
 		val s1 = index(0, y1)
-
-		System.arraycopy(data, index(0, y0), temp, 0, width)
-		System.arraycopy(data, index(0, y1), data, index(0, y0), width)
-		System.arraycopy(temp, 0, data, index(0, y1), width)
+		System.arraycopy(data, s0, temp, 0, width)
+		System.arraycopy(data, s1, data, s0, width)
+		System.arraycopy(temp, 0, data, s1, width)
 	}
+
+	override fun iterator(): Iterator<Int> = data.iterator()
 }

@@ -1,2 +1,6 @@
 rootProject.name = 'korim-root'
-include('korim', 'korim-jtransc-example')
+include(
+		'korim-core',
+		'korim-android',
+		'korim'
+)
