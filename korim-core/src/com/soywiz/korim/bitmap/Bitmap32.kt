@@ -1,7 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.geom.IRect
+import com.soywiz.korim.geom.IRectangle
 import java.util.*
 
 class Bitmap32(
@@ -95,10 +95,10 @@ class Bitmap32(
 		return out
 	}
 
-	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32Slice = Bitmap32Slice(this, IRect(left, top, right - left, bottom - top))
-	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32Slice = Bitmap32Slice(this, IRect(x, y, width, height))
+	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32Slice = Bitmap32Slice(this, IRectangle(left, top, right - left, bottom - top))
+	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32Slice = Bitmap32Slice(this, IRectangle(x, y, width, height))
 
-	fun slice(bounds: IRect): Bitmap32Slice = Bitmap32Slice(this, bounds)
+	fun slice(bounds: IRectangle): Bitmap32Slice = Bitmap32Slice(this, bounds)
 
 	inline fun forEach(callback: (n: Int, x: Int, y: Int) -> Unit) {
 		var n = 0

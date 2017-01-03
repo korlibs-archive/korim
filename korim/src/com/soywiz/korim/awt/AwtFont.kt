@@ -3,7 +3,7 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.font.BitmapFont
 import com.soywiz.korim.font.NativeFont
 import com.soywiz.korim.font.NativeFontProvider
-import com.soywiz.korim.geom.IRect
+import com.soywiz.korim.geom.IRectangle
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
@@ -27,7 +27,7 @@ class AwtFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 		for ((index, char) in chars.withIndex()) {
 			val width = widths[index]
 			g.drawString(String(intArrayOf(char), 0, 1), x, metrics.ascent)
-			glyphs += BitmapFont.GlyphInfo(char, IRect(x, 0, width, bi.height), width)
+			glyphs += BitmapFont.GlyphInfo(char, IRectangle(x, 0, width, bi.height), width)
 			x += width + 2
 		}
 		return BitmapFont(AwtNativeImage(bi).toBMP32(), size.toInt(), size.toInt(), glyphs)

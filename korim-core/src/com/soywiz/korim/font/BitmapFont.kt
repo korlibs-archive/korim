@@ -3,7 +3,7 @@ package com.soywiz.korim.font
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap32Slice
 import com.soywiz.korim.color.Colors
-import com.soywiz.korim.geom.IRect
+import com.soywiz.korim.geom.IRectangle
 
 class BitmapFont(
 	val atlas: Bitmap32,
@@ -42,5 +42,5 @@ class BitmapFont(
 		val advance = info.advance
 	}
 
-	data class GlyphInfo(val id: Int, val bounds: IRect, val advance: Int)
+	data class GlyphInfo(val id: Int, val bounds: IRectangle, val advance: Int)
 }

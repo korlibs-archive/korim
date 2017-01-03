@@ -4,7 +4,7 @@ import com.jtransc.js.*
 import com.soywiz.korim.font.BitmapFont
 import com.soywiz.korim.font.NativeFont
 import com.soywiz.korim.font.NativeFontProvider
-import com.soywiz.korim.geom.IRect
+import com.soywiz.korim.geom.IRectangle
 
 class HtmlFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 	val metricsCanvas = document.methods["createElement"]("canvas")
@@ -35,7 +35,7 @@ class HtmlFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 		for ((index, char) in chars.withIndex()) {
 			val width = widths[index]
 			ctx.methods["fillText"](String(intArrayOf(char), 0, 1), x, 0)
-			glyphs += BitmapFont.GlyphInfo(char, IRect(x, 0, width, height), width)
+			glyphs += BitmapFont.GlyphInfo(char, IRectangle(x, 0, width, height), width)
 			x += width + 2
 		}
 		return BitmapFont(CanvasNativeImage(canvas).toBMP32(), size.toInt(), size.toInt(), glyphs)
