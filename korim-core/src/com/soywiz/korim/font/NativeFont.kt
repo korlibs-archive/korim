@@ -2,9 +2,9 @@ package com.soywiz.korim.font
 
 import java.util.*
 
-open class NativeFont(val fontName: String, val size: Double) {
+open class NativeFont(val fontName: String, val fontSize: Double) {
 	open fun getGlyphs(chars: IntArray): BitmapFont = TODO()
-	open fun getGlyphs(chars: String): BitmapFont = getGlyphs(chars.map(Char::toInt).toIntArray())
+	fun getGlyphs(chars: String): BitmapFont = getGlyphs(chars.map(Char::toInt).toIntArray())
 }
 
 interface NativeFontProvider {

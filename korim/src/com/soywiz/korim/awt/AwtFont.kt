@@ -16,7 +16,7 @@ class AwtFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 	override fun getGlyphs(chars: IntArray): BitmapFont {
 		val widths = chars.map { metrics.charWidth(it) }
 		val widthsSum = widths.map { it + 2 }.sum()
-		val bi = BufferedImage(widthsSum, (size * 1.2).toInt(), BufferedImage.TYPE_INT_ARGB)
+		val bi = BufferedImage(widthsSum, (fontSize * 1.2).toInt(), BufferedImage.TYPE_INT_ARGB)
 		val g = bi.createGraphics()
 		g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON)
 		g.setRenderingHint(RenderingHints.KEY_FRACTIONALMETRICS, RenderingHints.VALUE_FRACTIONALMETRICS_ON)
@@ -30,7 +30,7 @@ class AwtFont(fontName: String, size: Double) : NativeFont(fontName, size) {
 			glyphs += BitmapFont.GlyphInfo(char, IRectangle(x, 0, width, bi.height), width)
 			x += width + 2
 		}
-		return BitmapFont(AwtNativeImage(bi).toBMP32(), size.toInt(), size.toInt(), glyphs)
+		return BitmapFont(AwtNativeImage(bi).toBMP32(), fontSize.toInt(), fontSize.toInt(), glyphs)
 	}
 }
 
