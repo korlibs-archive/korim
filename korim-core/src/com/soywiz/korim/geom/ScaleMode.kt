@@ -9,13 +9,13 @@ class ScaleMode(private val f: (item: ISize, container: ISize, target: ISize) ->
 		val COVER = ScaleMode { item, container, target ->
 			val s0 = container.width.toDouble() / item.width.toDouble()
 			val s1 = container.height.toDouble() / item.height.toDouble()
-			target.setTo(item).scale(Math.max(s0, s1))
+			target.setTo(item).setToScaled(Math.max(s0, s1))
 		}
 
 		val SHOW_ALL = ScaleMode { item, container, target ->
 			val s0 = container.width.toDouble() / item.width.toDouble()
 			val s1 = container.height.toDouble() / item.height.toDouble()
-			target.setTo(item).scale(Math.min(s0, s1))
+			target.setTo(item).setToScaled(Math.min(s0, s1))
 		}
 
 		val EXACT = ScaleMode { item, container, target ->
