@@ -6,10 +6,8 @@ import com.soywiz.korim.bitmap.Bitmap8
 import com.soywiz.korio.stream.*
 
 object BMP : ImageFormat() {
-	override fun check(s: SyncStream): Boolean = s.readStringz(2) == "BM"
-
-	override fun read(s: SyncStream): Bitmap {
-		if (s.readStringz(2) != "BM") throw IllegalArgumentException("Not a BMP file")
+	override fun decodeHeader(s: SyncStream): ImageInfo? {
+		if (s.readStringz(2) != "BM") return null
 		// FILE HEADER
 		val size = s.readS32_le()
 		val reserved1 = s.readS16_le()
@@ -21,6 +19,16 @@ object BMP : ImageFormat() {
 		val height = s.readS32_le()
 		val planes = s.readS16_le()
 		val bitcount = s.readS16_le()
+		return ImageInfo().apply {
+			this.width = width
+			this.height = height
+			this.bitsPerPixel = bitcount
+		}
+	}
+
+	override fun read(s: SyncStream): Bitmap {
+		val h = decodeHeader(s) ?: throw IllegalArgumentException("Not a BMP file")
+
 		val compression = s.readS32_le()
 		val sizeImage = s.readS32_le()
 		val pixelsPerMeterX = s.readS32_le()
@@ -28,14 +36,14 @@ object BMP : ImageFormat() {
 		val clrUsed = s.readS32_le()
 		val clrImportant = s.readS32_le()
 
-		if (bitcount == 8) {
-			val out = Bitmap8(width, height)
+		if (h.bitsPerPixel == 8) {
+			val out = Bitmap8(h.width, h.height)
 			for (n in 0 until 256) out.palette[n] = s.readS32_le() or 0xFF000000.toInt()
-			for (n in 0 until height) out.setRow(height - n - 1, s.readBytes(width))
+			for (n in 0 until h.height) out.setRow(h.height - n - 1, s.readBytes(h.width))
 			return out
 		} else {
-			val out = Bitmap32(width, height)
-			for (n in 0 until height) out.setRow(height - n - 1, s.readIntArray_le(width))
+			val out = Bitmap32(h.width, h.height)
+			for (n in 0 until h.height) out.setRow(h.height - n - 1, s.readIntArray_le(h.width))
 			return out
 		}
 	}

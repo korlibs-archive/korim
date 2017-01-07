@@ -5,7 +5,6 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readAll
-import com.soywiz.korio.stream.readU16_be
 import com.soywiz.korio.util.UByteArray
 import java.io.ByteArrayInputStream
 import java.nio.ByteBuffer
@@ -13,9 +12,16 @@ import java.nio.ByteBuffer
 object JPEG : ImageFormat() {
 	const val MAGIC = 0xFFD8
 
-	override fun check(s: SyncStream): Boolean {
-		val magic = s.readU16_be()
-		return magic == MAGIC
+	override fun decodeHeader(s: SyncStream): ImageInfo? = try {
+		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
+		decoder.decodeHeader()
+		ImageInfo().apply {
+			this.width = decoder.imageWidth
+			this.height = decoder.imageHeight
+			this.bitsPerPixel = 24
+		}
+	} catch (e: Throwable) {
+		null
 	}
 
 	override fun read(s: SyncStream): Bitmap {

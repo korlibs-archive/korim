@@ -49,9 +49,15 @@ object PNG : ImageFormat() {
 		}
 	}
 
-	override fun check(s: SyncStream): Boolean {
-		val magic = s.readS32_be()
-		return magic == MAGIC1
+	override fun decodeHeader(s: SyncStream): ImageInfo? = try {
+		val header = readCommon(s, readHeader = true) as Header
+		ImageInfo().apply {
+			this.width = header.width
+			this.height = header.height
+			this.bitsPerPixel = header.bits
+		}
+	} catch (t: Throwable) {
+		null
 	}
 
 	override fun write(bitmap: Bitmap, s: SyncStream) {
@@ -145,11 +151,11 @@ object PNG : ImageFormat() {
 		}
 	}
 
-	override fun read(s: SyncStream): Bitmap {
+	private fun readCommon(s: SyncStream, readHeader: Boolean): Any? {
 		if (s.readS32_be() != MAGIC1) throw IllegalArgumentException("Invalid PNG file")
 		s.readS32_be() // magic continuation
 
-		var header = Header(0, 0, 0, Colorspace.GRAYSCALE, 0, 0, 0)
+		var pheader: Header? = null
 		val pngdata = ByteArrayOutputStream()
 		var palette = IntArray(0x100) { -1 }
 
@@ -161,7 +167,7 @@ object PNG : ImageFormat() {
 
 			when (type) {
 				"IHDR" -> {
-					header = data.run {
+					pheader = data.run {
 						Header(
 							width = readS32_be(),
 							height = readS32_be(),
@@ -204,7 +210,10 @@ object PNG : ImageFormat() {
 
 		while (!s.eof) {
 			s.readChunk()
+			if (readHeader && pheader != null) return pheader
 		}
+
+		val header = pheader ?: throw IllegalArgumentException("PNG without header!")
 
 		val data = InflaterInputStream(ByteArrayInputStream(pngdata.toByteArray())).readBytes().openSync()
 
@@ -265,6 +274,8 @@ object PNG : ImageFormat() {
 			}
 		}
 	}
+
+	override fun read(s: SyncStream): Bitmap = readCommon(s, readHeader = false) as Bitmap
 
 	fun paethPredictor(a: Int, b: Int, c: Int): Int {
 		val p = a + b - c

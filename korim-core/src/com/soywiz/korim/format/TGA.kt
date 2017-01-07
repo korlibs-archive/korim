@@ -7,19 +7,24 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
 object TGA : ImageFormat() {
-	override fun check(s: SyncStream): Boolean {
+	override fun decodeHeader(s: SyncStream): ImageInfo? {
 		try {
-			readHeader(s)
-			return true
+			val h = readHeader(s)
+			return ImageInfo().apply {
+				this.width = h.width
+				this.height = h.height
+				this.bitsPerPixel = h.pixelDepth
+			}
 		} catch (t: Throwable) {
-			return false
+			return null
 		}
 	}
 
 	class Info(
 		val width: Int,
 		val height: Int,
-		val flipY: Boolean
+		val flipY: Boolean,
+	    val pixelDepth: Int
 	)
 
 	// http://www.paulbourke.net/dataformats/tga/
@@ -50,7 +55,7 @@ object TGA : ImageFormat() {
 		val flipY = ((imageDescriptor ushr 5) and 1) == 0
 		val storage = ((imageDescriptor ushr 6) and 3)
 		s.readBytes(idLength)
-		return Info(width = width, height = height, flipY = flipY)
+		return Info(width = width, height = height, flipY = flipY, pixelDepth = pixelDepth)
 	}
 
 	override fun read(s: SyncStream): Bitmap {

@@ -5,11 +5,13 @@ import com.soywiz.korio.stream.*
 import java.io.File
 
 open class ImageFormat {
-	open fun check(s: SyncStream): Boolean = TODO()
+	open fun decodeHeader(s: SyncStream): ImageInfo? = TODO()
 	open fun read(s: SyncStream): Bitmap = TODO()
 	fun read(file: File) = this.read(file.openSync())
 	fun read(s: ByteArray): Bitmap = read(s.openSync())
 	open fun write(bitmap: Bitmap, s: SyncStream): Unit = TODO()
+
+	fun check(s: SyncStream): Boolean = decodeHeader(s) != null
 
 	fun decode(s: SyncStream) = this.read(s)
 	fun decode(file: File) = this.read(file.openSync("r"))
@@ -19,19 +21,21 @@ open class ImageFormat {
 }
 
 object ImageFormats : ImageFormat() {
-	private val formats = listOf(PNG, JPEG, BMP, TGA)
+	private val formats = listOf(PNG, JPEG, BMP, TGA, PSD)
 
-	override fun check(s: SyncStream): Boolean {
-		for (format in formats) if (format.check(s.slice())) return true
-		return false
+	override fun decodeHeader(s: SyncStream): ImageInfo? {
+		for (format in formats) return format.decodeHeader(s.slice()) ?: continue
+		return null
 	}
 
 	override fun read(s: SyncStream): Bitmap {
-		for (format in formats) {
-			if (format.check(s.slice())) {
-				return format.read(s.slice())
-			}
-		}
+		for (format in formats) if (format.check(s.slice())) return format.read(s.slice())
 		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
 	}
+}
+
+class ImageInfo {
+	var width: Int = 0
+	var height: Int = 0
+	var bitsPerPixel: Int = 0
 }

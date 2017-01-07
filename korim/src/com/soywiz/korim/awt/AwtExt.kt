@@ -12,12 +12,8 @@ import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
 
-fun Bitmap32.toAwt(): BufferedImage {
-	val out = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)
-	val ints = (out.raster.dataBuffer as DataBufferInt).data
-	System.arraycopy(this.data, 0, ints, 0, this.width * this.height)
-	for (n in 0 until area) ints[n] = RGBA.rgbaToBgra(ints[n])
-	out.flush()
+fun Bitmap32.toAwt(out: BufferedImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)): BufferedImage {
+	transferTo(out)
 	return out
 }
 
@@ -49,6 +45,7 @@ fun awtConvertImageIfRequired(image: BufferedImage): BufferedImage = if (image.t
 fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 	val ints = (out.raster.dataBuffer as DataBufferInt).data
 	System.arraycopy(this.data, 0, ints, 0, this.width * this.height)
+	for (n in 0 until area) ints[n] = RGBA.rgbaToBgra(ints[n])
 	out.flush()
 	return out
 }
