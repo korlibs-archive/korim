@@ -4,6 +4,8 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
 import java.awt.BorderLayout
+import java.awt.event.WindowAdapter
+import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferInt
 import java.io.ByteArrayInputStream
@@ -11,15 +13,28 @@ import javax.imageio.ImageIO
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
+import kotlin.coroutines.suspendCoroutine
 
 fun Bitmap32.toAwt(out: BufferedImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)): BufferedImage {
 	transferTo(out)
 	return out
 }
 
+suspend fun awtShowImageAndWait(image: Bitmap): Unit = awtShowImageAndWait(image.toBMP32())
+
+suspend fun awtShowImageAndWait(image: BufferedImage): Unit = suspendCoroutine { c ->
+	awtShowImage(image).addWindowListener(object : WindowAdapter() {
+		override fun windowClosed(e: WindowEvent?) {
+			c.resume(Unit)
+		}
+	})
+}
+
 fun awtShowImage(image: BufferedImage): JFrame {
 	println("Showing: $image")
-	val frame = JFrame("Image (${image.width}x${image.height})")
+	val frame = object : JFrame("Image (${image.width}x${image.height})") {
+
+	}
 	val label = JLabel()
 	label.icon = ImageIcon(image)
 	label.setSize(image.width, image.height)
@@ -27,7 +42,6 @@ fun awtShowImage(image: BufferedImage): JFrame {
 	//frame.setSize(bitmap.width, bitmap.height)
 	frame.pack()
 	frame.setLocationRelativeTo(null)
-	frame.defaultCloseOperation = JFrame.EXIT_ON_CLOSE
 	frame.isVisible = true
 	return frame
 }
