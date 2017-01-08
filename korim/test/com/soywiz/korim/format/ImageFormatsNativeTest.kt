@@ -8,15 +8,25 @@ import org.junit.Test
 
 class ImageFormatsNativeTest {
 	@Test
-	fun png() = sync {
-		val bitmap = ResourcesVfs["kotlin.png"].readBitmap()
-		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+	fun png8() = sync {
+		val bitmap = ResourcesVfs["kotlin8.png"].readNativeImage()
+		Assert.assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test
-	fun png8() = sync {
-		val bitmap = ResourcesVfs["kotlin8.png"].readBitmap()
+	fun png24() = sync {
+		val bitmap = ResourcesVfs["kotlin24.png"].readBitmap()
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
+	}
+
+
+	@Test
+	fun png32() = sync {
+		val bitmap = ResourcesVfs["kotlin32.png"].readBitmap()
+		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test

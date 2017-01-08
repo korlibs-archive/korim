@@ -1,5 +1,6 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.geom.IRectangle
 import java.util.*
@@ -134,7 +135,7 @@ class Bitmap32(
 		}
 	}
 
-	fun writeChannel(destination: BitmapChannel, gen: (x: Int, y: Int) -> Int) {
+	inline fun writeChannel(destination: BitmapChannel, gen: (x: Int, y: Int) -> Int) {
 		val destShift = destination.index * 8
 		val destClear = (0xFF shl destShift).inv()
 		var n = 0
@@ -147,7 +148,7 @@ class Bitmap32(
 		}
 	}
 
-	fun writeChannelN(destination: BitmapChannel, gen: (n: Int) -> Int) {
+	inline fun writeChannelN(destination: BitmapChannel, gen: (n: Int) -> Int) {
 		val destShift = destination.index * 8
 		val destClear = (0xFF shl destShift).inv()
 		for (n in 0 until area) {
@@ -218,6 +219,10 @@ class Bitmap32(
 		System.arraycopy(data, s0, temp, 0, width)
 		System.arraycopy(data, s1, data, s0, width)
 		System.arraycopy(temp, 0, data, s1, width)
+	}
+
+	fun writeDecoded(color: ColorFormat, data: ByteArray, offset: Int = 0, littleEndian: Boolean = true): Bitmap32 = this.apply {
+		color.decode(data, offset, this.data, 0, this.area, littleEndian = littleEndian)
 	}
 
 	override fun iterator(): Iterator<Int> = data.iterator()

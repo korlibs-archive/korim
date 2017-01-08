@@ -8,8 +8,8 @@ import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.vfs.VfsFile
 import java.util.*
 
-suspend fun ImageFormat.decode(s: VfsFile) = asyncFun { this.read(s.readAsSyncStream()) }
-suspend fun ImageFormat.decode(s: AsyncStream) = asyncFun { this.read(s.readAll()) }
+suspend fun ImageFormat.decode(s: VfsFile) = asyncFun { this.read(s.readAsSyncStream(), s.basename) }
+suspend fun ImageFormat.decode(s: AsyncStream, filename: String) = asyncFun { this.read(s.readAll(), filename) }
 
 val nativeImageFormatProviders by lazy {
 	ServiceLoader.load(NativeImageFormatProvider::class.java).toList()
@@ -28,7 +28,7 @@ suspend fun decodeImageBytes(bytes: ByteArray): NativeImage = asyncFun {
 suspend fun VfsFile.readNativeImage(): NativeImage = asyncFun { decodeImageBytes(this.read()) }
 
 suspend fun VfsFile.readImageFramesNoNative(): List<ImageFrame> = asyncFun {
-	ImageFormats.readFrames(this.readAsSyncStream())
+	ImageFormats.readFrames(this.readAsSyncStream(), this.basename)
 }
 
 suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = asyncFun {
@@ -40,8 +40,8 @@ suspend fun VfsFile.readBitmap(): Bitmap = asyncFun {
 	try {
 		decodeImageBytes(bytes).toNonNativeBmp()
 	} catch (t: Throwable) {
-		ImageFormats.decode(bytes)
+		ImageFormats.decode(bytes, this.basename)
 	}
 }
 
-suspend fun VfsFile.readBitmapNoNative(): Bitmap = asyncFun { ImageFormats.decode(this.read()) }
+suspend fun VfsFile.readBitmapNoNative(): Bitmap = asyncFun { ImageFormats.decode(this.read(), this.basename) }

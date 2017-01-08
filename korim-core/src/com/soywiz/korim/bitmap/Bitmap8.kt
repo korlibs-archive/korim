@@ -8,7 +8,7 @@ class Bitmap8(
 	height: Int,
 	data: ByteArray = ByteArray(width * height),
 	palette: IntArray = IntArray(255)
-) : BitmapIndexed(8, width, height) {
+) : BitmapIndexed(8, width, height, data, palette) {
 	operator override fun set(x: Int, y: Int, color: Int) = Unit.apply { datau[index(x, y)] = color }
 	operator override fun get(x: Int, y: Int): Int = datau[index(x, y)]
 	override fun get32(x: Int, y: Int): Int = palette[get(x, y)]

@@ -1,33 +1,32 @@
 package com.soywiz.korim.format
 
+import com.soywiz.korim.awt.awtShowImage
 import com.soywiz.korio.async.sync
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
 
-class ImageFormatsTest {
+class ImageFormats2Test {
 	@Test
 	fun png8() = sync {
 		val bitmap = ResourcesVfs["kotlin8.png"].readBitmapNoNative()
 		Assert.assertEquals("Bitmap8(190, 190, palette=32)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test
 	fun png24() = sync {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
+
 
 	@Test
 	fun png32() = sync {
 		val bitmap = ResourcesVfs["kotlin32.png"].readBitmapNoNative()
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
-	}
-
-	@Test
-	fun tga() = sync {
-		val bitmap = ResourcesVfs["kotlin.tga"].readBitmapNoNative()
-		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test

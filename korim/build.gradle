@@ -1,5 +1,9 @@
 apply from: '../include.gradle'
 
+sourceSets {
+	test.resources.srcDirs += ['../korim-core/testresources']
+}
+
 dependencies {
 	compile project(":korim-core")
 	compile "com.soywiz:korio:$korioVersion"

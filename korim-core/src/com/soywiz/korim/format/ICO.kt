@@ -4,11 +4,12 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap4
 import com.soywiz.korim.bitmap.Bitmap8
+import com.soywiz.korim.color.BGRA
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
-object ICO : ImageFormat() {
-	override fun decodeHeader(s: SyncStream): ImageInfo? {
+class ICO : ImageFormat() {
+	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
 		if (s.readU16_le() != 0) return null
 		if (s.readU16_le() != 1) return null
 		val count = s.readU16_le()
@@ -16,7 +17,7 @@ object ICO : ImageFormat() {
 		return ImageInfo()
 	}
 
-	override fun readFrames(s: SyncStream): List<ImageFrame> {
+	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
 		data class DirEntry(
 			val width: Int, val height: Int,
 			val colorCount: Int,
@@ -39,11 +40,8 @@ object ICO : ImageFormat() {
 		)
 
 		fun readBitmap(e: DirEntry, s: SyncStream): Bitmap {
-			val tryPNGHead = s.slice().readS32_be().toLong() and 0xFFFFFFFFL
-			if (tryPNGHead == 0x89_50_4E_47L) {
-				return PNG.decode(s.slice())
-			}
-			//println("%08X".format(tryPNGHead))
+			val tryPNGHead = s.slice().readU32_be()
+			if (tryPNGHead == 0x89_50_4E_47L) return PNG().decode(s.slice(), "$filename.png")
 
 			val headerSize = s.readS32_le()
 			val width = s.readS32_le()
@@ -71,34 +69,13 @@ object ICO : ImageFormat() {
 
 			val stride = (e.width * bitCount) / 8
 			val data = s.readBytes(stride * e.height)
-			val maskData = s.readBytes(e.width * e.height / 8)
-			val bmp2: Bitmap
 
-			if (bitCount == 4) {
-				val bmp = Bitmap4(e.width, e.height, data, palette)
-				bmp2 = bmp
-			} else if (bitCount == 8) {
-				val bmp = Bitmap8(e.width, e.height, data, palette)
-				bmp2 = bmp
-			} else if (bitCount == 32) {
-				//val stride = (e.width * bitCount) / 8
-				val bmp = Bitmap32(e.width, e.height)
-				bmp2 = bmp
-				var n = 0
-				for (y in 0 until e.height) {
-					for (x in 0 until e.width) {
-						val b = data[n++].toInt() and 0xFF
-						val g = data[n++].toInt() and 0xFF
-						val r = data[n++].toInt() and 0xFF
-						val a = data[n++].toInt() and 0xFF
-						bmp[x, y] = RGBA(r, g, b, a)
-					}
-				}
-			} else {
-				throw UnsupportedOperationException("Unsupported bitCount: $bitCount")
+			return when (bitCount) {
+				4 -> Bitmap4(e.width, e.height, data, palette)
+				8 -> Bitmap8(e.width, e.height, data, palette)
+				32 -> Bitmap32(e.width, e.height).writeDecoded(BGRA, data)
+				else -> throw UnsupportedOperationException("Unsupported bitCount: $bitCount")
 			}
-
-			return bmp2
 		}
 
 		val reserved = s.readU16_le()

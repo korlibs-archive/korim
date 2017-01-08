@@ -3,20 +3,23 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap8
+import com.soywiz.korim.color.RGB
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.UByteArray
+import com.soywiz.korio.util.toIntSafe
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
-import java.util.*
 import java.util.zip.CRC32
 import java.util.zip.Deflater
 import java.util.zip.DeflaterInputStream
 import java.util.zip.InflaterInputStream
 
-object PNG : ImageFormat() {
-	const val MAGIC1 = 0x89504E47.toInt()
-	const val MAGIC2 = 0x0D0A1A0A.toInt()
+class PNG : ImageFormat() {
+	companion object {
+		const val MAGIC1 = 0x89504E47.toInt()
+		const val MAGIC2 = 0x0D0A1A0A.toInt()
+	}
 
 	enum class Colorspace(val id: Int) {
 		GRAYSCALE(0),
@@ -33,7 +36,7 @@ object PNG : ImageFormat() {
 	class Header(
 		val width: Int,
 		val height: Int,
-		val bits: Int,
+		val bitsPerChannel: Int,
 		val colorspace: Colorspace, // 0=grayscale, 2=RGB, 3=Indexed, 4=grayscale+alpha, 6=RGBA
 		val compressionmethod: Int, // 0
 		val filtermethod: Int,
@@ -47,14 +50,15 @@ object PNG : ImageFormat() {
 			Colorspace.RGBA -> 4
 			else -> 1
 		}
+		val stride = width * bytes
 	}
 
-	override fun decodeHeader(s: SyncStream): ImageInfo? = try {
+	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? = try {
 		val header = readCommon(s, readHeader = true) as Header
 		ImageInfo().apply {
 			this.width = header.width
 			this.height = header.height
-			this.bitsPerPixel = header.bits
+			this.bitsPerPixel = header.bitsPerChannel
 		}
 	} catch (t: Throwable) {
 		null
@@ -156,8 +160,10 @@ object PNG : ImageFormat() {
 		s.readS32_be() // magic continuation
 
 		var pheader: Header? = null
-		val pngdata = ByteArrayOutputStream()
-		var palette = IntArray(0x100) { -1 }
+		val pngdata = ByteArrayOutputStream(s.length.toIntSafe())
+		val rgbPalette = UByteArray(3 * 0x100)
+		val aPalette = UByteArray(ByteArray(0x100) { -1 })
+		var paletteCount = 0
 
 		fun SyncStream.readChunk() {
 			val length = readS32_be()
@@ -171,7 +177,7 @@ object PNG : ImageFormat() {
 						Header(
 							width = readS32_be(),
 							height = readS32_be(),
-							bits = readU8(),
+							bitsPerChannel = readU8(),
 							colorspace = Colorspace.BY_ID[readU8()] ?: Colorspace.RGBA,
 							compressionmethod = readU8(),
 							filtermethod = readU8(),
@@ -180,24 +186,12 @@ object PNG : ImageFormat() {
 					}
 				}
 				"PLTE" -> {
-					palette = Arrays.copyOf(palette, data.length.toInt() / 3)
-					for (n in 0 until palette.size) {
-						val r = data.readU8()
-						val g = data.readU8()
-						val b = data.readU8()
-						val a = RGBA.getA(palette[n])
-						palette[n] = RGBA.pack(r, g, b, a)
-					}
+					paletteCount = Math.max(paletteCount, data.length.toInt() / 3)
+					data.read(rgbPalette.data, 0, data.length.toInt())
 				}
 				"tRNS" -> {
-					palette = Arrays.copyOf(palette, data.length.toInt())
-					for (n in 0 until palette.size) {
-						val r = RGBA.getR(palette[n])
-						val g = RGBA.getG(palette[n])
-						val b = RGBA.getB(palette[n])
-						val a = data.readU8()
-						palette[n] = RGBA.pack(r, g, b, a)
-					}
+					paletteCount = Math.max(paletteCount, data.length.toInt())
+					data.read(aPalette.data, 0, data.length.toInt())
 				}
 				"IDAT" -> {
 					pngdata.write(data.readAll())
@@ -215,17 +209,21 @@ object PNG : ImageFormat() {
 
 		val header = pheader ?: throw IllegalArgumentException("PNG without header!")
 
-		val data = InflaterInputStream(ByteArrayInputStream(pngdata.toByteArray())).readBytes().openSync()
+		val estimatedBytes = (1 + header.width) * header.height * header.bytes
+		val stride = header.stride
 
-		var lastRow = UByteArray(header.width * header.bytes)
-		var currentRow = UByteArray(header.width * header.bytes)
+		val data = InflaterInputStream(ByteArrayInputStream(pngdata.toByteArray())).readBytes(estimatedBytes).openSync()
+
+		var lastRow = UByteArray(stride)
+		var currentRow = UByteArray(stride)
 
 		when (header.bytes) {
 			1 -> {
+				val palette = (0 until paletteCount).map { RGBA(rgbPalette[it * 3 + 0], rgbPalette[it * 3 + 1], rgbPalette[it * 3 + 2], aPalette[it]) }.toIntArray()
 				val out = Bitmap8(header.width, header.height, palette = palette)
 				for (y in 0 until header.height) {
 					val filter = data.readU8()
-					data.read(currentRow.data, 0, header.width * header.bytes)
+					data.read(currentRow.data, 0, stride)
 					applyFilter(filter, lastRow, currentRow, header.bytes)
 					out.setRow(y, currentRow.data)
 					val temp = currentRow
@@ -239,29 +237,11 @@ object PNG : ImageFormat() {
 				val out = Bitmap32(header.width, header.height)
 				for (y in 0 until header.height) {
 					val filter = data.readU8()
-					data.read(currentRow.data, 0, header.width * header.bytes)
+					data.read(currentRow.data, 0, stride)
 					applyFilter(filter, lastRow, currentRow, header.bytes)
 					when (header.bytes) {
-						3 -> {
-							var m = 0
-							for (n in 0 until header.width) {
-								val r = currentRow[m++]
-								val g = currentRow[m++]
-								val b = currentRow[m++]
-								row[n] = RGBA.packFast(r, g, b, 0xFF)
-							}
-						}
-						4 -> {
-							var m = 0
-							for (n in 0 until header.width) {
-								val r = currentRow[m++]
-								val g = currentRow[m++]
-								val b = currentRow[m++]
-								val a = currentRow[m++]
-								row[n] = RGBA.packFast(r, g, b, a)
-								//System.out.printf("%02X,%02X,%02X,%02X\n", r, g, b, a)
-							}
-						}
+						3 -> RGB.decode(currentRow.data, 0, row, 0, header.width)
+						4 -> RGBA.decode(currentRow.data, 0, row, 0, header.width)
 						else -> TODO("Bytes: ${header.bytes}")
 					}
 					out.setRow(y, row)
@@ -275,7 +255,7 @@ object PNG : ImageFormat() {
 		}
 	}
 
-	override fun readFrames(s: SyncStream): List<ImageFrame> {
+	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
 		return listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap))
 	}
 
