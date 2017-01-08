@@ -20,11 +20,11 @@ fun Bitmap32.toAwt(out: BufferedImage = BufferedImage(width, height, BufferedIma
 	return out
 }
 
-suspend fun awtShowImageAndWait(image: Bitmap): Unit = awtShowImageAndWait(image.toBMP32())
+suspend fun awtShowImageAndWait(image: Bitmap): Unit = awtShowImageAndWait(image.toBMP32().toAwt())
 
 suspend fun awtShowImageAndWait(image: BufferedImage): Unit = suspendCoroutine { c ->
 	awtShowImage(image).addWindowListener(object : WindowAdapter() {
-		override fun windowClosed(e: WindowEvent?) {
+		override fun windowClosing(e: WindowEvent) {
 			c.resume(Unit)
 		}
 	})
@@ -40,6 +40,7 @@ fun awtShowImage(image: BufferedImage): JFrame {
 	label.setSize(image.width, image.height)
 	frame.add(label, BorderLayout.CENTER)
 	//frame.setSize(bitmap.width, bitmap.height)
+	frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
 	frame.pack()
 	frame.setLocationRelativeTo(null)
 	frame.isVisible = true
