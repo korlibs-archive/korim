@@ -12,5 +12,6 @@ class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 }
 
 class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {
+	override val bpp = 32
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
 }

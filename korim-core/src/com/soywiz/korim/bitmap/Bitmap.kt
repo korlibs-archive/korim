@@ -2,7 +2,8 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korio.util.clamp
 
-open class Bitmap(val width: Int, val height: Int) {
+abstract class Bitmap(val width: Int, val height: Int) {
+	abstract val bpp: Int
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
 
@@ -18,12 +19,11 @@ open class Bitmap(val width: Int, val height: Int) {
 
 	fun toBMP32(): Bitmap32 = when (this) {
 		is Bitmap32 -> this
-		is Bitmap8 -> {
+		is NativeImage -> this.toBmp32()
+		else -> {
 			val out = Bitmap32(width, height)
 			for (y in 0 until height) for (x in 0 until width) out[x, y] = this.get32(x, y)
 			out
 		}
-		is NativeImage -> this.toBmp32()
-		else -> throw IllegalArgumentException("Invalid Bitmap")
 	}
 }

@@ -9,6 +9,7 @@ class Bitmap32(
 	height: Int,
 	val data: IntArray = IntArray(width * height)
 ) : Bitmap(width, height), Iterable<Int> {
+	override val bpp = 32
 	private val temp = IntArray(Math.max(width, height))
 
 	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height) {

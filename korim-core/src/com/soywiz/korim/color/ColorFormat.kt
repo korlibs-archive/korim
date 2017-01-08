@@ -25,6 +25,10 @@ abstract class ColorFormat {
 
 	fun packRGBA(v: Int): Int = pack(RGBA.getR(v), RGBA.getG(v), RGBA.getB(v), RGBA.getA(v))
 
+	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
+		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
+	)
+
 	companion object {
 		fun clamp0_FF(v: Int) = if (v < 0x00) 0x00 else if (v > 0xFF) 0xFF else v
 		fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v

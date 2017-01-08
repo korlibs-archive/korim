@@ -10,6 +10,7 @@ class Bitmap8(
 	var palette: IntArray = IntArray(255)
 ) : Bitmap(width, height) {
 	val datau = UByteArray(data)
+	override val bpp = 8
 	operator fun set(x: Int, y: Int, color: Int) = Unit.apply { datau[index(x, y)] = color }
 	operator fun get(x: Int, y: Int): Int = datau[index(x, y)]
 	override fun get32(x: Int, y: Int): Int = palette[get(x, y)]

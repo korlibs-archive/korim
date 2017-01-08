@@ -2,10 +2,12 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korio.stream.*
+import com.soywiz.korim.format.ICO
 import java.io.File
 
 open class ImageFormat {
 	open fun decodeHeader(s: SyncStream): ImageInfo? = TODO()
+	open fun readBitmaps(s: SyncStream): List<Bitmap> = listOf(read(s))
 	open fun read(s: SyncStream): Bitmap = TODO()
 	fun read(file: File) = this.read(file.openSync())
 	fun read(s: ByteArray): Bitmap = read(s.openSync())
@@ -21,7 +23,7 @@ open class ImageFormat {
 }
 
 object ImageFormats : ImageFormat() {
-	private val formats = listOf(PNG, JPEG, BMP, TGA, PSD)
+	private val formats = listOf(PNG, JPEG, BMP, TGA, PSD, ICO)
 
 	override fun decodeHeader(s: SyncStream): ImageInfo? {
 		for (format in formats) return format.decodeHeader(s.slice()) ?: continue
