@@ -109,6 +109,10 @@ class Bitmap32(
 		forEach { n, x, y -> this.data[n] = callback(x, y) }
 	}
 
+	inline fun transformColor(callback: (rgba: Int) -> Int) {
+		forEach { n, x, y -> this.data[n] = callback(this.data[n]) }
+	}
+
 	fun writeChannel(destination: BitmapChannel, input: Bitmap32, source: BitmapChannel) {
 		val sourceShift = source.shift
 		val destShift = destination.shift
@@ -130,6 +134,28 @@ class Bitmap32(
 		}
 	}
 
+	fun writeChannel(destination: BitmapChannel, gen: (x: Int, y: Int) -> Int) {
+		val destShift = destination.index * 8
+		val destClear = (0xFF shl destShift).inv()
+		var n = 0
+		for (y in 0 until height) {
+			for (x in 0 until width) {
+				val c = gen(x, y) and 0xFF
+				this.data[n] = (this.data[n] and destClear) or (c shl destShift)
+				n++
+			}
+		}
+	}
+
+	fun writeChannelN(destination: BitmapChannel, gen: (n: Int) -> Int) {
+		val destShift = destination.index * 8
+		val destClear = (0xFF shl destShift).inv()
+		for (n in 0 until area) {
+			val c = gen(n) and 0xFF
+			this.data[n] = (this.data[n] and destClear) or (c shl destShift)
+		}
+	}
+
 	fun extractChannel(channel: BitmapChannel): Bitmap8 {
 		val out = Bitmap8(width, height)
 		val shift = channel.shift
@@ -144,6 +170,36 @@ class Bitmap32(
 			val out = Bitmap32(color.width, color.height)
 			out.put(color)
 			out.writeChannel(BitmapChannel.ALPHA, alpha, BitmapChannel.RED)
+			return out
+		}
+
+		// https://en.wikipedia.org/wiki/Structural_similarity
+		fun matchesSSMI(a: Bitmap, b: Bitmap): Boolean = TODO()
+
+		fun matches(a: Bitmap, b: Bitmap, threshold: Int = 32): Boolean {
+			val diff = diff(a, b)
+			return diff.data.all {
+				(RGBA.getR(it) < threshold) && (RGBA.getG(it) < threshold) &&
+					(RGBA.getB(it) < threshold) && (RGBA.getA(it) < threshold)
+			}
+		}
+
+		fun diff(a: Bitmap, b: Bitmap): Bitmap32 {
+			if (a.width != b.width || a.height != b.height) throw IllegalArgumentException("$a not matches $b size")
+			val a32 = a.toBMP32()
+			val b32 = b.toBMP32()
+			val out = Bitmap32(a.width, a.height)
+			for (n in 0 until out.area) {
+				val c1 = a32.data[n]
+				val c2 = b32.data[n]
+
+				val dr = Math.abs(RGBA.getR(c1) - RGBA.getR(c2))
+				val dg = Math.abs(RGBA.getG(c1) - RGBA.getG(c2))
+				val db = Math.abs(RGBA.getB(c1) - RGBA.getB(c2))
+				val da = Math.abs(RGBA.getA(c1) - RGBA.getA(c2))
+
+				out.data[n] = RGBA.pack(dr, dg, db, da)
+			}
 			return out
 		}
 	}

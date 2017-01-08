@@ -69,7 +69,7 @@ object JPEG : ImageFormat() {
  * @author Matthias Mann
  */
 class JPEGDecoder
-(private val `is`: InputStream) {
+(private val iss: InputStream) {
 	private val inputBuffer: ByteArray
 	private var inputBufferPos: Int = 0
 	private var inputBufferValid: Int = 0
@@ -118,7 +118,6 @@ class JPEGDecoder
 		this.dequant = Array(4) { ByteArray(64) }
 	}
 
-	@Throws(IOException::class)
 	fun decodeHeader() {
 		if (!headerDecoded) {
 			headerDecoded = true
@@ -157,7 +156,6 @@ class JPEGDecoder
 			return imgVMax * 8
 		}
 
-	@Throws(IOException::class)
 	fun startDecode(): Boolean {
 		if (insideSOS) {
 			throw IllegalStateException("decode already started")
@@ -185,7 +183,6 @@ class JPEGDecoder
 		return false
 	}
 
-	@Throws(IOException::class)
 	fun decodeRGB(dst: ByteBuffer, stride: Int, numMCURows: Int) {
 		if (!insideSOS) {
 			throw IllegalStateException("decode not started")
@@ -230,7 +227,6 @@ class JPEGDecoder
 		checkDecodeEnd()
 	}
 
-	@Throws(IOException::class)
 	fun decodeRAW(buffer: Array<ByteBuffer>, strides: IntArray, numMCURows: Int) {
 		if (!insideSOS) {
 			throw IllegalStateException("decode not started")
@@ -295,7 +291,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	fun decodeDCTCoeffs(buffer: Array<ShortBuffer>, numMCURows: Int) {
 		if (!insideSOS) {
 			throw IllegalStateException("decode not started")
@@ -357,7 +352,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun checkDecodeEnd() {
 		if (currentMCURow >= numMCURows || marker != MARKER_NONE) {
 			insideSOS = false
@@ -367,28 +361,21 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun fetch() {
 		try {
 			inputBufferPos = 0
-			inputBufferValid = `is`.read(inputBuffer)
+			inputBufferValid = iss.read(inputBuffer)
 
-			if (inputBufferValid <= 0) {
-				throw EOFException()
-			}
+			if (inputBufferValid <= 0) throw EOFException()
 		} catch (ex: IOException) {
 			inputBufferValid = 2
 			inputBuffer[0] = 0xFF.toByte()
 			inputBuffer[1] = 0xD9.toByte()    // EOI
-
-			if (!isIgnoreIOerror) {
-				throw ex
-			}
+			if (!isIgnoreIOerror) throw ex
 		}
 
 	}
 
-	@Throws(IOException::class)
 	private fun read(buf: ByteArray, off: Int, len: Int) {
 		var off = off
 		var len = len
@@ -407,7 +394,6 @@ class JPEGDecoder
 	}
 
 	private val u8: Int
-		@Throws(IOException::class)
 		get() {
 			if (inputBufferPos == inputBufferValid) {
 				fetch()
@@ -416,13 +402,11 @@ class JPEGDecoder
 		}
 
 	private val u16: Int
-		@Throws(IOException::class)
 		get() {
 			val t = u8
 			return t shl 8 or u8
 		}
 
-	@Throws(IOException::class)
 	private fun skip(amount: Int) {
 		var amount = amount
 		while (amount > 0) {
@@ -437,7 +421,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun growBufferCheckMarker() {
 		val c = u8
 		if (c != 0) {
@@ -446,7 +429,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun growBufferUnsafe() {
 		do {
 			var b = 0
@@ -461,7 +443,6 @@ class JPEGDecoder
 		} while (codeBits <= 24)
 	}
 
-	@Throws(IOException::class)
 	private fun decode(h: Huffman): Int {
 		if (codeBits < 16) {
 			growBufferUnsafe()
@@ -476,14 +457,11 @@ class JPEGDecoder
 		return decodeSlow(h)
 	}
 
-	@Throws(IOException::class)
 	private fun decodeSlow(h: Huffman): Int {
 		val temp = codeBuffer.ushr(16)
 		var s = Huffman.FAST_BITS + 1
 
-		while (temp >= h.maxCode[s]) {
-			s++
-		}
+		while (temp >= h.maxCode[s]) s++
 
 		val k = temp.ushr(16 - s) + h.delta[s]
 		codeBuffer = codeBuffer shl s
@@ -491,7 +469,6 @@ class JPEGDecoder
 		return h.values[k].toInt() and 255
 	}
 
-	@Throws(IOException::class)
 	private fun extendReceive(n: Int): Int {
 		if (codeBits < 24) {
 			growBufferUnsafe()
@@ -508,7 +485,6 @@ class JPEGDecoder
 		return k
 	}
 
-	@Throws(IOException::class)
 	private fun decodeBlock(data: ShortArray, c: Component) {
 		Arrays.fill(data, 0.toShort())
 
@@ -541,7 +517,6 @@ class JPEGDecoder
 		} while (++k < 64)
 	}
 
-	@Throws(IOException::class)
 	private fun getMarker(): Int {
 		var m = marker
 		if (m != MARKER_NONE) {
@@ -575,11 +550,8 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun checkRestart(): Boolean {
-		if (codeBits < 24) {
-			growBufferUnsafe()
-		}
+		if (codeBits < 24) growBufferUnsafe()
 		if (marker >= 0xD0 && marker <= 0xD7) {
 			reset()
 			return true
@@ -587,7 +559,6 @@ class JPEGDecoder
 		return false
 	}
 
-	@Throws(IOException::class)
 	private fun processMarker(marker: Int) {
 		if (marker >= 0xE0 && (marker <= 0xEF || marker == 0xFE)) {
 			val l = u16 - 2
@@ -663,7 +634,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun skipPadding() {
 		var x: Int
 		do {
@@ -675,7 +645,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun processScanHeader() {
 		val ls = u16
 		val scanN = u8
@@ -721,7 +690,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IOException::class)
 	private fun processSOF() {
 		val lf = u16
 		if (lf < 11) {
@@ -791,7 +759,6 @@ class JPEGDecoder
 		}
 	}
 
-	@Throws(IllegalStateException::class)
 	private fun ensureHeaderDecoded() {
 		if (!headerDecoded) {
 			throw IllegalStateException("need to decode header first")
@@ -822,7 +789,6 @@ class JPEGDecoder
 		return requiresUpsampling
 	}
 
-	@Throws(IOException::class)
 	private fun decodeMCUrow() {
 		++currentMCURow
 		for (i in 0..numMCUColumns - 1) {
@@ -909,9 +875,7 @@ class JPEGDecoder
 		}
 	}
 
-	class Huffman @Throws(IOException::class)
-	constructor(count: IntArray) {
-
+	class Huffman constructor(count: IntArray) {
 		internal val fast: ByteArray
 		internal val values: ByteArray
 		internal val size: ByteArray
@@ -932,9 +896,7 @@ class JPEGDecoder
 				var i = 0
 				var k = 0
 				while (i < 16) {
-					for (j in 0..count[i] - 1) {
-						size[k++] = (i + 1).toByte()
-					}
+					for (j in 0..count[i] - 1) size[k++] = (i + 1).toByte()
 					i++
 				}
 			}
@@ -969,26 +931,21 @@ class JPEGDecoder
 				if (s <= FAST_BITS) {
 					val c = code[i] shl FAST_BITS - s
 					val m = 1 shl FAST_BITS - s
-					for (j in 0..m - 1) {
-						fast[c + j] = i.toByte()
-					}
+					for (j in 0..m - 1) fast[c + j] = i.toByte()
 				}
 				i++
 			}
 		}
 
-		val numSymbols: Int
-			get() = values.size
+		val numSymbols: Int get() = values.size
 
 		companion object {
-
 			internal val FAST_BITS = 9
 			internal val FAST_MASK = (1 shl FAST_BITS) - 1
 		}
 	}
 
 	class IDCT_2D {
-
 		internal val tmp2D = IntArray(64)
 
 		private fun computeV(data: ShortArray) {
@@ -1050,70 +1007,7 @@ class JPEGDecoder
 		}
 
 		fun compute(out: ByteBuffer, outPos: Int, outStride: Int, data: ShortArray) {
-			var outPos = outPos
-			computeV(data)
-
-			val tmp = tmp2D
-			var i = 0
-			while (i < 64) {
-				val s0 = tmp[i] + (257 shl 4)
-				val s1 = tmp[i + 1]
-				val s2 = tmp[i + 2]
-				val s3 = tmp[i + 3]
-				val s4 = tmp[i + 4]
-				val s5 = tmp[i + 5]
-				val s6 = tmp[i + 6]
-				val s7 = tmp[i + 7]
-
-				var p1: Int
-				var p2: Int
-				var p3: Int
-				var p4: Int
-				var p5: Int
-
-				p1 = (s2 + s6) * C0
-				p2 = s0 + s4 shl 12
-				p3 = s0 - s4 shl 12
-				p4 = p1 + s6 * C1
-				p5 = p1 + s2 * C2
-
-				val x0 = p2 + p5
-				val x3 = p2 - p5
-				val x1 = p3 + p4
-				val x2 = p3 - p4
-
-				p1 = s7 + s1
-				p2 = s5 + s3
-				p3 = s7 + s3
-				p4 = s5 + s1
-				p5 = (p3 + p4) * C3
-
-				p1 = p5 + p1 * C8
-				p2 = p5 + p2 * C9
-				p3 = p3 * C10
-				p4 = p4 * C11
-
-				val t0 = s7 * C4 + p1 + p3
-				val t1 = s5 * C5 + p2 + p4
-				val t2 = s3 * C6 + p2 + p3
-				val t3 = s1 * C7 + p1 + p4
-
-				out.put(outPos + 0, clampShift17(x0 + t3))
-				out.put(outPos + 7, clampShift17(x0 - t3))
-				out.put(outPos + 1, clampShift17(x1 + t2))
-				out.put(outPos + 6, clampShift17(x1 - t2))
-				out.put(outPos + 2, clampShift17(x2 + t1))
-				out.put(outPos + 5, clampShift17(x2 - t1))
-				out.put(outPos + 3, clampShift17(x3 + t0))
-				out.put(outPos + 4, clampShift17(x3 - t0))
-
-				outPos += outStride
-				i += 8
-			}
-		}
-
-		fun compute(out: ByteArray, outPos: Int, outStride: Int, data: ShortArray) {
-			var outPos = outPos
+			var opos = outPos
 			computeV(data)
 
 			val tmp = tmp2D
@@ -1128,17 +1022,11 @@ class JPEGDecoder
 				val s6 = tmp[i + 6]
 				val s7 = tmp[i + 7]
 
-				var p1: Int
-				var p2: Int
-				var p3: Int
-				var p4: Int
-				var p5: Int
-
-				p1 = (s2 + s6) * C0
-				p2 = s0 + s4 shl 12
-				p3 = s0 - s4 shl 12
-				p4 = p1 + s6 * C1
-				p5 = p1 + s2 * C2
+				var p1 = (s2 + s6) * C0
+				var p2 = s0 + s4 shl 12
+				var p3 = s0 - s4 shl 12
+				var p4 = p1 + s6 * C1
+				var p5 = p1 + s2 * C2
 
 				val x0 = p2 + p5
 				val x3 = p2 - p5
@@ -1161,22 +1049,78 @@ class JPEGDecoder
 				val t2 = s3 * C6 + p2 + p3
 				val t3 = s1 * C7 + p1 + p4
 
-				out[outPos] = clampShift17(x0 + t3)
-				out[outPos + 7] = clampShift17(x0 - t3)
-				out[outPos + 1] = clampShift17(x1 + t2)
-				out[outPos + 6] = clampShift17(x1 - t2)
-				out[outPos + 2] = clampShift17(x2 + t1)
-				out[outPos + 5] = clampShift17(x2 - t1)
-				out[outPos + 3] = clampShift17(x3 + t0)
-				out[outPos + 4] = clampShift17(x3 - t0)
+				out.put(opos + 0, clampShift17(x0 + t3))
+				out.put(opos + 7, clampShift17(x0 - t3))
+				out.put(opos + 1, clampShift17(x1 + t2))
+				out.put(opos + 6, clampShift17(x1 - t2))
+				out.put(opos + 2, clampShift17(x2 + t1))
+				out.put(opos + 5, clampShift17(x2 - t1))
+				out.put(opos + 3, clampShift17(x3 + t0))
+				out.put(opos + 4, clampShift17(x3 - t0))
 
-				outPos += outStride
+				opos += outStride
+				i += 8
+			}
+		}
+
+		fun compute(out: ByteArray, outPos: Int, outStride: Int, data: ShortArray) {
+			var opos = outPos
+			computeV(data)
+
+			val tmp = tmp2D
+			var i = 0
+			while (i < 64) {
+				val s0 = tmp[i + 0] + (257 shl 4)
+				val s1 = tmp[i + 1]
+				val s2 = tmp[i + 2]
+				val s3 = tmp[i + 3]
+				val s4 = tmp[i + 4]
+				val s5 = tmp[i + 5]
+				val s6 = tmp[i + 6]
+				val s7 = tmp[i + 7]
+
+				var p1 = (s2 + s6) * C0
+				var p2 = s0 + s4 shl 12
+				var p3 = s0 - s4 shl 12
+				var p4 = p1 + s6 * C1
+				var p5 = p1 + s2 * C2
+
+				val x0 = p2 + p5
+				val x3 = p2 - p5
+				val x1 = p3 + p4
+				val x2 = p3 - p4
+
+				p1 = s7 + s1
+				p2 = s5 + s3
+				p3 = s7 + s3
+				p4 = s5 + s1
+				p5 = (p3 + p4) * C3
+
+				p1 = p5 + p1 * C8
+				p2 = p5 + p2 * C9
+				p3 = p3 * C10
+				p4 = p4 * C11
+
+				val t0 = s7 * C4 + p1 + p3
+				val t1 = s5 * C5 + p2 + p4
+				val t2 = s3 * C6 + p2 + p3
+				val t3 = s1 * C7 + p1 + p4
+
+				out[opos] = clampShift17(x0 + t3)
+				out[opos + 7] = clampShift17(x0 - t3)
+				out[opos + 1] = clampShift17(x1 + t2)
+				out[opos + 6] = clampShift17(x1 - t2)
+				out[opos + 2] = clampShift17(x2 + t1)
+				out[opos + 5] = clampShift17(x2 - t1)
+				out[opos + 3] = clampShift17(x3 + t0)
+				out[opos + 4] = clampShift17(x3 - t0)
+
+				opos += outStride
 				i += 8
 			}
 		}
 
 		companion object {
-
 			private val C0 = f2f(0.541196100)
 			private val C1 = f2f(-1.847759065)
 			private val C2 = f2f(0.765366865)
@@ -1190,88 +1134,61 @@ class JPEGDecoder
 			private val C10 = f2f(-1.961570560)
 			private val C11 = f2f(-0.390180644)
 
-			private fun clampShift17(x: Int): Byte {
-				if (x < 0) return 0
-				if (x > 255 shl 17) return 255.toByte()
-				return x.ushr(17).toByte()
-			}
-
-			@Strictfp private fun f2f(x: Double): Int {
-				return Math.round(Math.scalb(x, 12)).toInt()
-			}
+			private fun clampShift17(x: Int): Byte = (if (x < 0) 0 else if (x > 255 shl 17) 255 else x.ushr(17)).toByte()
+			@Strictfp private fun f2f(x: Double): Int = Math.round(Math.scalb(x, 12)).toInt()
 		}
 	}
 
-	class Component internal constructor(val id: Int) {
-
-		internal var dcPred: Int = 0
-		internal var huffDC: Huffman? = null
-		internal var huffAC: Huffman? = null
-		internal var dequant: ByteArray? = null
+	class Component(val id: Int) {
+		var dcPred: Int = 0
+		var huffDC: Huffman? = null
+		var huffAC: Huffman? = null
+		var dequant: ByteArray? = null
 		var blocksPerMCUVert: Int = 0
-			internal set
 		var blocksPerMCUHorz: Int = 0
-			internal set
 		var width: Int = 0
-			internal set
 		var height: Int = 0
-			internal set
 		var minReqWidth: Int = 0
-			internal set
 		var minReqHeight: Int = 0
-			internal set
-		internal var outPos: Int = 0
-		internal var upsampler: Int = 0
+		var outPos: Int = 0
+		var upsampler: Int = 0
 	}
 
 	companion object {
 		internal val MARKER_NONE = 0xFF
 
-		@Throws(IOException::class)
-		private fun throwBadHuffmanCode() {
-			throw IOException("Bad huffman code")
-		}
+		private fun throwBadHuffmanCode(): Nothing = throw IOException("Bad huffman code")
 
 		private fun YUVtoRGB(out: ByteBuffer, outPos: Int, inY: ByteArray, inU: ByteArray, inV: ByteArray, inPos: Int, count: Int) {
-			var outPos = outPos
-			var inPos = inPos
-			var count = count
-			do {
-				val y = inY[inPos].toInt() and 255
-				val u = (inU[inPos].toInt() and 255) - 128
-				val v = (inV[inPos].toInt() and 255) - 128
-				var r = y + (32768 + v * 91881 shr 16)
-				var g = y + (32768 - v * 46802 - u * 22554 shr 16)
-				var b = y + (32768 + u * 116130 shr 16)
-				if (r > 255)
-					r = 255
-				else if (r < 0) r = 0
-				if (g > 255)
-					g = 255
-				else if (g < 0) g = 0
-				if (b > 255)
-					b = 255
-				else if (b < 0) b = 0
-				out.put(outPos + 0, r.toByte())
-				out.put(outPos + 1, g.toByte())
-				out.put(outPos + 2, b.toByte())
-				out.put(outPos + 3, 255.toByte())
-				outPos += 4
-				inPos++
-			} while (--count > 0)
+			var opos = outPos
+			var ipos = inPos
+			for (n in 0 until count) {
+				val y = inY[ipos].toInt() and 255
+				val u = (inU[ipos].toInt() and 255) - 128
+				val v = (inV[ipos].toInt() and 255) - 128
+				val r = RGBA.clamp0_FF(y + (32768 + v * 91881 shr 16))
+				val g = RGBA.clamp0_FF(y + (32768 - v * 46802 - u * 22554 shr 16))
+				val b = RGBA.clamp0_FF(y + (32768 + u * 116130 shr 16))
+				out.put(opos + 0, r.toByte())
+				out.put(opos + 1, g.toByte())
+				out.put(opos + 2, b.toByte())
+				out.put(opos + 3, 255.toByte())
+				opos += 4
+				ipos++
+			}
 		}
 
-		private fun upsampleH2(out: ByteArray, outPos: Int, `in`: ByteArray, inPos: Int, width: Int) {
+		private fun upsampleH2(out: ByteArray, outPos: Int, inp: ByteArray, inPos: Int, width: Int) {
 			if (width == 1) {
-				out[outPos + 1] = `in`[inPos]
+				out[outPos + 1] = inp[inPos]
 				out[outPos] = out[outPos + 1]
 			} else {
-				var i0 = `in`[inPos].toInt() and 255
-				var i1 = `in`[inPos + 1].toInt() and 255
+				var i0 = inp[inPos].toInt() and 255
+				var i1 = inp[inPos + 1].toInt() and 255
 				out[outPos] = i0.toByte()
 				out[outPos + 1] = (i0 * 3 + i1 + 2 shr 2).toByte()
 				for (i in 2..width - 1) {
-					val i2 = `in`[inPos + i].toInt() and 255
+					val i2 = inp[inPos + i].toInt() and 255
 					val n = i1 * 3 + 2
 					out[outPos + i * 2 - 2] = (n + i0 shr 2).toByte()
 					out[outPos + i * 2 - 1] = (n + i2 shr 2).toByte()
@@ -1283,24 +1200,22 @@ class JPEGDecoder
 			}
 		}
 
-		private fun upsampleV2(out: ByteArray, outPos: Int, `in`: ByteArray, inPos0: Int, inPos1: Int, width: Int) {
-			for (i in 0..width - 1) {
-				out[outPos + i] = (3 * (`in`[inPos0 + i].toInt() and 255) + (`in`[inPos1 + i].toInt() and 255) + 2 shr 2).toByte()
-			}
+		private fun upsampleV2(out: ByteArray, outPos: Int, inp: ByteArray, inPos0: Int, inPos1: Int, width: Int) {
+			for (i in 0..width - 1) out[outPos + i] = (3 * (inp[inPos0 + i].toInt() and 255) + (inp[inPos1 + i].toInt() and 255) + 2 shr 2).toByte()
 		}
 
-		private fun upsampleHV2(out: ByteArray, outPos: Int, `in`: ByteArray, inPos0: Int, inPos1: Int, width: Int) {
+		private fun upsampleHV2(out: ByteArray, outPos: Int, inp: ByteArray, inPos0: Int, inPos1: Int, width: Int) {
 			if (width == 1) {
-				val i0 = `in`[inPos0].toInt() and 255
-				val i1 = `in`[inPos1].toInt() and 255
+				val i0 = inp[inPos0].toInt() and 255
+				val i1 = inp[inPos1].toInt() and 255
 				out[outPos + 1] = (i0 * 3 + i1 + 2 shr 2).toByte()
 				out[outPos] = out[outPos + 1]
 			} else {
-				var i1 = 3 * (`in`[inPos0].toInt() and 255) + (`in`[inPos1].toInt() and 255)
+				var i1 = 3 * (inp[inPos0].toInt() and 255) + (inp[inPos1].toInt() and 255)
 				out[outPos] = (i1 + 2 shr 2).toByte()
 				for (i in 1..width - 1) {
 					val i0 = i1
-					i1 = 3 * (`in`[inPos0 + i].toInt() and 255) + (`in`[inPos1 + i].toInt() and 255)
+					i1 = 3 * (inp[inPos0 + i].toInt() and 255) + (inp[inPos1 + i].toInt() and 255)
 					out[outPos + i * 2 - 1] = (3 * i0 + i1 + 8 shr 4).toByte()
 					out[outPos + i * 2] = (3 * i1 + i0 + 8 shr 4).toByte()
 				}
@@ -1318,6 +1233,7 @@ class JPEGDecoder
 			"\u003a\u003b\u0034\u002d\u0026\u001f\u0027\u002e" +
 			"\u0035\u003c\u003d\u0036\u002f\u0037\u003e\u003f" +
 			"\u003f\u003f\u003f\u003f\u003f\u003f\u003f\u003f" +
-			"\u003f\u003f\u003f\u003f\u003f\u003f\u003f").toCharArray()
+			"\u003f\u003f\u003f\u003f\u003f\u003f\u003f"
+			).toCharArray()
 	}
 }
