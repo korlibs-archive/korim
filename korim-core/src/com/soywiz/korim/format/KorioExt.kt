@@ -45,3 +45,7 @@ suspend fun VfsFile.readBitmap(): Bitmap = asyncFun {
 }
 
 suspend fun VfsFile.readBitmapNoNative(): Bitmap = asyncFun { ImageFormats.decode(this.read(), this.basename) }
+
+suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat) = asyncFun {
+	this.write(format.encode(bitmap))
+}
