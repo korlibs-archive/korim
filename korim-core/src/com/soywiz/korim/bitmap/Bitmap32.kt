@@ -187,8 +187,8 @@ class Bitmap32(
 			val b32 = b.toBMP32()
 			val out = Bitmap32(a.width, a.height)
 			for (n in 0 until out.area) {
-				val c1 = a32.data[n]
-				val c2 = b32.data[n]
+				val c1 = RGBA.multipliedByAlpha(a32.data[n])
+				val c2 = RGBA.multipliedByAlpha(b32.data[n])
 
 				val dr = Math.abs(RGBA.getR(c1) - RGBA.getR(c2))
 				val dg = Math.abs(RGBA.getG(c1) - RGBA.getG(c2))

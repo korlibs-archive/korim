@@ -17,6 +17,19 @@ object RGBA : ColorFormat32() {
 
 	@JvmStatic fun getRGB(v: Int): Int = v and 0xFFFFFF
 
+	@JvmStatic fun multipliedByAlpha(v: Int): Int {
+		return pack((getR(v) * getAd(v)).toInt(), (getG(v) * getAd(v)).toInt(), (getB(v) * getAd(v)).toInt(), getA(v))
+	}
+
+	@JvmStatic fun depremultiply(v: Int): Int {
+		val alpha = getAd(v)
+		if (alpha == 0.0) {
+			return Colors.TRANSPARENT_WHITE
+		} else {
+			return pack((getR(v) / getAd(v)).toInt(), (getG(v) / getAd(v)).toInt(), (getB(v) / getAd(v)).toInt(), getA(v))
+		}
+	}
+
 	@JvmStatic fun packFast(r: Int, g: Int, b: Int, a: Int) = (r shl 0) or (g shl 8) or (b shl 16) or (a shl 24)
 	@JvmStatic fun packfFast(r: Float, g: Float, b: Float, a: Float): Int = ((r * 255).toInt() shl 0) or ((g * 255).toInt() shl 8) or ((b * 255).toInt() shl 16) or ((a * 255).toInt() shl 24)
 
