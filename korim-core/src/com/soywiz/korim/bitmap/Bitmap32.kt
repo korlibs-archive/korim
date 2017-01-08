@@ -8,8 +8,7 @@ class Bitmap32(
 	width: Int,
 	height: Int,
 	val data: IntArray = IntArray(width * height)
-) : Bitmap(width, height), Iterable<Int> {
-	override val bpp = 32
+) : Bitmap(width, height, 32), Iterable<Int> {
 	private val temp = IntArray(Math.max(width, height))
 
 	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height) {
@@ -157,11 +156,7 @@ class Bitmap32(
 
 	override fun toString(): String = "Bitmap32($width, $height)"
 
-	fun flipY() {
-		for (y in 0 until height / 2) swapRows(y, height - y - 1)
-	}
-
-	fun swapRows(y0: Int, y1: Int) {
+	override fun swapRows(y0: Int, y1: Int) {
 		val s0 = index(0, y0)
 		val s1 = index(0, y1)
 		System.arraycopy(data, s0, temp, 0, width)

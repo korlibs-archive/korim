@@ -2,8 +2,12 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korio.util.clamp
 
-abstract class Bitmap(val width: Int, val height: Int) {
-	abstract val bpp: Int
+abstract class Bitmap(
+	val width: Int,
+	val height: Int,
+	val bpp: Int
+) {
+	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
 
@@ -16,6 +20,12 @@ abstract class Bitmap(val width: Int, val height: Int) {
 
 	fun clampX(x: Int) = x.clamp(0, width - 1)
 	fun clampY(y: Int) = y.clamp(0, height - 1)
+
+	fun flipY() = this.apply {
+		for (y in 0 until height / 2) swapRows(y, height - y - 1)
+	}
+
+	abstract fun swapRows(y0: Int, y1: Int)
 
 	fun toBMP32(): Bitmap32 = when (this) {
 		is Bitmap32 -> this

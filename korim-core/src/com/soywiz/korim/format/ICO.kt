@@ -41,6 +41,12 @@ object ICO : ImageFormat() {
 		)
 
 		fun readBitmap(e: DirEntry, s: SyncStream): Bitmap {
+			val tryPNGHead = s.slice().readS32_be().toLong() and 0xFFFFFFFFL
+			if (tryPNGHead == 0x89_50_4E_47L) {
+				return PNG.decode(s.slice())
+			}
+			//println("%08X".format(tryPNGHead))
+
 			val headerSize = s.readS32_le()
 			val width = s.readS32_le()
 			val height = s.readS32_le()
@@ -55,10 +61,10 @@ object ICO : ImageFormat() {
 			var palette = IntArray(0)
 			if (bitCount <= 8) {
 				val colors = if (clrUsed == 0) 1 shl bitCount else clrUsed
-				println(planes)
-				println(bitCount)
-				println(clrUsed)
-				println(colors)
+				//println(planes)
+				//println(bitCount)
+				//println(clrUsed)
+				//println(colors)
 				palette = (0 until colors).map {
 					val b = s.readU8()
 					val g = s.readU8()
@@ -66,7 +72,7 @@ object ICO : ImageFormat() {
 					val reserved = s.readU8()
 					RGBA(r, g, b, 0xFF)
 				}.toIntArray()
-				println(palette)
+				//println(palette)
 			}
 
 			val stride = (e.width * bitCount) / 8
@@ -96,7 +102,7 @@ object ICO : ImageFormat() {
 					}
 				}
 			} else {
-				throw UnsupportedOperationException()
+				throw UnsupportedOperationException("Unsupported bitCount: $bitCount")
 			}
 
 			return bmp2

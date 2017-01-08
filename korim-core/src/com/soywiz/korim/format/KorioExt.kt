@@ -27,6 +27,10 @@ suspend fun decodeImageBytes(bytes: ByteArray): NativeImage = asyncFun {
 
 suspend fun VfsFile.readNativeImage(): NativeImage = asyncFun { decodeImageBytes(this.read()) }
 
+suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = asyncFun {
+	ImageFormats.readBitmaps(this.readAsSyncStream())
+}
+
 suspend fun VfsFile.readBitmap(): Bitmap = asyncFun {
 	val bytes = this.read()
 	try {

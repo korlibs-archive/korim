@@ -30,6 +30,11 @@ object ImageFormats : ImageFormat() {
 		return null
 	}
 
+	override fun readBitmaps(s: SyncStream): List<Bitmap> {
+		for (format in formats) if (format.check(s.slice())) return format.readBitmaps(s.slice())
+		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
+	}
+
 	override fun read(s: SyncStream): Bitmap {
 		for (format in formats) if (format.check(s.slice())) return format.read(s.slice())
 		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
