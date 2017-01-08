@@ -26,7 +26,7 @@ Bitmap base class + Bitmap8 and Bitmap32
 
 Korim provides utilities for reading and writing some image formats without any kind of additional dependency.
 
-BMP, JPG, PNG and TGA.
+PNG, JPG, TGA, BMP, ICO and PSD.
 
 ### Color Formats
 
@@ -36,6 +36,10 @@ Korim provides color formats to convert easily and fast.
 
 Korim provides AWT utilities to convert bitmaps into AWT BufferedImages, and to display them.
 These are just extensions so not referenced from the main code.
+
+### Native Fonts
+
+Korim provides native font rendering. You can rasterize glyph fonts on all targets.
 
 ### Korio integration
 

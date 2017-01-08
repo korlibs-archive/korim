@@ -1,12 +1,12 @@
 package com.soywiz.korim.color
 
-class BColor(
+class RGBAd(
 	@JvmField var r: Double,
 	@JvmField var g: Double,
 	@JvmField var b: Double,
 	@JvmField var a: Double
 ) {
-	constructor(c: BColor) : this(c.r, c.g, c.b, c.a)
+	constructor(c: RGBAd) : this(c.r, c.g, c.b, c.a)
 	constructor(c: Int) : this(RGBA.getRd(c), RGBA.getGd(c), RGBA.getBd(c), RGBA.getAd(c))
 	constructor() : this(0.0, 0.0, 0.0, 0.0)
 
@@ -24,5 +24,5 @@ class BColor(
 		this.a += a
 	}
 
-	fun set(c: BColor) = set(c.r, c.g, c.b, c.a)
+	fun set(c: RGBAd) = set(c.r, c.g, c.b, c.a)
 }

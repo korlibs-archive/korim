@@ -2,7 +2,6 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.geom.IRectangle
 import java.util.*
 
 class Bitmap32(
@@ -28,13 +27,15 @@ class Bitmap32(
 		val dst = this
 		val width = sright - sleft
 		val height = sbottom - stop
+		val dstData = dst.data
+		val srcData = src.data
 		for (y in 0 until height) {
 			val dstOffset = dst.index(dx, dy + y)
 			val srcOffset = src.index(sleft, stop + y)
 			if (mix) {
-				for (x in 0 until width) dst.data[dstOffset + x] = RGBA.mix(dst.data[dstOffset + x], src.data[srcOffset + x])
+				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], srcData[srcOffset + x])
 			} else {
-				for (x in 0 until width) dst.data[dstOffset + x] = src.data[srcOffset + x]
+				for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
 			}
 		}
 	}
@@ -68,7 +69,7 @@ class Bitmap32(
 		for (cy in y1..y2) Arrays.fill(this.data, index(x1, cy), index(x2, cy) + 1, color)
 	}
 
-	fun _draw(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0, mix: Boolean) {
+	fun _draw(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0, mix: Boolean) {
 		val b = src.bounds
 
 		val availableWidth = width - dx
@@ -83,8 +84,8 @@ class Bitmap32(
 	fun put(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, src, dx, dy)
 	fun draw(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(true, src, dx, dy)
 
-	fun put(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = false)
-	fun draw(src: Bitmap32Slice, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = true)
+	fun put(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = false)
+	fun draw(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = true)
 
 	fun copySliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32 = copySliceWithSize(left, top, right - left, bottom - top)
 
@@ -95,11 +96,6 @@ class Bitmap32(
 		}
 		return out
 	}
-
-	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32Slice = Bitmap32Slice(this, IRectangle(left, top, right - left, bottom - top))
-	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32Slice = Bitmap32Slice(this, IRectangle(x, y, width, height))
-
-	fun slice(bounds: IRectangle): Bitmap32Slice = Bitmap32Slice(this, bounds)
 
 	inline fun forEach(callback: (n: Int, x: Int, y: Int) -> Unit) {
 		var n = 0

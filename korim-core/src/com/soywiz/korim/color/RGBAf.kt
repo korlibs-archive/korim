@@ -1,40 +1,20 @@
 package com.soywiz.korim.color
 
 class RGBAf(
-	r: Float = 1f,
-	g: Float = 1f,
-	b: Float = 1f,
-	a: Float = 1f
+	_r: Float = 1f,
+	_g: Float = 1f,
+	_b: Float = 1f,
+	_a: Float = 1f
 ) {
 	private var _r: Float = r
 	private var _g: Float = g
 	private var _b: Float = b
 	private var _a: Float = a
 
-	var r: Float
-		set(v) {
-			_r = v
-			updateColor()
-		}
-		get() = _r
-	var g: Float
-		set(v) {
-			_g = v
-			updateColor()
-		}
-		get() = _g
-	var b: Float
-		set(v) {
-			_b = v
-			updateColor()
-		}
-		get() = _b
-	var a: Float
-		set(v) {
-			_a = v
-			updateColor()
-		}
-		get() = _a
+	var r: Float; set(v) = run { _r = v; updateColor() }; get() = _r
+	var g: Float; set(v) = run { _g = v; updateColor() }; get() = _g
+	var b: Float; set(v) = run { _b = v; updateColor() }; get() = _b
+	var a: Float; set(v) = run { _a = v; updateColor() }; get() = _a
 
 	private fun updateColor() {
 		rgba = RGBA.packfFast(_r, _g, _b, _a)
