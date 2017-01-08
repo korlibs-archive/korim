@@ -9,7 +9,11 @@ object ImageFormats : ImageFormat() {
 	private val formats = ServiceLoader.load(ImageFormat::class.java).toList()
 
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
-		for (format in formats) return format.decodeHeader(s.slice(), filename) ?: continue
+		for (format in formats) return try {
+			format.decodeHeader(s.slice(), filename) ?: continue
+		} catch (e: Throwable) {
+			continue
+		}
 		return null
 	}
 

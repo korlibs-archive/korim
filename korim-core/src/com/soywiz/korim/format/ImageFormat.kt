@@ -21,7 +21,11 @@ open class ImageFormat {
 	fun read(s: ByteArray, filename: String = "unknown"): Bitmap = read(s.openSync(), filename)
 	open fun write(bitmap: Bitmap, s: SyncStream): Unit = TODO()
 
-	fun check(s: SyncStream, filename: String): Boolean = decodeHeader(s, filename) != null
+	fun check(s: SyncStream, filename: String): Boolean = try {
+		decodeHeader(s, filename) != null
+	} catch (e: Throwable) {
+		false
+	}
 
 	fun decode(s: SyncStream, filename: String = "unknown") = this.read(s, filename)
 	fun decode(file: File) = this.read(file.openSync("r"), file.name)
