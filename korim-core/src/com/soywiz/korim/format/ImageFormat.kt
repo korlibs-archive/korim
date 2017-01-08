@@ -9,7 +9,13 @@ import java.io.File
 open class ImageFormat {
 	open fun decodeHeader(s: SyncStream): ImageInfo? = TODO()
 	open fun readFrames(s: SyncStream): List<ImageFrame> = TODO()
-	fun read(s: SyncStream): Bitmap = readFrames(s).sortedByDescending { it.bitmap.width * it.bitmap.height * (it.bitmap.bpp * it.bitmap.bpp) }.firstOrNull()?.bitmap ?: throw IllegalArgumentException("No bitmap found")
+	fun read(s: SyncStream): Bitmap = readFrames(s).sortedByDescending {
+		if (it.main) {
+			Int.MAX_VALUE
+		} else {
+			it.bitmap.width * it.bitmap.height * (it.bitmap.bpp * it.bitmap.bpp)
+		}
+	}.firstOrNull()?.bitmap ?: throw IllegalArgumentException("No bitmap found")
 
 	fun read(file: File) = this.read(file.openSync())
 	fun read(s: ByteArray): Bitmap = read(s.openSync())

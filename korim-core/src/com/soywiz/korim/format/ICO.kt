@@ -109,6 +109,6 @@ object ICO : ImageFormat() {
 		for (e in entries) {
 			bitmaps += readBitmap(e, s.sliceWithSize(e.offset.toLong(), e.size.toLong()))
 		}
-		return bitmaps.map { ImageFrame(it) }
+		return bitmaps.map { ImageFrame(it, main = false) }
 	}
 }
