@@ -24,7 +24,7 @@ object JPEG : ImageFormat() {
 		null
 	}
 
-	override fun read(s: SyncStream): Bitmap {
+	override fun readFrames(s: SyncStream): List<ImageFrame> {
 		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
 		decoder.decodeHeader()
 		val width = decoder.imageWidth
@@ -46,7 +46,7 @@ object JPEG : ImageFormat() {
 				out[x, y] = RGBA.packFast(r, g, b, a)
 			}
 		}
-		return out
+		return listOf(ImageFrame(out))
 	}
 
 	override fun write(bitmap: Bitmap, s: SyncStream) {

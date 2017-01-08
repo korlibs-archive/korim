@@ -1,15 +1,17 @@
 package com.soywiz.korim.color
 
-object RGBA : ColorFormat() {
+import com.soywiz.korio.util.extract8
+
+object RGBA : ColorFormat32() {
 	//private inline val R_SHIFT: Int get() = 0
 	//private inline val G_SHIFT: Int get() = 8
 	//private inline val B_SHIFT: Int get() = 16
 	//private inline val A_SHIFT: Int get() = 24
 
-	override fun getR(v: Int): Int = (v ushr 0) and 0xFF
-	override fun getG(v: Int): Int = (v ushr 8) and 0xFF
-	override fun getB(v: Int): Int = (v ushr 16) and 0xFF
-	override fun getA(v: Int): Int = (v ushr 24) and 0xFF
+	override fun getR(v: Int): Int = v.extract8(0)
+	override fun getG(v: Int): Int = v.extract8(8)
+	override fun getB(v: Int): Int = v.extract8(16)
+	override fun getA(v: Int): Int = v.extract8(24)
 
 	//fun getRGB(v: Int): Int = v and 0xFFFFFF
 
@@ -46,8 +48,8 @@ object RGBA : ColorFormat() {
 			0xFF -> src
 			else -> {
 				RGBA.packRGB_A(
-						RGBA.blend(dst, src, a * 256 / 255),
-						RGBA.clampFF(RGBA.getA(dst) + RGBA.getA(src))
+					RGBA.blend(dst, src, a * 256 / 255),
+					RGBA.clampFF(RGBA.getA(dst) + RGBA.getA(src))
 				)
 			}
 		}

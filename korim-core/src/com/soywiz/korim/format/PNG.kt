@@ -275,7 +275,9 @@ object PNG : ImageFormat() {
 		}
 	}
 
-	override fun read(s: SyncStream): Bitmap = readCommon(s, readHeader = false) as Bitmap
+	override fun readFrames(s: SyncStream): List<ImageFrame> {
+		return listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap))
+	}
 
 	fun paethPredictor(a: Int, b: Int, c: Int): Int {
 		val p = a + b - c

@@ -4,10 +4,8 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap4
 import com.soywiz.korim.bitmap.Bitmap8
-import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.extract8
 
 object ICO : ImageFormat() {
 	override fun decodeHeader(s: SyncStream): ImageInfo? {
@@ -18,7 +16,7 @@ object ICO : ImageFormat() {
 		return ImageInfo()
 	}
 
-	override fun readBitmaps(s: SyncStream): List<Bitmap> {
+	override fun readFrames(s: SyncStream): List<ImageFrame> {
 		data class DirEntry(
 			val width: Int, val height: Int,
 			val colorCount: Int,
@@ -59,12 +57,9 @@ object ICO : ImageFormat() {
 			val clrUsed = s.readS32_le()
 			val clrImportant = s.readS32_le()
 			var palette = IntArray(0)
+			if (compression != 0) throw UnsupportedOperationException("Not supported compressed .ico")
 			if (bitCount <= 8) {
 				val colors = if (clrUsed == 0) 1 shl bitCount else clrUsed
-				//println(planes)
-				//println(bitCount)
-				//println(clrUsed)
-				//println(colors)
 				palette = (0 until colors).map {
 					val b = s.readU8()
 					val g = s.readU8()
@@ -72,7 +67,6 @@ object ICO : ImageFormat() {
 					val reserved = s.readU8()
 					RGBA(r, g, b, 0xFF)
 				}.toIntArray()
-				//println(palette)
 			}
 
 			val stride = (e.width * bitCount) / 8
@@ -98,7 +92,6 @@ object ICO : ImageFormat() {
 						val r = data[n++].toInt() and 0xFF
 						val a = data[n++].toInt() and 0xFF
 						bmp[x, y] = RGBA(r, g, b, a)
-						//println("$x, $y")
 					}
 				}
 			} else {
@@ -116,24 +109,6 @@ object ICO : ImageFormat() {
 		for (e in entries) {
 			bitmaps += readBitmap(e, s.sliceWithSize(e.offset.toLong(), e.size.toLong()))
 		}
-		return bitmaps
-	}
-
-	override fun read(s: SyncStream): Bitmap {
-		return readBitmaps(s).sortedByDescending {
-			it.width * it.height * (it.bpp * it.bpp)
-		}.first()
+		return bitmaps.map { ImageFrame(it) }
 	}
 }
-
-object BGRA : ColorFormat() {
-	override fun getB(v: Int): Int = v.extract8(0)
-	override fun getG(v: Int): Int = v.extract8(8)
-	override fun getR(v: Int): Int = v.extract8(16)
-	override fun getA(v: Int): Int = v.extract8(24)
-
-}
-
-fun ColorFormat.convertTo(color: Int, target: ColorFormat): Int = target.pack(
-	this.getR(color), this.getG(color), this.getB(color), this.getA(color)
-)

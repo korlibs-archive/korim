@@ -24,7 +24,7 @@ object TGA : ImageFormat() {
 		val width: Int,
 		val height: Int,
 		val flipY: Boolean,
-	    val pixelDepth: Int
+		val pixelDepth: Int
 	)
 
 	// http://www.paulbourke.net/dataformats/tga/
@@ -58,12 +58,12 @@ object TGA : ImageFormat() {
 		return Info(width = width, height = height, flipY = flipY, pixelDepth = pixelDepth)
 	}
 
-	override fun read(s: SyncStream): Bitmap {
+	override fun readFrames(s: SyncStream): List<ImageFrame> {
 		val info = readHeader(s)
 		val out = Bitmap32(info.width, info.height)
 		for (n in 0 until out.area) out.data[n] = s.readS32_le()
 		if (info.flipY) out.flipY()
-		return out
+		return listOf(ImageFrame(out))
 	}
 
 	override fun write(bitmap: Bitmap, s: SyncStream) {

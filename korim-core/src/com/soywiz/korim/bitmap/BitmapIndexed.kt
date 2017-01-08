@@ -20,6 +20,7 @@ abstract class BitmapIndexed(
 		val i = index_d(x, y)
 		datau[i] = datau[i].insert(value, bpp * index_m(x, y), bpp)
 	}
+
 	override fun get32(x: Int, y: Int): Int = palette[this[x, y]]
 	fun index_d(x: Int, y: Int) = index(x, y) / n8_dbpp
 	fun index_m(x: Int, y: Int) = index(x, y) % n8_dbpp
@@ -46,5 +47,9 @@ abstract class BitmapIndexed(
 		System.arraycopy(data, s0, temp, 0, stride)
 		System.arraycopy(data, s1, data, s0, stride)
 		System.arraycopy(temp, 0, data, s1, stride)
+	}
+
+	fun toLines(palette: String): List<String> {
+		return (0 until height).map { y -> (0 until height).map { x -> palette[this[x, y]] }.joinToString("") }
 	}
 }
