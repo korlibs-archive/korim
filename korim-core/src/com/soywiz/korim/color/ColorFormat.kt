@@ -18,9 +18,13 @@ interface ColorFormatBase {
 		override fun getR(v: Int): Int = v.extractScaledFF(rOffset, rSize)
 		override fun getG(v: Int): Int = v.extractScaledFF(gOffset, gSize)
 		override fun getB(v: Int): Int = v.extractScaledFF(bOffset, bSize)
-		override fun getA(v: Int): Int = v.extractScaledFF(aOffset, aSize)
+		override fun getA(v: Int): Int = v.extractScaledFFDefault(aOffset, aSize, default = 0xFF)
 		override fun pack(r: Int, g: Int, b: Int, a: Int): Int {
-			return 0.insertScaledFF(r, rOffset, rSize).insertScaledFF(g, gOffset, gSize).insertScaledFF(b, bOffset, bSize).insertScaledFF(a, aOffset, aSize)
+			return 0
+				.insertScaledFF(r, rOffset, rSize)
+				.insertScaledFF(g, gOffset, gSize)
+				.insertScaledFF(b, bOffset, bSize)
+				.insertScaledFFDefault(a, aOffset, aSize, default = 0xFF)
 		}
 	}
 }
@@ -54,7 +58,7 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
 	}
 
-	inline fun decodeInternal(data: ByteArray, dataOffset: Int, out: IntArray, outOffset: Int, size: Int, littleEndian: Boolean = true, read: (data: ByteArray, io: Int) -> Int): Unit {
+	inline fun decodeInternal(data: ByteArray, dataOffset: Int, out: IntArray, outOffset: Int, size: Int, read: (data: ByteArray, io: Int) -> Int): Unit {
 		var io = dataOffset
 		var oo = outOffset
 		val bytesPerPixel = this.bytesPerPixel
@@ -69,19 +73,19 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	open fun decode(data: ByteArray, dataOffset: Int, out: IntArray, outOffset: Int, size: Int, littleEndian: Boolean = true): Unit {
 		when (bpp) {
 			16 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readU16_le)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU16_le)
 			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readU16_be)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU16_be)
 			}
 			24 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readU24_le)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU24_le)
 			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readU24_be)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU24_be)
 			}
 			32 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readS32_le)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readS32_le)
 			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, littleEndian, ByteArray::readS32_be)
+				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readS32_be)
 			}
 			else -> throw IllegalArgumentException("Unsupported bpp $bpp")
 		}

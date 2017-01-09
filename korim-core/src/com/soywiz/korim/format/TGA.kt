@@ -1,13 +1,12 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap8
 import com.soywiz.korim.color.RGB
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
-class TGA : ImageFormat() {
+class TGA : ImageFormat("tga") {
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
 		try {
 			val h = readHeader(s)
@@ -74,7 +73,8 @@ class TGA : ImageFormat() {
 		return listOf(ImageFrame(out))
 	}
 
-	override fun write(bitmap: Bitmap, s: SyncStream) {
+	override fun writeFrames(frames: List<ImageFrame>, s: SyncStream, filename: String) {
+		val bitmap = frames.first().bitmap
 		when (bitmap) {
 			is Bitmap8 -> {
 				TODO("Not implemented encoding TGA Bitmap8")

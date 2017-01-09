@@ -8,7 +8,7 @@ import com.soywiz.korim.color.BGRA
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
-class ICO : ImageFormat() {
+class ICO : ImageFormat("ico") {
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
 		if (s.readU16_le() != 0) return null
 		if (s.readU16_le() != 1) return null

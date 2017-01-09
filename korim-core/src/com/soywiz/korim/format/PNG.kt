@@ -15,7 +15,7 @@ import java.util.zip.Deflater
 import java.util.zip.DeflaterInputStream
 import java.util.zip.InflaterInputStream
 
-class PNG : ImageFormat() {
+class PNG : ImageFormat("png") {
 	companion object {
 		const val MAGIC1 = 0x89504E47.toInt()
 		const val MAGIC2 = 0x0D0A1A0A.toInt()
@@ -64,7 +64,8 @@ class PNG : ImageFormat() {
 		null
 	}
 
-	override fun write(bitmap: Bitmap, s: SyncStream) {
+	override fun writeFrames(frames: List<ImageFrame>, s: SyncStream, filename: String) {
+		val bitmap = frames.first().bitmap
 		val width = bitmap.width
 		val height = bitmap.height
 		s.write32_be(MAGIC1)

@@ -5,7 +5,7 @@ import com.soywiz.korim.bitmap.Bitmap8
 import com.soywiz.korio.stream.*
 
 @Suppress("UNUSED_VARIABLE")
-class BMP : ImageFormat() {
+class BMP : ImageFormat("bmp") {
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
 		if (s.readStringz(2) != "BM") return null
 		// FILE HEADER

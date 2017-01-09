@@ -11,7 +11,7 @@ import java.io.IOException
 import java.io.InputStream
 import java.util.*
 
-class JPEG : ImageFormat() {
+class JPEG : ImageFormat("jpg", "jpeg") {
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? = try {
 		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
 		decoder.decodeHeader()
@@ -31,10 +31,6 @@ class JPEG : ImageFormat() {
 		val out = Bitmap32(decoder.imageWidth, decoder.imageHeight)
 		decoder.decodeRGB(out.data, 0, out.width, decoder.numMCURows)
 		return listOf(ImageFrame(out))
-	}
-
-	override fun write(bitmap: Bitmap, s: SyncStream) {
-		super.write(bitmap, s)
 	}
 
 	/**

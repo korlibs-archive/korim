@@ -14,14 +14,14 @@ object RGBA_5551 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	aOffset = 15, aSize = 1
 )
 
-object RGBA_5550 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
+object RGB_555 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	rOffset = 0, rSize = 5,
 	gOffset = 5, gSize = 5,
 	bOffset = 10, bSize = 5,
 	aOffset = 15, aSize = 0
 )
 
-object RGBA_5650 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
+object RGB_565 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	rOffset = 0, rSize = 5,
 	gOffset = 5, gSize = 6,
 	bOffset = 11, bSize = 5,
@@ -37,14 +37,14 @@ object BGRA_4444 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	aOffset = 12, aSize = 4
 )
 
-object BGRA_5550 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
+object BGR_555 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	bOffset = 0, bSize = 5,
 	gOffset = 5, gSize = 5,
 	rOffset = 10, rSize = 5,
 	aOffset = 15, aSize = 0
 )
 
-object BGRA_5650 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
+object BGR_565 : ColorFormat16(), ColorFormatBase by ColorFormatBase.Mixin(
 	bOffset = 0, bSize = 5,
 	gOffset = 5, gSize = 6,
 	rOffset = 11, rSize = 5,
