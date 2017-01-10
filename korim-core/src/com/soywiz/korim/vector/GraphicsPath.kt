@@ -1,6 +1,6 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.korim.geom.Point2d
+import com.soywiz.korim.geom.Vector2
 import com.soywiz.korim.geom.Rectangle
 import java.util.*
 
@@ -252,7 +252,7 @@ class GraphicsPath(
 			yList += y
 		}
 
-		fun add(p: Point2d) = add(p.x, p.y)
+		fun add(p: Vector2) = add(p.x, p.y)
 
 		fun add(rect: Rectangle) {
 			add(rect.left, rect.top)
@@ -262,7 +262,7 @@ class GraphicsPath(
 		fun getBounds(out: Rectangle = Rectangle()): Rectangle = out.setBounds(xList.min() ?: 0.0, yList.min() ?: 0.0, xList.max() ?: 0.0, yList.max() ?: 0.0)
 	}
 
-	fun Iterable<Point2d>.bounds(out: Rectangle = Rectangle()): Rectangle = out.setBounds(
+	fun Iterable<Vector2>.bounds(out: Rectangle = Rectangle()): Rectangle = out.setBounds(
 		left = this.map { it.x }.min() ?: 0.0,
 		top = this.map { it.y }.min() ?: 0.0,
 		right = this.map { it.x }.max() ?: 0.0,

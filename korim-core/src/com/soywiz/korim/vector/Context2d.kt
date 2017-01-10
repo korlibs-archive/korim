@@ -3,6 +3,7 @@ package com.soywiz.korim.vector
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.geom.Matrix2d
 import com.soywiz.korim.geom.Point2d
+import com.soywiz.korim.geom.Vector2
 import java.util.*
 
 open class Context2d {
@@ -95,11 +96,11 @@ open class Context2d {
 	fun bezierCurveTo(cx1: Int, cy1: Int, cx2: Int, cy2: Int, ax: Int, ay: Int) = bezierCurveTo(cx1.toDouble(), cy1.toDouble(), cx2.toDouble(), cy2.toDouble(), ax.toDouble(), ay.toDouble())
 	fun arcTo(x1: Int, y1: Int, x2: Int, y2: Int, radius: Int) = arcTo(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble(), radius.toDouble())
 
-	fun moveTo(p: Point2d) = moveTo(p.x, p.y)
-	fun lineTo(p: Point2d) = lineTo(p.x, p.y)
-	fun quadraticCurveTo(c: Point2d, a: Point2d) = quadraticCurveTo(c.x, c.y, a.x, a.y)
-	fun bezierCurveTo(c1: Point2d, c2: Point2d, a: Point2d) = bezierCurveTo(c1.x, c1.y, c2.x, c2.y, a.x, a.y)
-	fun arcTo(p1: Point2d, p2: Point2d, radius: Double) = arcTo(p1.x, p1.y, p2.x, p2.y, radius)
+	fun moveTo(p: Vector2) = moveTo(p.x, p.y)
+	fun lineTo(p: Vector2) = lineTo(p.x, p.y)
+	fun quadraticCurveTo(c: Vector2, a: Vector2) = quadraticCurveTo(c.x, c.y, a.x, a.y)
+	fun bezierCurveTo(c1: Vector2, c2: Vector2, a: Vector2) = bezierCurveTo(c1.x, c1.y, c2.x, c2.y, a.x, a.y)
+	fun arcTo(p1: Vector2, p2: Vector2, radius: Double) = arcTo(p1.x, p1.y, p2.x, p2.y, radius)
 
 	fun rect(x: Int, y: Int, width: Int, height: Int) = rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 	fun strokeRect(x: Int, y: Int, width: Int, height: Int) = strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
@@ -117,7 +118,7 @@ open class Context2d {
 		if (remainingAngle == 0.0 && start != end) remainingAngle = PI_TWO
 		val sgn = if (startAngle < endAngle) 1 else -1
 		var a1 = startAngle
-		val p1 = Point2d() ; val p2 = Point2d() ; val p3 = Point2d() ; val p4 = Point2d()
+		val p1 = Vector2(); val p2 = Vector2(); val p3 = Vector2(); val p4 = Vector2()
 		var index = 0
 		while (remainingAngle > EPSILON) {
 			val a2 = a1 + sgn * Math.min(remainingAngle, PI_OVER_TWO)
@@ -152,10 +153,26 @@ open class Context2d {
 		}
 	}
 
-	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, radius: Double) {
-		val x0 = px
-		val y0 = py
-		TODO("Convert to line + arc")
+	fun arcTo(b: Point2d, a: Point2d, c: Point2d, r: Double) {
+		val PI_DIV_2 = Math.PI / 2.0
+		val AB = b - a
+		val AC = c - a
+		val angle = Vector2.angle(AB, AC) * 0.5
+		val x = r * Math.sin(PI_DIV_2 - angle) / Math.sin(angle)
+		val A = a + AB.unit * x
+		val B = a + AC.unit * x
+		lineTo(A)
+		quadraticCurveTo(a, B)
+	}
+
+	fun strokeDot(x: Double, y: Double) {
+		moveTo(x, y)
+		lineTo(x, y)
+		stroke()
+	}
+
+	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, r: Double) {
+		arcTo(Point2d(px, py), Point2d(x1, y1), Point2d(x2, y2), r)
 	}
 
 	fun circle(x: Double, y: Double, radius: Double) = arc(x, y, radius, 0.0, Math.PI * 2.0)
@@ -234,3 +251,4 @@ open class Context2d {
 	open fun render(state: State, fill: Boolean) {
 	}
 }
+

@@ -82,7 +82,7 @@ class Context2dTest {
 		ctx.beginPath();
 		ctx.moveTo(20, 20);               // Create a starting point
 		ctx.lineTo(100, 20);              // Create a horizontal line
-		ctx.arcTo(150, 20, 150, 70, 50);  // Create an arc
+		ctx.arcTo(150, 20, 150, 70, 100);  // Create an arc
 		ctx.lineTo(150, 120);             // Continue with vertical line
 		ctx.stroke();                     // Draw it
 
