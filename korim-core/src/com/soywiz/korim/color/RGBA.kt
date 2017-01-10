@@ -21,6 +21,8 @@ object RGBA : ColorFormat32() {
 		return pack((getR(v) * getAd(v)).toInt(), (getG(v) * getAd(v)).toInt(), (getB(v) * getAd(v)).toInt(), getA(v))
 	}
 
+	@JvmStatic fun mutliplyByAlpha(v: Int, alpha: Double): Int = RGBA.pack(getR(v), getG(v), getB(v), (getA(v) * alpha).toInt())
+
 	@JvmStatic fun depremultiply(v: Int): Int {
 		val alpha = getAd(v)
 		if (alpha == 0.0) {
@@ -44,6 +46,8 @@ object RGBA : ColorFormat32() {
 				or
 				((((c1 and 0x00FF00) * f1) + ((c2 and 0x00FF00) * factor)) and 0x00FF0000))) ushr 8
 	}
+
+	@JvmStatic fun blend(c1: Int, c2: Int, factor: Double): Int = blend(c1, c2, (factor * 256).toInt())
 
 	@JvmStatic operator fun invoke(r: Int, g: Int, b: Int, a: Int) = pack(r, g, b, a)
 

@@ -19,6 +19,13 @@ class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].to
 }
 
 class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
+	override fun create(width: Int, height: Int): NativeImage {
+		val canvas = document.methods["createElement"]("canvas")
+		canvas["width"] = width
+		canvas["height"] = height
+		return CanvasNativeImage(canvas)
+	}
+
 	suspend override fun decode(data: ByteArray): NativeImage = asyncFun {
 		CanvasNativeImage(BrowserImage.decodeToCanvas(data))
 	}

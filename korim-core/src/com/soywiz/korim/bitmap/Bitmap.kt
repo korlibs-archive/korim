@@ -1,5 +1,6 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.util.clamp
 
 abstract class Bitmap(
@@ -26,6 +27,8 @@ abstract class Bitmap(
 	}
 
 	abstract fun swapRows(y0: Int, y1: Int)
+
+	open fun getContext2d(): Context2d = throw UnsupportedOperationException()
 
 	fun toBMP32(): Bitmap32 = when (this) {
 		is Bitmap32 -> this

@@ -2,6 +2,8 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.vector.Bitmap32Context2d
+import com.soywiz.korim.vector.Context2d
 import java.util.*
 
 class Bitmap32(
@@ -38,6 +40,10 @@ class Bitmap32(
 				for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
 			}
 		}
+	}
+
+	fun drawPixelMixed(x: Int, y: Int, c: Int) {
+		this[x, y] = RGBA.mix(this[x, y], c)
 	}
 
 	fun _drawPut(mix: Boolean, other: Bitmap32, _dx: Int = 0, _dy: Int = 0) {
@@ -220,6 +226,8 @@ class Bitmap32(
 	fun writeDecoded(color: ColorFormat, data: ByteArray, offset: Int = 0, littleEndian: Boolean = true): Bitmap32 = this.apply {
 		color.decode(data, offset, this.data, 0, this.area, littleEndian = littleEndian)
 	}
+
+	override fun getContext2d(): Context2d = Bitmap32Context2d(this)
 
 	override fun iterator(): Iterator<Int> = data.iterator()
 }

@@ -15,6 +15,8 @@ val nativeImageFormatProviders by lazy {
 	ServiceLoader.load(NativeImageFormatProvider::class.java).toList()
 }
 
+val nativeImageFormatProvider by lazy { nativeImageFormatProviders.first() }
+
 suspend fun decodeImageBytes(bytes: ByteArray): NativeImage = asyncFun {
 	for (nip in nativeImageFormatProviders) {
 		try {
