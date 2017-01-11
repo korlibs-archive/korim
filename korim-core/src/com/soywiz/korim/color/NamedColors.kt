@@ -13,4 +13,6 @@ object NamedColors {
 	)
 
 	operator fun get(str: String, default: Int = Colors.RED): Int = colorsByName[str.toLowerCase()] ?: default
+
+	fun toHtmlString(color: Int) = "RGBA(" + RGBA.getR(color) + "," + RGBA.getG(color) + "," + RGBA.getB(color) + "," + RGBA.getAf(color) + ")"
 }

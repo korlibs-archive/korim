@@ -78,7 +78,7 @@ class SVG(val root: Xml) : Context2d.Drawable {
 				"path" -> {
 					val d = xml.str("d")
 					val dr = StrReader(d)
-					fun StrReader.readNumber(default: Double = 0.0) = skipSpaces().readWhile { !it.isWhitespace() }.toDoubleOrNull() ?: default
+					fun StrReader.readNumber() = skipSpaces().readWhile { !it.isWhitespace() }.toDouble()
 					val path = GraphicsPath()
 					while (!dr.eof) {
 						dr.skipSpaces()
