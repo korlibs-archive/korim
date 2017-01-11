@@ -72,7 +72,6 @@ class GraphicsPath(
 	private var lastX = 0.0
 	private var lastY = 0.0
 
-
 	fun moveTo(x: Double, y: Double) {
 		commands += Command.MOVE_TO
 		data += x
@@ -80,6 +79,18 @@ class GraphicsPath(
 		lastX = x
 		lastY = y
 	}
+
+	fun moveToH(x: Double) = moveTo(x, lastY)
+	fun rMoveToH(x: Double) = moveTo(lastX + x, lastY)
+
+	fun moveToV(y: Double) = moveTo(lastX, y)
+	fun rMoveToV(y: Double) = moveTo(lastX, lastY + y)
+
+	fun rMoveTo(x: Double, y: Double) = moveTo(this.lastX + x, this.lastY + y)
+	fun rLineTo(x: Double, y: Double) = lineTo(this.lastX + x, this.lastY + y)
+
+	fun rQuadTo(cx: Double, cy: Double, ax: Double, ay: Double) = quadTo(this.lastX + cx, this.lastY + cy, this.lastX + ax, this.lastY + ay)
+	fun rCubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) = cubicTo(this.lastX + cx1, this.lastY + cy1, this.lastX + cx2, this.lastY + cy2, this.lastX + ax, this.lastY + ay)
 
 	private fun ensureMoveTo(x: Double, y: Double) {
 		if (isEmpty()) {

@@ -1,57 +1,64 @@
 package com.soywiz.korim.vector.format
 
-import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.NamedColors
-import com.soywiz.korim.geom.Point2d
+import com.soywiz.korim.geom.Vector2
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.serialization.xml.Xml
+import com.soywiz.korio.util.StrReader
 import org.intellij.lang.annotations.Language
 
-object SVG {
-	fun parseRoot(xml: Xml): Context2d.Drawable {
-		if (xml.name != "svg") throw IllegalArgumentException("Expected svg tag")
-		val drawables = xml.allChildren.map { parseElement(it) }.filterNotNull()
-		return Context2d.FuncDrawable {
-			for (d in drawables) d.draw(this)
+class SVG(val root: Xml) : Context2d.Drawable {
+	constructor(@Language("xml") str: String) : this(Xml(str))
+
+	override fun draw(c: Context2d) {
+		c.keep {
+			c.strokeStyle = Context2d.None
+			c.fillStyle = Context2d.None
+			drawElement(root, c)
 		}
 	}
 
-	fun Context2d.render(xml: Xml) {
-		val fill = xml.str("fill", "none")
-		val stroke = xml.str("stroke", "none")
-		if (fill != "none") {
-			fillStyle = Context2d.Color(NamedColors[xml.str("fill")])
-			fill()
+	fun drawChildren(xml: Xml, c: Context2d) {
+		for (child in xml.allChildren) {
+			drawElement(child, c)
 		}
-		if (stroke != "none") {
-			lineWidth = xml.double("stroke-width", 1.0)
-			strokeStyle = Context2d.Color(NamedColors[xml.str("stroke")])
-			stroke()
-		}
-
 	}
 
-	fun parseElement(xml: Xml): Context2d.Drawable? {
-		if (xml.type != Xml.Type.NODE) return null
+	fun drawElement(xml: Xml, c: Context2d) {
+		c.keepApply {
+			if (xml.hasAttribute("stroke-width")) {
+				lineWidth = xml.double("stroke-width", 1.0)
+			}
+			if (xml.hasAttribute("stroke")) {
+				val strokeStr = xml.str("stroke")
+				strokeStyle = when (strokeStr) {
+					"none" -> Context2d.None
+					else -> Context2d.Color(NamedColors[strokeStr])
+				}
+			}
+			if (xml.hasAttribute("fill")) {
+				val fillStr = xml.str("fill")
+				fillStyle = when (fillStr) {
+					"none" -> Context2d.None
+					else -> Context2d.Color(NamedColors[fillStr])
+				}
+			}
 
-		return when (xml.name) {
-			"rect" -> {
-				Context2d.FuncDrawable {
+			when (xml.name) {
+				"_text_" -> Unit
+				"svg" -> drawChildren(xml, c)
+				"rect" -> {
 					rect(xml.double("x"), xml.double("y"), xml.double("width"), xml.double("height"))
-					render(xml)
 				}
-			}
-			"circle" -> {
-				Context2d.FuncDrawable {
+				"circle" -> {
 					circle(xml.double("cx"), xml.double("cy"), xml.double("r"))
-					render(xml)
 				}
-			}
-			"polyline" -> {
-				Context2d.FuncDrawable {
+				"polyline" -> {
 					beginPath()
 					val points = xml.str("points")
-					val pps = points.split(' ').map { val (x, y) = it.split(',').map { it.toDouble() }; Point2d(x, y) }
+					// @TODO: intelliJ bug: when using Point2d (alias), it removes the import because don't detect it
+					val pps = points.split(' ').map { val (x, y) = it.split(',').map { it.toDouble() }; Vector2(x, y) }
 					for ((index, p) in pps.withIndex()) {
 						if (index == 0) {
 							moveTo(p)
@@ -59,21 +66,46 @@ object SVG {
 							lineTo(p)
 						}
 					}
-					render(xml)
 				}
-			}
-			"line" -> {
-				Context2d.FuncDrawable {
+				"line" -> {
 					beginPath()
 					moveTo(xml.double("x1"), xml.double("y1"))
 					lineTo(xml.double("x2"), xml.double("y2"))
-					render(xml)
+				}
+				"g" -> {
+					drawChildren(xml, c)
+				}
+				"path" -> {
+					val d = xml.str("d")
+					val dr = StrReader(d)
+					fun StrReader.readNumber(default: Double = 0.0) = skipSpaces().readWhile { !it.isWhitespace() }.toDoubleOrNull() ?: default
+					val path = GraphicsPath()
+					while (!dr.eof) {
+						dr.skipSpaces()
+						val cmd = dr.read()
+						when (cmd) {
+							'M' -> path.moveTo(dr.readNumber(), dr.readNumber())
+							'm' -> path.rMoveTo(dr.readNumber(), dr.readNumber())
+							'L' -> path.lineTo(dr.readNumber(), dr.readNumber())
+							'l' -> path.rLineTo(dr.readNumber(), dr.readNumber())
+							'Q' -> path.quadTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
+							'q' -> path.rQuadTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
+							'C' -> path.cubicTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
+							'c' -> path.rCubicTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
+							'H' -> path.moveToH(dr.readNumber())
+							'h' -> path.rMoveToH(dr.readNumber())
+							'V' -> path.moveToV(dr.readNumber())
+							'v' -> path.rMoveToV(dr.readNumber())
+							'Z' -> path.close()
+							'z' -> path.close()
+							else -> TODO("Unsupported $cmd")
+						}
+					}
+					beginPath()
+					c.path(path)
 				}
 			}
-			else -> TODO(xml.name)
+			c.fillStroke()
 		}
 	}
-
-	operator fun invoke(@Language("xml") str: String) = parseRoot(Xml(str.trim()))
-	operator fun invoke(xml: Xml) = parseRoot(xml)
 }

@@ -46,7 +46,10 @@ class Context2d(val renderer: Renderer) {
 	var fillStyle: Paint; get() = state.fillStyle; set(value) = run { state.fillStyle = value }
 
 	interface Paint
-	class Color(val color: Int) : Paint
+	data class Color(val color: Int) : Paint
+	object None : Paint
+
+	inline fun keepApply(callback: Context2d.() -> Unit) = this.apply { keep { callback() } }
 
 	inline fun keep(callback: () -> Unit) {
 		save()
@@ -169,11 +172,16 @@ class Context2d(val renderer: Renderer) {
 	}
 
 	fun stroke() {
-		renderer.render(state, fill = false)
+		if (state.strokeStyle != None) renderer.render(state, fill = false)
 	}
 
 	fun fill() {
-		renderer.render(state, fill = true)
+		if (state.fillStyle != None) renderer.render(state, fill = true)
+	}
+
+	fun fillStroke() {
+		fill()
+		stroke()
 	}
 
 	fun clip() {
