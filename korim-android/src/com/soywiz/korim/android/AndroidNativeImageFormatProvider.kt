@@ -23,39 +23,18 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) : NativeIma
 		return Bitmap32(width, height, out)
 	}
 
-	override fun getContext2d(): Context2d {
-		return AndroidContext2d(androidBitmap)
-	}
+	override fun getContext2d(): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))
 }
 
-class AndroidContext2d(val bmp: android.graphics.Bitmap) : Context2d() {
+class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Renderer {
 	val paint = Paint()
 	val canvas = Canvas(bmp)
 	val matrixValues = FloatArray(6)
 	var androidMatrix = android.graphics.Matrix()
 
-	var dirtyTransform = true
-
-	override fun updatedTransform() {
-		dirtyTransform = true
-	}
-
-	private fun setMatrixIfRequired() {
-		if (!dirtyTransform) return
-		matrixValues[0] = transform.a.toFloat()
-		matrixValues[1] = transform.b.toFloat()
-		matrixValues[2] = transform.c.toFloat()
-		matrixValues[3] = transform.d.toFloat()
-		matrixValues[4] = transform.tx.toFloat()
-		matrixValues[5] = transform.ty.toFloat()
-		androidMatrix.setValues(matrixValues)
-		canvas.matrix = androidMatrix
-		dirtyTransform = false
-	}
-
-	fun convertPath(path: GraphicsPath): Path {
+	fun GraphicsPath.toAndroid(): Path {
 		val out = Path()
-		path.visit(object : GraphicsPath.Visitor {
+		this.visit(object : GraphicsPath.Visitor {
 			override fun moveTo(x: Double, y: Double) {
 				out.moveTo(x.toFloat(), y.toFloat())
 			}
@@ -64,16 +43,40 @@ class AndroidContext2d(val bmp: android.graphics.Bitmap) : Context2d() {
 				out.lineTo(x.toFloat(), y.toFloat())
 			}
 
-			override fun curveTo(cx: Double, cy: Double, ax: Double, ay: Double) {
+			override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
 				out.quadTo(cx.toFloat(), cy.toFloat(), ax.toFloat(), ay.toFloat())
 			}
 
+			override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+				out.cubicTo(cx1.toFloat(), cy1.toFloat(), cx2.toFloat(), cy2.toFloat(), ax.toFloat(), ay.toFloat())
+			}
+
+			override fun close() {
+				out.close()
+			}
 		})
 		return out
 	}
 
-	override fun drawPath(path: GraphicsPath) {
-		canvas.drawPath(convertPath(path), paint)
+	override fun render(state: Context2d.State, fill: Boolean) {
+		val transform = state.transform
+		matrixValues[0] = transform.a.toFloat()
+		matrixValues[1] = transform.b.toFloat()
+		matrixValues[2] = transform.c.toFloat()
+		matrixValues[3] = transform.d.toFloat()
+		matrixValues[4] = transform.tx.toFloat()
+		matrixValues[5] = transform.ty.toFloat()
+		androidMatrix.setValues(matrixValues)
+		canvas.matrix = androidMatrix
+
+		canvas.clipPath(state.clip?.toAndroid())
+
+		if (fill) {
+			paint.style = android.graphics.Paint.Style.FILL
+		} else {
+			paint.style = android.graphics.Paint.Style.STROKE
+		}
+		canvas.drawPath(state.path.toAndroid(), paint)
 	}
 }
 

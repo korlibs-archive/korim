@@ -1,14 +1,18 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.korim.geom.Vector2
 import com.soywiz.korim.geom.Rectangle
+import com.soywiz.korim.geom.Vector2
 import java.util.*
 
 class GraphicsPath(
 	val commands: ArrayList<Int> = arrayListOf<Int>(),
 	val data: ArrayList<Double> = arrayListOf<Double>(),
 	val winding: Winding = Winding.EVEN_ODD
-) {
+) : Context2d.Drawable {
+	override fun draw(c: Context2d) {
+		c.state.path.write(this)
+	}
+
 	fun clone() = GraphicsPath(ArrayList(commands), ArrayList(data), winding)
 
 	interface Visitor {
@@ -16,7 +20,7 @@ class GraphicsPath(
 		fun moveTo(x: Double, y: Double)
 		fun lineTo(x: Double, y: Double)
 		fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double)
-		fun bezierTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double)
+		fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double)
 	}
 
 	fun visit(visitor: Visitor) {
@@ -47,7 +51,7 @@ class GraphicsPath(
 					val y2 = data[n++]
 					val x3 = data[n++]
 					val y3 = data[n++]
-					visitor.bezierTo(x1, y1, x2, y2, x3, y3)
+					visitor.cubicTo(x1, y1, x2, y2, x3, y3)
 				}
 				Command.CLOSE -> {
 					visitor.close()
@@ -65,27 +69,46 @@ class GraphicsPath(
 		data.clear()
 	}
 
+	private var lastX = 0.0
+	private var lastY = 0.0
+
+
 	fun moveTo(x: Double, y: Double) {
 		commands += Command.MOVE_TO
 		data += x
 		data += y
+		lastX = x
+		lastY = y
+	}
+
+	private fun ensureMoveTo(x: Double, y: Double) {
+		if (isEmpty()) {
+			moveTo(x, y)
+		}
 	}
 
 	fun lineTo(x: Double, y: Double) {
+		ensureMoveTo(x, y)
 		commands += Command.LINE_TO
 		data += x
 		data += y
+		lastX = x
+		lastY = y
 	}
 
 	fun quadTo(controlX: Double, controlY: Double, anchorX: Double, anchorY: Double) {
+		ensureMoveTo(controlX, controlY)
 		commands += Command.QUAD_TO
 		data += controlX
 		data += controlY
 		data += anchorX
 		data += anchorY
+		lastX = anchorX
+		lastY = anchorY
 	}
 
-	fun curveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+	fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+		ensureMoveTo(cx1, cy1)
 		commands += Command.BEZIER_TO
 		data += cx1
 		data += cy1
@@ -93,10 +116,90 @@ class GraphicsPath(
 		data += cy2
 		data += ax
 		data += ay
+		lastX = ax
+		lastY = ay
+	}
+
+	//fun arcTo(b: Point2d, a: Point2d, c: Point2d, r: Double) {
+	fun arcTo(ax: Double, ay: Double, cx: Double, cy: Double, r: Double) {
+		ensureMoveTo(ax, ay)
+		val bx = lastX
+		val by = lastY
+		val b = Vector2(bx, by)
+		val a = Vector2(ax, ay)
+		val c = Vector2(cx, cy)
+		val PI_DIV_2 = Math.PI / 2.0
+		val AB = b - a
+		val AC = c - a
+		val angle = Vector2.angle(AB, AC) * 0.5
+		val x = r * Math.sin(PI_DIV_2 - angle) / Math.sin(angle)
+		val A = a + AB.unit * x
+		val B = a + AC.unit * x
+		lineTo(A.x, A.y)
+		quadTo(a.x, a.y, B.x, B.y)
 	}
 
 	fun close() {
 		commands += Command.CLOSE
+	}
+
+	fun rect(x: Double, y: Double, width: Double, height: Double) {
+		moveTo(x, y)
+		lineTo(x + width, y)
+		lineTo(x + width, y + height)
+		lineTo(x, y + height)
+		close()
+	}
+
+	fun arc(x: Double, y: Double, r: Double, start: Double, end: Double) {
+		// http://hansmuller-flex.blogspot.com.es/2011/04/approximating-circular-arc-with-cubic.html
+		val EPSILON = 0.00001
+		val PI_TWO = Math.PI * 2
+		val PI_OVER_TWO = Math.PI / 2.0
+
+		val startAngle = start % PI_TWO
+		val endAngle = end % PI_TWO
+		var remainingAngle = Math.min(PI_TWO, Math.abs(endAngle - startAngle))
+		if (remainingAngle == 0.0 && start != end) remainingAngle = PI_TWO
+		val sgn = if (startAngle < endAngle) 1 else -1
+		var a1 = startAngle
+		val p1 = Vector2();
+		val p2 = Vector2();
+		val p3 = Vector2();
+		val p4 = Vector2()
+		var index = 0
+		while (remainingAngle > EPSILON) {
+			val a2 = a1 + sgn * Math.min(remainingAngle, PI_OVER_TWO)
+
+			val k = 0.5522847498
+			val a = (a2 - a1) / 2.0
+			val x4 = r * Math.cos(a)
+			val y4 = r * Math.sin(a)
+			val x1 = x4
+			val y1 = -y4
+			val f = k * Math.tan(a)
+			val x2 = x1 + f * y4
+			val y2 = y1 + f * x4
+			val x3 = x2
+			val y3 = -y2
+			val ar = a + a1
+			val cos_ar = Math.cos(ar);
+			val sin_ar = Math.sin(ar)
+			p1.setTo(x + r * Math.cos(a1), y + r * Math.sin(a1))
+			p2.setTo(x + x2 * cos_ar - y2 * sin_ar, y + x2 * sin_ar + y2 * cos_ar)
+			p3.setTo(x + x3 * cos_ar - y3 * sin_ar, y + x3 * sin_ar + y3 * cos_ar)
+			p4.setTo(x + r * Math.cos(a2), y + r * Math.sin(a2))
+
+			if (index == 0) moveTo(p1.x, p1.y)
+			cubicTo(p2.x, p2.y, p3.x, p3.y, p4.x, p4.y)
+
+			index++
+			remainingAngle -= Math.abs(a2 - a1)
+			a1 = a2
+		}
+		if (startAngle == endAngle && index != 0) {
+			close()
+		}
 	}
 
 	fun getBounds(out: Rectangle = Rectangle()): Rectangle {
@@ -138,7 +241,7 @@ class GraphicsPath(
 			ly = ay
 		}
 
-		override fun bezierTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+		override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
 			bb.add(CurveBounds.bezierMinMax(lx, ly, cx1, cy1, cx2, cy2, ax, ay, temp))
 			lx = ax
 			ly = ay
@@ -268,5 +371,12 @@ class GraphicsPath(
 		right = this.map { it.x }.max() ?: 0.0,
 		bottom = this.map { it.y }.max() ?: 0.0
 	)
+
+	fun write(path: GraphicsPath) {
+		this.commands += path.commands
+		this.data += path.data
+		this.lastX = path.lastX
+		this.lastY = path.lastY
+	}
 }
 

@@ -227,7 +227,7 @@ class Bitmap32(
 		color.decode(data, offset, this.data, 0, this.area, littleEndian = littleEndian)
 	}
 
-	override fun getContext2d(): Context2d = Bitmap32Context2d(this)
+	override fun getContext2d(): Context2d = Context2d(Bitmap32Context2d(this))
 
 	override fun iterator(): Iterator<Int> = data.iterator()
 }

@@ -38,6 +38,10 @@ class Vector2(var x: Double = 0.0, var y: Double = x) {
 			return Math.acos((a * b) / (a.length * b.length))
 		}
 
+		fun angle(ax: Double, ay: Double, bx: Double, by: Double): Double {
+			return Math.acos(((ax * bx) + (ay * by)) / (Math.hypot(ax, ay) * Math.hypot(bx, by)))
+		}
+
 		fun angle(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double): Double {
 			val ax = x1 - x2
 			val ay = y1 - y2

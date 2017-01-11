@@ -28,7 +28,7 @@ abstract class Bitmap(
 
 	abstract fun swapRows(y0: Int, y1: Int)
 
-	open fun getContext2d(): Context2d = throw UnsupportedOperationException()
+	open fun getContext2d(): Context2d = throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
 
 	fun toBMP32(): Bitmap32 = when (this) {
 		is Bitmap32 -> this

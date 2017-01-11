@@ -5,8 +5,10 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.readBitmap
+import com.soywiz.korim.vector.format.SVG
 import com.soywiz.korio.async.EventLoopTest
 import com.soywiz.korio.async.sync
+import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
@@ -63,33 +65,19 @@ class Context2dTest {
 	fun name2(): Unit = sync(EventLoopTest()) {
 		val img = NativeImage(256, 256)
 		val ctx = img.getContext2d()
-		ctx.fillStyle = Context2d.Color(Colors.RED)
-		ctx.lineWidth = 5.0
 
-		/*
-		ctx.beginPath()
-		ctx.moveTo(128, 128)
-		ctx.lineTo(500, 128)
-		ctx.lineTo(500, 200)
-		ctx.closePath()
-		ctx.clip()
+		//language=xml
+		val svg = SVG("""
+			<svg xmlns="http://www.w3.org/2000/svg" version="1.1">
+				<rect x="25" y="25" width="200" height="200" fill="lime" stroke-width="4" stroke="pink" />
+				<circle cx="125" cy="125" r="75" fill="orange" />
+				<polyline points="50,150 50,200 200,200 200,100" stroke="red" stroke-width="4" fill="none" />
+				<line x1="50" y1="50" x2="200" y2="200" stroke="blue" stroke-width="4" />
+			</svg>
+		""")
 
-		ctx.beginPath()
-		ctx.circle(128.0, 128.0, 64.0)
-		ctx.circle(128.0, 128.0, 32.0)
-		*/
+		ctx.draw(svg)
 
-		ctx.beginPath();
-		ctx.moveTo(20, 20);               // Create a starting point
-		ctx.lineTo(100, 20);              // Create a horizontal line
-		ctx.arcTo(150, 20, 150, 70, 100);  // Create an arc
-		ctx.lineTo(150, 120);             // Continue with vertical line
-		ctx.stroke();                     // Draw it
-
-		//ctx.arc(128.0, 128.0, 32.0, 0.0, Math.PI / 4.0)
-		//ctx.arc(128.0, 128.0, 32.0, 0.0, (Math.PI * 2.0) * 0.9)
-		//ctx.stroke()
-		//ctx.fill()
 		awtShowImageAndWait(img)
 	}
 }
