@@ -5,7 +5,6 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.BGRA
-import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
@@ -125,5 +124,6 @@ class AndroidNativeImageFormatProvider : NativeImageFormatProvider() {
 		//bmp.setPixels()
 		return AndroidNativeImage(bmp)
 	}
+
 	suspend override fun decode(data: ByteArray): NativeImage = AndroidNativeImage(BitmapFactory.decodeByteArray(data, 0, data.size))
 }

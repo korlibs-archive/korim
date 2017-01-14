@@ -79,35 +79,54 @@ class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer {
 	}
 
 	override fun render(state: Context2d.State, fill: Boolean) {
-		state.path.visit(object : GraphicsPath.Visitor {
-			override fun close() {
-				ctx.methods["closePath"]()
-			}
+		if (state.path.isEmpty()) return
 
-			override fun moveTo(x: Double, y: Double) {
-				ctx.methods["moveTo"](x, y)
-			}
+		//println("beginPath")
+		ctx.methods["save"]()
+		try {
+			ctx.methods["beginPath"]()
 
-			override fun lineTo(x: Double, y: Double) {
-				ctx.methods["lineTo"](x, y)
-			}
+			state.path.visit(object : GraphicsPath.Visitor {
+				override fun close() {
+					ctx.methods["closePath"]()
+					//println("closePath")
+				}
 
-			override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
-				ctx.methods["quadraticCurveTo"](cx, cy, ax, ay)
-			}
+				override fun moveTo(x: Double, y: Double) {
+					ctx.methods["moveTo"](x, y)
+					//println("moveTo($x,$y)")
+				}
 
-			override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
-				ctx.methods["curveTo"](cx1, cy1, cx2, cy2, ax, ay)
-			}
-		})
+				override fun lineTo(x: Double, y: Double) {
+					ctx.methods["lineTo"](x, y)
+					//println("lineTo($x,$y)")
+				}
 
-		if (fill) {
-			ctx["fillStyle"] = state.fillStyle.toJsStr()
-			ctx.methods["fill"]()
-		} else {
-			ctx["lineWidth"] = state.lineWidth
-			ctx["strokeStyle"] = state.strokeStyle.toJsStr()
-			ctx.methods["stroke"]()
+				override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
+					ctx.methods["quadraticCurveTo"](cx, cy, ax, ay)
+					//println("quadraticCurveTo($cx,$cy,$ax,$ay)")
+				}
+
+				override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+					ctx.methods["bezierCurveTo"](cx1, cy1, cx2, cy2, ax, ay)
+					//println("bezierCurveTo($cx1,$cx2,$cy1,$cy2,$ax,$ay)")
+				}
+			})
+
+			if (fill) {
+				val s = state.fillStyle.toJsStr()
+				ctx["fillStyle"] = s
+				ctx.methods["fill"]()
+				//println("fill: $s")
+			} else {
+				ctx["lineWidth"] = state.lineWidth
+				val s = state.strokeStyle.toJsStr()
+				ctx["strokeStyle"] = s
+				ctx.methods["stroke"]()
+				//println("stroke: $s")
+			}
+		}finally {
+			ctx.methods["restore"]()
 		}
 	}
 }
