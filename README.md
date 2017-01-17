@@ -32,6 +32,16 @@ PNG, JPG, TGA, BMP, ICO and PSD.
 
 Korim provides color formats to convert easily and fast.
 
+### Vectorial Image Formats
+
+Korim supports loading, rasterizing and drawing vector SVG files.
+
+### Native vectorial rendering
+
+It provides a single interface for vector rendering.
+So you can use a single interface and leverage JavaScript Canvas,
+AWT's Graphics2D and Android Canvas.
+
 ### AWT Utilities
 
 Korim provides AWT utilities to convert bitmaps into AWT BufferedImages, and to display them.

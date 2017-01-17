@@ -1,2 +1,0 @@
-com.soywiz.korim.awt.AwtFontProvider # <target=java>
-com.soywiz.korim.html.HtmlFontProvider # <target=js>

@@ -5,7 +5,6 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.NamedColors
-import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
@@ -67,14 +66,46 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 	}
 }
 
-class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer {
+class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer() {
 	val ctx = canvas.methods["getContext"]("2d")
 
-	fun Context2d.Paint.toJsStr(): String {
+	fun Context2d.Paint.toJsStr(): Any? {
 		return when (this) {
 			is Context2d.None -> "none"
 			is Context2d.Color -> NamedColors.toHtmlString(this.color)
-			else -> TODO()
+			is Context2d.LinearGradient -> {
+				val grad = ctx.methods["createLinearGradient"](this.x0, this.y0, this.x1, this.y1)
+				for (n in 0 until this.stops.size) {
+					val stop = this.stops[n]
+					val color = this.colors[n]
+					grad.methods["addColorStop"](stop, NamedColors.toHtmlString(color))
+				}
+				grad
+			}
+			else -> "black"
+		}
+	}
+
+	inline private fun <T> keep(callback: () -> T): T {
+		ctx.methods["save"]()
+		try {
+			return callback()
+		} finally {
+			ctx.methods["restore"]()
+		}
+	}
+
+	private fun setState(state: Context2d.State, fill: Boolean) {
+		ctx["globalAlpha"] = state.globalAlpha
+		val font = state.font
+		ctx["font"] = "${font.size}px ${font.name}"
+		val t = state.transform
+		ctx.methods["setTransform"](t.a, t.b, t.c, t.d, t.tx, t.ty)
+		if (fill) {
+			ctx["fillStyle"] = state.fillStyle.toJsStr()
+		} else {
+			ctx["lineWidth"] = state.lineWidth
+			ctx["strokeStyle"] = state.strokeStyle.toJsStr()
 		}
 	}
 
@@ -82,8 +113,8 @@ class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer {
 		if (state.path.isEmpty()) return
 
 		//println("beginPath")
-		ctx.methods["save"]()
-		try {
+		keep {
+			setState(state, fill)
 			ctx.methods["beginPath"]()
 
 			state.path.visit(object : GraphicsPath.Visitor {
@@ -114,19 +145,44 @@ class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer {
 			})
 
 			if (fill) {
-				val s = state.fillStyle.toJsStr()
-				ctx["fillStyle"] = s
 				ctx.methods["fill"]()
 				//println("fill: $s")
 			} else {
-				ctx["lineWidth"] = state.lineWidth
-				val s = state.strokeStyle.toJsStr()
-				ctx["strokeStyle"] = s
 				ctx.methods["stroke"]()
 				//println("stroke: $s")
 			}
-		}finally {
-			ctx.methods["restore"]()
+		}
+	}
+
+	override fun renderText(state: Context2d.State, font: Context2d.Font, text: String, x: Double, y: Double, fill: Boolean) {
+		keep {
+			setState(state, fill)
+
+			ctx["textBaseline"] = when (state.verticalAlign) {
+				Context2d.VerticalAlign.TOP -> "top"
+				Context2d.VerticalAlign.MIDLE -> "middle"
+				Context2d.VerticalAlign.BASELINE -> "alphabetic"
+				Context2d.VerticalAlign.BOTTOM -> "bottom"
+			}
+			ctx["textAlign"] = when (state.horizontalAlign) {
+				Context2d.HorizontalAlign.LEFT -> "left"
+				Context2d.HorizontalAlign.CENTER -> "center"
+				Context2d.HorizontalAlign.RIGHT -> "right"
+			}
+
+			if (fill) {
+				ctx.methods["fillText"](text, x, y);
+			} else {
+				ctx.methods["strokeText"](text, x, y);
+			}
+		}
+	}
+
+	override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+		keep {
+			val metrics = ctx.methods["measureText"](text)
+			val width = metrics["width"].toInt()
+			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble(), font.size)
 		}
 	}
 }

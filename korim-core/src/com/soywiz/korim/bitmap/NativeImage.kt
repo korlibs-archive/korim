@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.format.nativeImageFormatProvider
+import com.soywiz.korim.vector.Context2d
 
 abstract class NativeImage(width: Int, height: Int, val data: Any?) : Bitmap(width, height, 32) {
 	abstract fun toNonNativeBmp(): Bitmap
@@ -10,3 +11,13 @@ abstract class NativeImage(width: Int, height: Int, val data: Any?) : Bitmap(wid
 }
 
 fun NativeImage(width: Int, height: Int) = nativeImageFormatProvider.create(width, height)
+
+fun NativeImage(width: Int, height: Int, d: Context2d.Drawable, scaleX: Double = 1.0, scaleY: Double = scaleX): NativeImage {
+	val bmp = NativeImage(width, height)
+	val ctx = bmp.getContext2d()
+	ctx.keep {
+		ctx.scale(scaleX, scaleY)
+		ctx.draw(d)
+	}
+	return bmp
+}

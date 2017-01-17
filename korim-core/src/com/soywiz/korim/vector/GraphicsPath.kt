@@ -72,6 +72,9 @@ class GraphicsPath(
 	private var lastX = 0.0
 	private var lastY = 0.0
 
+	fun moveTo(p: Vector2) = moveTo(p.x, p.y)
+	fun lineTo(p: Vector2) = lineTo(p.x, p.y)
+
 	fun moveTo(x: Double, y: Double) {
 		commands += Command.MOVE_TO
 		data += x
