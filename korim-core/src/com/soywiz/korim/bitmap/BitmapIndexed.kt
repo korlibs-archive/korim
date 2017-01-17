@@ -42,8 +42,8 @@ abstract class BitmapIndexed(
 	}
 
 	override fun swapRows(y0: Int, y1: Int) {
-		val s0 = index(0, y0)
-		val s1 = index(0, y1)
+		val s0 = index_d(0, y0)
+		val s1 = index_d(0, y1)
 		System.arraycopy(data, s0, temp, 0, stride)
 		System.arraycopy(data, s1, data, s0, stride)
 		System.arraycopy(temp, 0, data, s1, stride)

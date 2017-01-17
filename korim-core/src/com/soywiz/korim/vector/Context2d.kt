@@ -246,7 +246,7 @@ class Context2d(val renderer: Renderer) {
 	data class TextMetrics(val bounds: Rectangle = Rectangle()) {
 	}
 
-	fun getBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics = out.apply {
+	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics = out.apply {
 		renderer.getBounds(font, text, out)
 	}
 

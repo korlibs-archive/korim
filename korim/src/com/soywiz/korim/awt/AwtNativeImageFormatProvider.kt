@@ -2,13 +2,15 @@ package com.soywiz.korim.awt
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
-import com.soywiz.korim.color.BGRA
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import java.awt.*
+import java.awt.AlphaComposite
+import java.awt.BasicStroke
+import java.awt.Font
+import java.awt.RenderingHints
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.font.TextLayout
 import java.awt.geom.AffineTransform
@@ -129,14 +131,22 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		val at = AffineTransform()
 		val fm = g.fontMetrics
 		val bounds = tl.bounds
-		val baseline = fm.ascent + fm.descent
+		val metrics = Context2d.TextMetrics()
+		getBounds(font, text, metrics)
+		//println("text: $text")
+		//println("leading:${fm.leading}, ascent:${fm.ascent}, maxAscent:${fm.maxAscent}")
+		//println(metrics.bounds)
+		val baseline = metrics.bounds.y
 		val oy: Double = state.verticalAlign.getOffsetY(bounds.height, baseline.toDouble())
+		//val oy = 0.0
 		val ox: Double = state.horizontalAlign.getOffsetX(bounds.width)
 		//println("$ox, $oy")
 		//println("${tl.baseline}")
 		//println("${fm.ascent}")
 		//println("${fm.ascent + fm.descent}")
-		at.translate(x - ox, y + baseline - oy)
+		//at.translate(x - ox, y - baseline + oy)
+		at.translate(x - ox, y - baseline + oy)
+		//println("translate: ${x - ox}, ${y - oy}")
 		val outline = tl.getOutline(at)
 		if (fill) {
 			g.fill(outline)

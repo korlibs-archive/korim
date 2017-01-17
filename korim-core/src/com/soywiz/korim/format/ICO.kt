@@ -84,7 +84,9 @@ class ICO : ImageFormat("ico") {
 		val entries = (0 until count).map { readDirEntry() }
 		val bitmaps = arrayListOf<Bitmap>()
 		for (e in entries) {
-			bitmaps += readBitmap(e, s.sliceWithSize(e.offset.toLong(), e.size.toLong()))
+			val bmp = readBitmap(e, s.sliceWithSize(e.offset.toLong(), e.size.toLong()))
+			bmp.flipY()
+			bitmaps += bmp
 		}
 		return bitmaps.map { ImageFrame(it, main = false) }
 	}

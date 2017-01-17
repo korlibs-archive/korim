@@ -182,7 +182,7 @@ class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer() {
 		keep {
 			val metrics = ctx.methods["measureText"](text)
 			val width = metrics["width"].toInt()
-			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble(), font.size)
+			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, font.size)
 		}
 	}
 }

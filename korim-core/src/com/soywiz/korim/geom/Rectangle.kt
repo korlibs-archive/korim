@@ -1,6 +1,6 @@
 package com.soywiz.korim.geom
 
-class Rectangle(
+data class Rectangle(
 	var x: Double = 0.0, var y: Double = 0.0,
 	var width: Double = 0.0, var height: Double = 0.0
 ) {
