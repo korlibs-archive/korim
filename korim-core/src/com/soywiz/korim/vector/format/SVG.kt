@@ -4,21 +4,21 @@ import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.geom.Matrix2d
 import com.soywiz.korim.geom.Rectangle
-import com.soywiz.korim.geom.Vector2
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
-import com.soywiz.korio.util.StrReader
-import com.soywiz.korio.util.substr
+import com.soywiz.korio.util.*
 import org.intellij.lang.annotations.Language
 
-class SVG(val root: Xml) : Context2d.Drawable {
+class SVG(val root: Xml) : Context2d.SizedDrawable {
 	constructor(@Language("xml") str: String) : this(Xml(str))
+
+	override val width = root.int("width", 128)
+	override val height = root.int("height", 128)
 
 	class Style {
 		val props = hashMapOf<String, Any?>()
-
 	}
 
 	enum class GradientUnits {
@@ -54,10 +54,10 @@ class SVG(val root: Xml) : Context2d.Drawable {
 		when (type) {
 			"lineargradient", "radialgradient" -> {
 				val id = def.str("id").toLowerCase()
-				val x0 = def.double("x0", 0.0)
-				val y0 = def.double("y0", 0.0)
-				val x1 = def.double("x1", 1.0)
-				val y1 = def.double("y1", 1.0)
+				val x0 = def.double("x1", 0.0)
+				val y0 = def.double("y1", 0.0)
+				val x1 = def.double("x2", 1.0)
+				val y1 = def.double("y2", 1.0)
 				val stops = parseStops(def)
 				val g: Context2d.Gradient = if (type == "lineargradient") {
 					//println("Linear: ($x0,$y0)-($x1-$y1)")
@@ -71,6 +71,7 @@ class SVG(val root: Xml) : Context2d.Drawable {
 					//println(" - $offset: $color")
 					g.addColorStop(offset, color)
 				}
+				//println("Gradient: $g")
 				defs[id] = g
 			}
 			"style" -> {
@@ -165,20 +166,28 @@ class SVG(val root: Xml) : Context2d.Drawable {
 				circle(cx, cy, radius)
 				bounds.setBounds(cx - radius, cy - radius, cx + radius, cy + radius)
 			}
-			"polyline" -> {
+			"polyline", "polygon" -> {
 				beginPath()
-				val points = xml.str("points")
+				val ss = StrReader(xml.str("points"))
 				// @TODO: intelliJ bug: when using Point2d (alias), it removes the import because don't detect it
-				val pps = points.split(' ').map { val (x, y) = it.split(',').map { it.toDouble() }; Vector2(x, y) }
+
+				val pps = ListReader(mapWhile(cond = { ss.hasMore }, gen = {
+					ss.skipWhile { !it.isNumeric }
+					val out = ss.readWhile { it.isNumeric }.toDouble()
+					ss.skipWhile { !it.isNumeric }
+					out
+				}))
 				val path = GraphicsPath()
-				for ((index, p) in pps.withIndex()) {
-					if (index == 0) {
-						path.moveTo(p)
-					} else {
-						path.lineTo(p)
-					}
+				var edges = 0
+				path.moveTo(pps.read(), pps.read())
+				while (pps.hasMore) {
+					val x = pps.read() ; val y = pps.read()
+					path.lineTo(x, y)
+					edges++
 				}
+				if (nodeName == "polygon") path.close()
 				path.getBounds(bounds)
+				//println("bounds: $bounds, edges: $edges")
 				c.path(path)
 			}
 			"line" -> {

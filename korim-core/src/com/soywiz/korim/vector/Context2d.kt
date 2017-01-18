@@ -308,6 +308,11 @@ class Context2d(val renderer: Renderer) {
 		fun draw(c: Context2d)
 	}
 
+	interface SizedDrawable : Drawable {
+		val width: Int
+		val height: Int
+	}
+
 	class FuncDrawable(val action: Context2d.() -> Unit) : Context2d.Drawable {
 		override fun draw(c: Context2d) {
 			c.keep {

@@ -220,7 +220,7 @@ class GraphicsPath(
 		return synchronized(GetBounds) {
 			GetBounds.reset()
 			visit(GetBounds)
-			GetBounds.bb.getBounds()
+			GetBounds.bb.getBounds(out)
 		}
 	}
 
