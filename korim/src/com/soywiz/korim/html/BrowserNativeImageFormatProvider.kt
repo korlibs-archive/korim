@@ -8,9 +8,7 @@ import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import com.soywiz.korio.async.asyncFun
 import com.soywiz.korio.vfs.js.jsObject
-import kotlin.coroutines.CoroutineIntrinsics
 import kotlin.coroutines.suspendCoroutine
 
 class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
@@ -31,8 +29,8 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 		return CanvasNativeImage(canvas)
 	}
 
-	suspend override fun decode(data: ByteArray): NativeImage = asyncFun {
-		CanvasNativeImage(BrowserImage.decodeToCanvas(data))
+	suspend override fun decode(data: ByteArray): NativeImage {
+		return CanvasNativeImage(BrowserImage.decodeToCanvas(data))
 	}
 
 	@Suppress("unused")
@@ -60,9 +58,6 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 		fun imgData(canvas: JsDynamic?, out: IntArray): Unit {
 			HtmlImage.renderHtmlCanvasIntoBitmap(canvas, out)
 		}
-
-		@Suppress("unused")
-		private fun getSuspended() = CoroutineIntrinsics.SUSPENDED
 	}
 }
 

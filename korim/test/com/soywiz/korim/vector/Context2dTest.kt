@@ -1,6 +1,5 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.korim.awt.awtShowImageAndWait
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
@@ -8,7 +7,6 @@ import com.soywiz.korim.format.readBitmap
 import com.soywiz.korim.vector.format.SVG
 import com.soywiz.korio.async.EventLoopTest
 import com.soywiz.korio.async.sync
-import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
@@ -101,6 +99,6 @@ class Context2dTest {
 
 		ctx.draw(svg)
 
-		awtShowImageAndWait(img)
+		//awtShowImageAndWait(img)
 	}
 }

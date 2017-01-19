@@ -24,7 +24,7 @@ interface ColorFormatBase {
 				.insertScaledFF(r, rOffset, rSize)
 				.insertScaledFF(g, gOffset, gSize)
 				.insertScaledFF(b, bOffset, bSize)
-				.insertScaledFFDefault(a, aOffset, aSize, default = 0xFF)
+				.insertScaledFF(a, aOffset, aSize)
 		}
 	}
 }
