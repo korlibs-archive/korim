@@ -23,33 +23,52 @@ class Matrix2d(
 	}
 
 	fun rotate(theta: Double) = this.apply {
-		val cos = Math.cos(theta);
-		val sin = Math.sin(theta);
+		val cos = Math.cos(theta)
+		val sin = Math.sin(theta)
 
-		val a1 = a * cos - b * sin;
-		b = a * sin + b * cos;
-		a = a1;
+		val a1 = a * cos - b * sin
+		b = a * sin + b * cos
+		a = a1
 
-		val c1 = c * cos - d * sin;
-		d = c * sin + d * cos;
-		c = c1;
+		val c1 = c * cos - d * sin
+		d = c * sin + d * cos
+		c = c1
 
-		val tx1 = tx * cos - ty * sin;
-		ty = tx * sin + ty * cos;
-		tx = tx1;
+		val tx1 = tx * cos - ty * sin
+		ty = tx * sin + ty * cos
+		tx = tx1
+	}
+
+	fun skew(skewX: Double, skewY: Double): Matrix2d {
+		val sinX = Math.sin(skewX)
+		val cosX = Math.cos(skewX)
+		val sinY = Math.sin(skewY)
+		val cosY = Math.cos(skewY)
+
+		return this.setTo(
+			a * cosY - b * sinX,
+			a * sinY + b * cosX,
+			c * cosY - d * sinX,
+			c * sinY + d * cosX,
+			tx * cosY - ty * sinX,
+			tx * sinY + ty * cosX
+		)
 	}
 
 	fun scale(sx: Double, sy: Double) = setTo(a * sx, b * sx, c * sy, d * sy, tx * sx, ty * sy)
 	fun prescale(sx: Double, sy: Double) = setTo(a * sx, b * sx, c * sy, d * sy, tx, ty)
-
-	fun pretranslate(dx: Double, dy: Double) = this.apply {
-		tx += a * dx + c * dy
-		ty += b * dx + d * dy
-	}
+	fun translate(dx: Double, dy: Double) = this.apply { this.tx += dx; this.ty += dy }
+	fun pretranslate(dx: Double, dy: Double) = this.apply { tx += a * dx + c * dy; ty += b * dx + d * dy }
 
 	fun prerotate(theta: Double) = this.apply {
 		val m = Matrix2d()
 		m.rotate(theta)
+		this.premulitply(m)
+	}
+
+	fun preskew(skewX: Double, skewY: Double) = this.apply {
+		val m = Matrix2d()
+		m.skew(skewX, skewY)
 		this.premulitply(m)
 	}
 
@@ -87,31 +106,95 @@ class Matrix2d(
 
 	fun setToIdentity() = setTo(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
 
-	fun setToInverse(): Matrix2d {
-		var norm = a * d - b * c;
+	fun setToInverse(matrixToInvert: Matrix2d = this): Matrix2d {
+		val m = matrixToInvert
+		val norm = m.a * m.d - m.b * m.c
 
 		if (norm == 0.0) {
-			a = 0.0
-			b = 0.0
-			c = 0.0
-			d = 0.0;
-			tx = -tx;
-			ty = -ty;
+			setTo(0.0, 0.0, 0.0, 0.0, -m.tx, -m.ty)
 		} else {
-			norm = 1.0 / norm;
-			val a1 = d * norm;
-			d = a * norm;
-			a = a1;
-			b *= -norm;
-			c *= -norm;
-
-			val tx1 = -a * tx - c * ty;
-			ty = -b * tx - d * ty;
-			tx = tx1;
+			val inorm = 1.0 / norm
+			d = m.a * inorm
+			a = m.d * inorm
+			b = m.b * -inorm
+			c = m.c * -inorm
+			ty = -b * m.tx - d * m.ty
+			tx = -a * m.tx - c * m.ty
 		}
 
-		return this;
+		return this
+	}
+
+	fun identity() = setTo(1.0, 0.0, 0.0, 1.0, 0.0, 0.0)
+
+	fun setTransform(x: Double, y: Double, scaleX: Double, scaleY: Double, rotation: Double, skewX: Double, skewY: Double): Matrix2d {
+		if (skewX == 0.0 && skewY == 0.0) {
+			if (rotation == 0.0) {
+				this.setTo(scaleX, 0.0, 0.0, scaleY, x, y)
+			} else {
+				val cos = Math.cos(rotation)
+				val sin = Math.sin(rotation)
+				this.setTo(cos * scaleX, sin * scaleY, -sin * scaleX, cos * scaleY, x, y)
+			}
+		} else {
+			identity()
+			scale(scaleX, scaleY)
+			skew(skewX, skewY)
+			rotate(rotation)
+			translate(x, y)
+		}
+		return this
 	}
 
 	fun clone() = Matrix2d(a, b, c, d, tx, ty)
+
+	data class Transform(
+		var x: Double = 0.0, var y: Double = 0.0,
+		var scaleX: Double = 0.0, var scaleY: Double = 0.0,
+		var skewX: Double = 0.0, var skewY: Double = 0.0,
+		var rotation: Double = 0.0
+	) {
+		fun setMatrix(matrix: Matrix2d): Transform {
+			val PI_4 = Math.PI / 4.0
+			this.x = matrix.tx
+			this.y = matrix.ty
+
+			this.skewX = Math.atan(-matrix.c / matrix.d)
+			this.skewY = Math.atan(matrix.b / matrix.a)
+
+			// Faster isNaN
+			if (this.skewX != this.skewX) this.skewX = 0.0
+			if (this.skewY != this.skewY) this.skewY = 0.0
+
+			this.scaleY = if (this.skewX > -PI_4 && this.skewX < PI_4) matrix.d / Math.cos(this.skewX) else -matrix.c / Math.sin(this.skewX)
+			this.scaleX = if (this.skewY > -PI_4 && this.skewY < PI_4) matrix.a / Math.cos(this.skewY) else matrix.b / Math.sin(this.skewY)
+
+			if (Math.abs(this.skewX - this.skewY) < 0.0001) {
+				this.rotation = this.skewX
+				this.skewX = 0.0
+				this.skewY = 0.0
+			} else {
+				this.rotation = 0.0
+			}
+
+			return this
+		}
+
+		fun toMatrix(out: Matrix2d = Matrix2d()): Matrix2d = out.setTransform(x, y, scaleX, scaleY, rotation, skewX, skewY)
+
+		fun copyFrom(that: Transform) = setTo(that.x, that.y, that.scaleX, that.scaleY, that.rotation, that.skewX, that.skewY)
+
+		fun setTo(x: Double, y: Double, scaleX: Double, scaleY: Double, rotation: Double, skewX: Double, skewY: Double): Transform {
+			this.x = x
+			this.y = y
+			this.scaleX = scaleX
+			this.scaleY = scaleY
+			this.rotation = rotation
+			this.skewX = skewX
+			this.skewY = skewY
+			return this
+		}
+
+		fun clone() = Transform().copyFrom(this)
+	}
 }

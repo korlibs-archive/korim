@@ -16,6 +16,8 @@ val nativeImageFormatProviders by lazy {
 
 val nativeImageFormatProvider by lazy { nativeImageFormatProviders.first() }
 
+suspend fun displayImage(bmp: Bitmap) = nativeImageFormatProvider.display(bmp)
+
 suspend fun decodeImageBytes(bytes: ByteArray): NativeImage {
 	for (nip in nativeImageFormatProviders) {
 		try {

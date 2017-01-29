@@ -1,5 +1,5 @@
 apply from: '../include.gradle'
 
 dependencies {
-	testCompile "com.soywiz:korio:$korioVersion"
+	testCompile "com.soywiz:korio:$korVersion"
 }

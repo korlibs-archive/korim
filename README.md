@@ -10,7 +10,7 @@
 Use with gradle:
 
 ```
-compile "com.soywiz:korim:korimVersion"
+compile "com.soywiz:korim:korVersion"
 ```
 
 I'm uploading it to bintray and maven central:

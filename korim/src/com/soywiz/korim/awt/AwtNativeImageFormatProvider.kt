@@ -24,6 +24,10 @@ class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 	override fun create(width: Int, height: Int): NativeImage {
 		return AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
 	}
+
+	override suspend fun display(bitmap: Bitmap): Unit {
+		awtShowImageAndWait(bitmap)
+	}
 }
 
 class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {

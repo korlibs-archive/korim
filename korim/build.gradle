@@ -6,5 +6,5 @@ sourceSets {
 
 dependencies {
 	compile project(":korim-core")
-	compile "com.soywiz:korio:$korioVersion"
+	compile "com.soywiz:korio:$korVersion"
 }
