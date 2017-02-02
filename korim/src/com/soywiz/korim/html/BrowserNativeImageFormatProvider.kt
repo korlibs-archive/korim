@@ -8,8 +8,8 @@ import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korio.coroutine.korioSuspendCoroutine
 import com.soywiz.korio.vfs.js.jsObject
-import kotlin.coroutines.suspendCoroutine
 
 class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
 	override fun toNonNativeBmp(): Bitmap {
@@ -35,7 +35,7 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 
 	@Suppress("unused")
 	object BrowserImage {
-		suspend fun decodeToCanvas(bytes: ByteArray): JsDynamic? = suspendCoroutine { c ->
+		suspend fun decodeToCanvas(bytes: ByteArray): JsDynamic? = korioSuspendCoroutine { c ->
 			val blob = jsNew("Blob", jsArray(bytes), jsObject("type" to "image/png"))
 			val blobURL = global["URL"].methods["createObjectURL"](blob);
 

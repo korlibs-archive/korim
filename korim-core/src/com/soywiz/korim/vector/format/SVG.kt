@@ -169,7 +169,6 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			"polyline", "polygon" -> {
 				beginPath()
 				val ss = StrReader(xml.str("points"))
-				// @TODO: intelliJ bug: when using Point2d (alias), it removes the import because don't detect it
 
 				val pps = ListReader(mapWhile(cond = { ss.hasMore }, gen = {
 					ss.skipWhile { !it.isNumeric }

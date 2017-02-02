@@ -10,9 +10,9 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korio.android.KorioAndroidContext
 import com.soywiz.korio.async.async
 import com.soywiz.korio.async.executeInWorker
-import kotlin.coroutines.suspendCoroutine
+import com.soywiz.korio.coroutine.korioSuspendCoroutine
 
-suspend fun androidShowImage(bitmap: Bitmap): Unit = suspendCoroutine { c ->
+suspend fun androidShowImage(bitmap: Bitmap): Unit = korioSuspendCoroutine { c ->
 	async {
 		executeInWorker {
 			val ctx = KorioAndroidContext
@@ -43,7 +43,7 @@ suspend fun androidShowImage(bitmap: Bitmap): Unit = suspendCoroutine { c ->
 	}
 }
 
-suspend fun androidQuestionAlert(message: String, title: String = "Warning"): Boolean = suspendCoroutine { c ->
+suspend fun androidQuestionAlert(message: String, title: String = "Warning"): Boolean = korioSuspendCoroutine { c ->
 	KorioAndroidContext.runOnUiThread {
 		val dialog = AlertDialog.Builder(KorioAndroidContext)
 			.setTitle(title)
