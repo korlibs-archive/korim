@@ -6,7 +6,7 @@ import com.soywiz.korim.bitmap.Bitmap32
 
 object HtmlImage {
 	fun createHtmlCanvas(width: Int, height: Int): JsDynamic {
-		val canvas = document.methods["createElement"]("canvas")
+		val canvas = document.call("createElement", "canvas")
 		canvas["width"] = width
 		canvas["height"] = height
 		return canvas!!
@@ -64,11 +64,11 @@ object HtmlImage {
 	}
 
 	fun htmlCanvasToDataUrl(canvas: JsDynamic): String {
-		return canvas.methods["toDataURL"]().toJavaString()
+		return canvas.call("toDataURL").toJavaString()
 	}
 
 	fun htmlCanvasClear(canvas: JsDynamic): Unit {
-		val ctx = canvas.methods["getContext"]("2d")
+		val ctx = canvas.call("getContext", "2d")
 		ctx.call("clearRect", 0, 0, canvas["width"], canvas["height"])
 	}
 

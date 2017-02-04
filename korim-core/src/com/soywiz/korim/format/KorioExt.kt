@@ -35,7 +35,7 @@ suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = this.readImageFrame
 suspend fun VfsFile.readBitmap(): Bitmap {
 	val bytes = this.read()
 	return try {
-		decodeImageBytes(bytes).toNonNativeBmp()
+		decodeImageBytes(bytes)
 	} catch (t: Throwable) {
 		ImageFormats.decode(bytes, this.basename)
 	}
