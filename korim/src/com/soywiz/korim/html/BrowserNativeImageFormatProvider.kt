@@ -9,7 +9,6 @@ import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
-import com.soywiz.korio.vfs.js.jsObject
 
 class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
 	override fun toNonNativeBmp(): Bitmap {
