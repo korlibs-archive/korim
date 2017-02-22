@@ -1,6 +1,6 @@
 package com.soywiz.korim.geom
 
-class Vector2(var x: Double = 0.0, var y: Double = x) {
+data class Vector2(var x: Double = 0.0, var y: Double = x) {
 	fun setTo(x: Double, y: Double): Vector2 {
 		this.x = x
 		this.y = y
