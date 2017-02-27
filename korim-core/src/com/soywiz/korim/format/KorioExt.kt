@@ -35,9 +35,21 @@ suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = this.readImageFrame
 suspend fun VfsFile.readBitmap(): Bitmap {
 	val bytes = this.read()
 	return try {
-		decodeImageBytes(bytes)
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decode(bytes, this.basename)
 	} catch (t: Throwable) {
 		ImageFormats.decode(bytes, this.basename)
+	}
+}
+
+var nativeImageLoadingEnabled = true
+
+suspend inline fun disableNativeImageLoading(callback: () -> Unit) {
+	val oldNativeImageLoadingEnabled = nativeImageLoadingEnabled
+	try {
+		nativeImageLoadingEnabled = false
+		callback()
+	} finally {
+		nativeImageLoadingEnabled = oldNativeImageLoadingEnabled
 	}
 }
 

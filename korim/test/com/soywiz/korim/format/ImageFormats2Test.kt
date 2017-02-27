@@ -1,6 +1,5 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korim.awt.awtShowImage
 import com.soywiz.korio.async.sync
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
@@ -45,8 +44,8 @@ class ImageFormats2Test {
 	fun ico() = sync {
 		val bitmaps = ResourcesVfs["icon.ico"].readBitmapListNoNative()
 		Assert.assertEquals(
-			"[Bitmap32(256, 256), Bitmap32(128, 128), Bitmap32(96, 96), Bitmap32(72, 72), Bitmap32(64, 64), Bitmap32(48, 48), Bitmap32(32, 32), Bitmap32(24, 24), Bitmap32(16, 16)]",
-			bitmaps.toString()
+				"[Bitmap32(256, 256), Bitmap32(128, 128), Bitmap32(96, 96), Bitmap32(72, 72), Bitmap32(64, 64), Bitmap32(48, 48), Bitmap32(32, 32), Bitmap32(24, 24), Bitmap32(16, 16)]",
+				bitmaps.toString()
 		)
 	}
 }
