@@ -19,7 +19,8 @@ object ImageFormats : ImageFormat("") {
 	}
 
 	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
-		for (format in formats) if (format.check(s.slice(), filename)) return format.readFrames(s.slice(), filename)
+		val format = formats.firstOrNull { it.check(s.slice(), filename) }
+		if (format != null) return format.readFrames(s.slice(), filename)
 		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
 	}
 

@@ -10,14 +10,7 @@
 Use with gradle:
 
 ```
-compile "com.soywiz:korim:korVersion"
-```
-
-I'm uploading it to bintray and maven central:
-
-For bintray:
-```
-maven { url "https://dl.bintray.com/soywiz/soywiz-maven" }
+compile "com.soywiz:korim:$korVersion"
 ```
 
 ### Bitmap classes

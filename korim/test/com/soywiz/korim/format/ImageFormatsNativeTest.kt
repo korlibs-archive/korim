@@ -2,37 +2,38 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.sync
+import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
 
 class ImageFormatsNativeTest {
 	@Test
-	fun png8() = sync {
+	fun png8() = syncTest {
 		val bitmap = ResourcesVfs["kotlin8.png"].readNativeImage()
 		Assert.assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
 		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test
-	fun png24() = sync {
+	fun png24() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmap()
-		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		Assert.assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
 		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 
 	@Test
-	fun png32() = sync {
+	fun png32() = syncTest {
 		val bitmap = ResourcesVfs["kotlin32.png"].readBitmap()
-		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		Assert.assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
 		//awtShowImage(bitmap); Thread.sleep(10000L)
 	}
 
 	@Test
-	fun jpeg() = sync {
+	fun jpeg() = syncTest {
 		val bitmap = ResourcesVfs["kotlin.jpg"].readBitmap()
-		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		Assert.assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
 
 		val bitmapExpected = ResourcesVfs["kotlin.jpg.png"].readBitmap()
 		Assert.assertTrue(Bitmap32.matches(bitmapExpected, bitmap))
@@ -43,9 +44,9 @@ class ImageFormatsNativeTest {
 	}
 
 	@Test
-	fun jpeg2() = sync {
+	fun jpeg2() = syncTest {
 		val bitmap = ResourcesVfs["img1.jpg"].readBitmap()
-		Assert.assertEquals("Bitmap32(460, 460)", bitmap.toString())
+		Assert.assertEquals("AwtNativeImage(460, 460)", bitmap.toString())
 
 		val bitmapExpected = ResourcesVfs["img1.jpg.png"].readBitmap()
 		Assert.assertTrue(Bitmap32.matches(bitmapExpected, bitmap, threshold = 32))
