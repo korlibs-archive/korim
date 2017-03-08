@@ -4,6 +4,7 @@ import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korio.error.invalidOp
 import java.util.*
 
 class Bitmap32(
@@ -17,8 +18,10 @@ class Bitmap32(
 		setEach(generator)
 	}
 
-	operator fun set(x: Int, y: Int, color: Int) = apply { data[index(x, y)] = color }
-	operator fun get(x: Int, y: Int): Int = data[index(x, y)]
+	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap32(width, height)
+
+	override operator fun set(x: Int, y: Int, color: Int) = run { data[index(x, y)] = color }
+	override operator fun get(x: Int, y: Int): Int = data[index(x, y)]
 	override fun get32(x: Int, y: Int): Int = get(x, y)
 
 	fun setRow(y: Int, row: IntArray) {
@@ -231,3 +234,4 @@ class Bitmap32(
 
 	override fun iterator(): Iterator<Int> = data.iterator()
 }
+

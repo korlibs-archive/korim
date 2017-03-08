@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.util.clamp
 
 abstract class Bitmap(
@@ -13,6 +14,8 @@ abstract class Bitmap(
 	fun index(x: Int, y: Int) = y * width + x
 
 	open fun get32(x: Int, y: Int): Int = 0
+	open operator fun set(x: Int, y: Int, color: Int): Unit = Unit
+	open operator fun get(x: Int, y: Int) = 0
 
 	fun inBoundsX(x: Int) = (x >= 0) && (x < width)
 	fun inBoundsY(y: Int) = (y >= 0) && (y < height)
@@ -30,6 +33,8 @@ abstract class Bitmap(
 
 	open fun getContext2d(): Context2d = throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
 
+	open fun createWithThisFormat(width: Int, height: Int): Bitmap = invalidOp("Unsupported createWithThisFormat")
+
 	fun toBMP32(): Bitmap32 = when (this) {
 		is Bitmap32 -> this
 		is NativeImage -> this.toBmp32()
@@ -40,3 +45,5 @@ abstract class Bitmap(
 		}
 	}
 }
+
+fun <T : Bitmap> T.createWithThisFormatTyped(width: Int, height: Int): T = this.createWithThisFormat(width, height) as T

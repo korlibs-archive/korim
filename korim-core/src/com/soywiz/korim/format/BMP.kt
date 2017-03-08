@@ -26,7 +26,7 @@ class BMP : ImageFormat("bmp") {
 		}
 	}
 
-	override fun readImage(s: SyncStream, filename: String): Image {
+	override fun readImage(s: SyncStream, filename: String): ImageData {
 		val h = decodeHeader(s, filename) ?: throw IllegalArgumentException("Not a BMP file")
 
 		val compression = s.readS32_le()
@@ -40,11 +40,11 @@ class BMP : ImageFormat("bmp") {
 			val out = Bitmap8(h.width, h.height)
 			for (n in 0 until 256) out.palette[n] = s.readS32_le() or 0xFF000000.toInt()
 			for (n in 0 until h.height) out.setRow(h.height - n - 1, s.readBytes(h.width))
-			return Image(listOf(ImageFrame(out)))
+			return ImageData(listOf(ImageFrame(out)))
 		} else {
 			val out = Bitmap32(h.width, h.height)
 			for (n in 0 until h.height) out.setRow(h.height - n - 1, s.readIntArray_le(h.width))
-			return Image(listOf(ImageFrame(out)))
+			return ImageData(listOf(ImageFrame(out)))
 		}
 	}
 }

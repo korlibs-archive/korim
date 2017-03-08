@@ -61,7 +61,7 @@ class TGA : ImageFormat("tga") {
 		return Info(width = width, height = height, flipY = flipY, bitsPerPixel = pixelDepth)
 	}
 
-	override fun readImage(s: SyncStream, filename: String): Image {
+	override fun readImage(s: SyncStream, filename: String): ImageData {
 		val info = readHeader(s)
 		val format = when (info.bitsPerPixel) {
 			24 -> RGB
@@ -70,10 +70,10 @@ class TGA : ImageFormat("tga") {
 		}
 		val out = Bitmap32(info.width, info.height).writeDecoded(format, s.readBytes(info.area * info.bytes))
 		if (info.flipY) out.flipY()
-		return Image(listOf(ImageFrame(out)))
+		return ImageData(listOf(ImageFrame(out)))
 	}
 
-	override fun writeImage(image: Image, s: SyncStream, filename: String) {
+	override fun writeImage(image: ImageData, s: SyncStream, filename: String) {
 		val bitmap = image.mainBitmap
 		when (bitmap) {
 			is Bitmap8 -> {
