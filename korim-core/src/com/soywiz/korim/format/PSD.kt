@@ -7,7 +7,7 @@ import com.soywiz.korio.stream.readU16_be
 
 // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 class PSD : ImageFormat("psd") {
-	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
+	override fun readImage(s: SyncStream, filename: String): Image {
 		TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
 	}
 

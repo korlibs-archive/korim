@@ -17,7 +17,7 @@ class ICO : ImageFormat("ico") {
 		return ImageInfo()
 	}
 
-	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
+	override fun readImage(s: SyncStream, filename: String): Image {
 		data class DirEntry(
 			val width: Int, val height: Int,
 			val colorCount: Int,
@@ -88,6 +88,6 @@ class ICO : ImageFormat("ico") {
 			bmp.flipY()
 			bitmaps += bmp
 		}
-		return bitmaps.map { ImageFrame(it, main = false) }
+		return Image(bitmaps.map { ImageFrame(it, main = false) })
 	}
 }

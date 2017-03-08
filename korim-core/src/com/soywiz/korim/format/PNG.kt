@@ -64,8 +64,8 @@ class PNG : ImageFormat("png") {
 		null
 	}
 
-	override fun writeFrames(frames: List<ImageFrame>, s: SyncStream, filename: String) {
-		val bitmap = frames.first().bitmap
+	override fun writeImage(image: Image, s: SyncStream, filename: String) {
+		val bitmap = image.mainBitmap
 		val width = bitmap.width
 		val height = bitmap.height
 		s.write32_be(MAGIC1)
@@ -256,8 +256,8 @@ class PNG : ImageFormat("png") {
 		}
 	}
 
-	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
-		return listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap))
+	override fun readImage(s: SyncStream, filename: String): Image {
+		return Image(listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap)))
 	}
 
 	fun paethPredictor(a: Int, b: Int, c: Int): Int {

@@ -18,16 +18,16 @@ object ImageFormats : ImageFormat("") {
 		return null
 	}
 
-	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
+	override fun readImage(s: SyncStream, filename: String): Image {
 		val format = formats.firstOrNull { it.check(s.slice(), filename) }
-		if (format != null) return format.readFrames(s.slice(), filename)
+		if (format != null) return format.readImage(s.slice(), filename)
 		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
 	}
 
-	override fun writeFrames(frames: List<ImageFrame>, s: SyncStream, filename: String) {
+	override fun writeImage(image: Image, s: SyncStream, filename: String) {
 		val ext = PathInfo(filename).extensionLC
 		println("filename: $filename")
 		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext'")
-		format.writeFrames(frames, s, filename)
+		format.writeImage(image, s, filename)
 	}
 }

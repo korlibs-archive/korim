@@ -24,13 +24,13 @@ class JPEG : ImageFormat("jpg", "jpeg") {
 		null
 	}
 
-	override fun readFrames(s: SyncStream, filename: String): List<ImageFrame> {
+	override fun readImage(s: SyncStream, filename: String): Image {
 		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
 		decoder.decodeHeader()
 		decoder.startDecode()
 		val out = Bitmap32(decoder.imageWidth, decoder.imageHeight)
 		decoder.decodeRGB(out.data, 0, out.width, decoder.numMCURows)
-		return listOf(ImageFrame(out))
+		return Image(listOf(ImageFrame(out)))
 	}
 
 	/**
