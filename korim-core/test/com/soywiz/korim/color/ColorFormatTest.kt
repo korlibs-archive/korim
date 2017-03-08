@@ -8,24 +8,24 @@ import org.junit.Test
 
 class ColorFormatTest {
 	fun bmp() = Bitmap32(3, 1, intArrayOf(Colors.RED, Colors.GREEN, Colors.BLUE))
-	fun ByteArray.toHexChunks(size: Int) = this.toHexString().splitInChunks(size).joinToString("-")
+	fun ByteArray.toHexChunks(size: Int) = this.toHexString().splitInChunks(size).joinToString("-").toLowerCase()
 
 	@Test
 	fun name() {
-		Assert.assertEquals("0000FF-00FF00-FF0000", RGB.encode(bmp().data, littleEndian = false).toHexChunks(6))
-		Assert.assertEquals("FF0000FF-FF00FF00-FFFF0000", RGBA.encode(bmp().data, littleEndian = false).toHexChunks(8))
-		Assert.assertEquals("FFFF004C-FF000095-FF00FF1D", YUVA.encode(bmp().data, littleEndian = false).toHexChunks(8))
+		Assert.assertEquals("0000ff-00ff00-ff0000", RGB.encode(bmp().data, littleEndian = false).toHexChunks(6))
+		Assert.assertEquals("ff0000ff-ff00ff00-ffff0000", RGBA.encode(bmp().data, littleEndian = false).toHexChunks(8))
+		Assert.assertEquals("ffff004c-ff000095-ff00ff1d", YUVA.encode(bmp().data, littleEndian = false).toHexChunks(8))
 
-		Assert.assertEquals("F00F-F0F0-FF00", RGBA_4444.encode(bmp().data, littleEndian = false).toHexChunks(4))
-		Assert.assertEquals("801F-83E0-FC00", RGBA_5551.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("f00f-f0f0-ff00", RGBA_4444.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("801f-83e0-fc00", RGBA_5551.encode(bmp().data, littleEndian = false).toHexChunks(4))
 
-		Assert.assertEquals("FF00-F0F0-F00F", BGRA_4444.encode(bmp().data, littleEndian = false).toHexChunks(4))
-		Assert.assertEquals("FC00-83E0-801F", BGRA_5551.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("ff00-f0f0-f00f", BGRA_4444.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("fc00-83e0-801f", BGRA_5551.encode(bmp().data, littleEndian = false).toHexChunks(4))
 	}
 
 	@Test
 	fun rgb565() {
-		Assert.assertEquals("001F-07E0-F800", RGB_565.encode(bmp().data, littleEndian = false).toHexChunks(4))
-		Assert.assertEquals("F800-07E0-001F", BGR_565.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("001f-07e0-f800", RGB_565.encode(bmp().data, littleEndian = false).toHexChunks(4))
+		Assert.assertEquals("f800-07e0-001f", BGR_565.encode(bmp().data, littleEndian = false).toHexChunks(4))
 	}
 }
