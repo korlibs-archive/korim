@@ -2,7 +2,9 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
+import com.soywiz.korio.stream.AsyncInputStream
 import com.soywiz.korio.stream.AsyncStream
+import com.soywiz.korio.stream.openSync
 import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.vfs.VfsFile
 import java.util.*
@@ -29,10 +31,21 @@ suspend fun decodeImageBytes(bytes: ByteArray): NativeImage {
 }
 
 suspend fun VfsFile.readNativeImage(): NativeImage = decodeImageBytes(this.read())
+suspend fun VfsFile.readImageData(): ImageData = ImageFormats.readImage(this.readAsSyncStream(), this.basename)
+suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = this.readImageData().frames.map { it.bitmap }
 
-suspend fun VfsFile.readImageImageNoNative(): ImageData = ImageFormats.readImage(this.readAsSyncStream(), this.basename)
-suspend fun VfsFile.readImageFramesNoNative(): List<ImageFrame> = readImageImageNoNative().frames
-suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = this.readImageFramesNoNative().map { it.bitmap }
+suspend fun AsyncInputStream.readNativeImage(): NativeImage = decodeImageBytes(this.readAll())
+suspend fun AsyncInputStream.readImageData(basename: String = "file.bin"): ImageData = ImageFormats.readImage(this.readAll().openSync(), basename)
+suspend fun AsyncInputStream.readBitmapListNoNative(): List<Bitmap> = this.readImageData().frames.map { it.bitmap }
+suspend fun AsyncInputStream.readBitmap(basename: String = "file.bin"): Bitmap {
+	val bytes = this.readAll()
+	return try {
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decode(bytes, basename)
+	} catch (t: Throwable) {
+		ImageFormats.decode(bytes, basename)
+	}
+}
+
 suspend fun VfsFile.readBitmap(): Bitmap {
 	val bytes = this.read()
 	return try {

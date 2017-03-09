@@ -12,7 +12,7 @@ abstract class ImageFormat(vararg exts: String) {
 	val extensions = exts.map { it.toLowerCase().trim() }.toSet()
 	open fun readImage(s: SyncStream, filename: String = "unknown"): ImageData = TODO()
 	open fun writeImage(image: ImageData, s: SyncStream, filename: String = "unknown"): Unit = throw UnsupportedOperationException()
-	open fun decodeHeader(s: SyncStream, filename: String = "unknown"): ImageInfo? = ignoreErrors {
+	open fun decodeHeader(s: SyncStream, filename: String = "unknown"): ImageInfo? = ignoreErrors(show = true) {
 		val bmp = read(s, filename)
 		ImageInfo().apply {
 			this.width = bmp.width
@@ -24,7 +24,7 @@ abstract class ImageFormat(vararg exts: String) {
 	fun read(s: SyncStream, filename: String = "unknown"): Bitmap = readImage(s, filename).mainBitmap
 	fun read(file: File) = this.read(file.openSync(), file.name)
 	fun read(s: ByteArray, filename: String = "unknown"): Bitmap = read(s.openSync(), filename)
-	fun check(s: SyncStream, filename: String): Boolean = ignoreErrors { decodeHeader(s, filename) != null } ?: false
+	fun check(s: SyncStream, filename: String): Boolean = ignoreErrors(show = true) { decodeHeader(s, filename) != null } ?: false
 	fun decode(s: SyncStream, filename: String = "unknown") = this.read(s, filename)
 	fun decode(file: File) = this.read(file.openSync("r"), file.name)
 	fun decode(s: ByteArray, filename: String = "unknown"): Bitmap = read(s.openSync(), filename)

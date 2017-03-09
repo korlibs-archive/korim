@@ -31,7 +31,7 @@ suspend fun awtShowImageAndWait(image: BufferedImage): Unit = korioSuspendCorout
 }
 
 fun awtShowImage(image: BufferedImage): JFrame {
-	println("Showing: $image")
+	//println("Showing: $image")
 	val frame = object : JFrame("Image (${image.width}x${image.height})") {
 
 	}
