@@ -2,4 +2,5 @@ apply from: '../include.gradle'
 
 dependencies {
 	testCompile "com.soywiz:korio:$korVersion"
+	testCompile project(':korim')
 }

@@ -1,6 +1,8 @@
 package com.soywiz.korim.geom
 
 data class Vector2(var x: Double = 0.0, var y: Double = x) {
+	constructor(x: Int, y: Int) : this(x.toDouble(), y.toDouble())
+
 	fun setTo(x: Double, y: Double): Vector2 {
 		this.x = x
 		this.y = y
