@@ -148,6 +148,13 @@ class Matrix2d(
 
 	fun clone() = Matrix2d(a, b, c, d, tx, ty)
 
+	fun createBox(scaleX: Double, scaleY: Double, rotation: Double = 0.0, tx: Double = 0.0, ty: Double = 0.0): Unit {
+		identity()
+		rotate(rotation)
+		scale(scaleX, scaleY)
+		translate(tx, ty)
+	}
+
 	data class Transform(
 			var x: Double = 0.0, var y: Double = 0.0,
 			var scaleX: Double = 0.0, var scaleY: Double = 0.0,
@@ -198,10 +205,8 @@ class Matrix2d(
 		fun clone() = Transform().copyFrom(this)
 	}
 
-	fun createBox(scaleX: Double, scaleY: Double, rotation: Double = 0.0, tx: Double = 0.0, ty: Double = 0.0): Unit {
-		identity()
-		rotate(rotation)
-		scale(scaleX, scaleY)
-		translate(tx, ty)
+	class Computed(val matrix: Matrix2d, val transform: Matrix2d.Transform) {
+		constructor(matrix: Matrix2d) : this(matrix, Matrix2d.Transform().setMatrix(matrix))
+		constructor(transform: Matrix2d.Transform) : this(transform.toMatrix(), transform)
 	}
 }
