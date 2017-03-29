@@ -329,3 +329,12 @@ class Context2d(val renderer: Renderer) {
 	}
 }
 
+fun Context2d.SizedDrawable.filled(paint: Context2d.Paint): Context2d.SizedDrawable {
+	return object : Context2d.SizedDrawable by this {
+		override fun draw(c: Context2d) {
+			c.fillStyle = paint
+			this@filled.draw(c)
+			c.fill()
+		}
+	}
+}

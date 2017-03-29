@@ -1,19 +1,24 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.korio.ds.DoubleArrayList
+import com.soywiz.korio.ds.IntArrayList
 import com.soywiz.korma.geom.Rectangle
 import com.soywiz.korma.math.Vector2
-import java.util.*
 
 class GraphicsPath(
-	val commands: ArrayList<Int> = arrayListOf<Int>(),
-	val data: ArrayList<Double> = arrayListOf<Double>(),
+	val commands: IntArrayList = IntArrayList(),
+	val data: DoubleArrayList = DoubleArrayList(),
 	val winding: Winding = Winding.EVEN_ODD
-) : Context2d.Drawable {
+) : Context2d.SizedDrawable {
+
+	override val width: Int get() = this.getBounds().width.toInt()
+	override val height: Int get() = this.getBounds().height.toInt()
+
 	override fun draw(c: Context2d) {
 		c.state.path.write(this)
 	}
 
-	fun clone() = GraphicsPath(ArrayList(commands), ArrayList(data), winding)
+	fun clone() = GraphicsPath(IntArrayList(commands), DoubleArrayList(data), winding)
 
 	interface Visitor {
 		fun close()
@@ -23,26 +28,32 @@ class GraphicsPath(
 		fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double)
 	}
 
-	fun visit(visitor: Visitor) {
+	inline fun visitCmds(
+		moveTo: (x: Double, y: Double) -> Unit,
+		lineTo: (x: Double, y: Double) -> Unit,
+		quadTo: (x1: Double, y1: Double, x2: Double, y2: Double) -> Unit,
+		bezierTo: (x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double) -> Unit,
+		close: () -> Unit
+	) {
 		var n = 0
 		for (cmd in commands) {
 			when (cmd) {
 				Command.MOVE_TO -> {
 					val x = data[n++]
 					val y = data[n++]
-					visitor.moveTo(x, y)
+					moveTo(x, y)
 				}
 				Command.LINE_TO -> {
 					val x = data[n++]
 					val y = data[n++]
-					visitor.lineTo(x, y)
+					lineTo(x, y)
 				}
 				Command.QUAD_TO -> {
 					val x1 = data[n++]
 					val y1 = data[n++]
 					val x2 = data[n++]
 					val y2 = data[n++]
-					visitor.quadTo(x1, y1, x2, y2)
+					quadTo(x1, y1, x2, y2)
 				}
 				Command.BEZIER_TO -> {
 					val x1 = data[n++]
@@ -51,14 +62,64 @@ class GraphicsPath(
 					val y2 = data[n++]
 					val x3 = data[n++]
 					val y3 = data[n++]
-					visitor.cubicTo(x1, y1, x2, y2, x3, y3)
+					bezierTo(x1, y1, x2, y2, x3, y3)
 				}
 				Command.CLOSE -> {
-					visitor.close()
+					close()
 				}
 			}
 		}
+	}
 
+	inline fun visitEdges(
+		line: (x0: Double, y0: Double, x1: Double, y1: Double) -> Unit,
+		quad: (x0: Double, y0: Double, x1: Double, y1: Double, x2: Double, y2: Double) -> Unit,
+		bezier: (x0: Double, y0: Double, x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double) -> Unit,
+		close: () -> Unit
+	) {
+		var mx = 0.0
+		var my = 0.0
+		var lx = 0.0
+		var ly = 0.0
+		visitCmds(
+			moveTo = { x, y ->
+				mx = x
+				my = y
+				lx = x
+				ly = y
+			},
+			lineTo = { x, y ->
+				line(lx, ly, x, y)
+				lx = x
+				ly = y
+			},
+			quadTo = { x1, y1, x2, y2 ->
+				quad(lx, ly, x1, y1, x2, y2)
+				lx = x2
+				ly = y2
+			},
+			bezierTo = { x1, y1, x2, y2, x3, y3 ->
+				bezier(lx, ly, x1, y1, x2, y2, x3, y3)
+				lx = x3
+				ly = y3
+			},
+			close = {
+				if ((lx != mx) || (ly != my)) {
+					line(lx, ly, mx, my)
+				}
+				close()
+			}
+		)
+	}
+
+	fun visit(visitor: Visitor) {
+		visitCmds(
+			moveTo = visitor::moveTo,
+			lineTo = visitor::lineTo,
+			quadTo = visitor::quadTo,
+			bezierTo = visitor::cubicTo,
+			close = visitor::close
+		)
 	}
 
 	fun isEmpty(): Boolean = commands.isEmpty()
@@ -82,6 +143,8 @@ class GraphicsPath(
 		lastX = x
 		lastY = y
 	}
+
+	fun moveTo(x: Int, y: Int) = moveTo(x.toDouble(), y.toDouble())
 
 	fun moveToH(x: Double) = moveTo(x, lastY)
 	fun rMoveToH(x: Double) = moveTo(lastX + x, lastY)
@@ -109,6 +172,8 @@ class GraphicsPath(
 		lastX = x
 		lastY = y
 	}
+
+	fun lineTo(x: Int, y: Int) = lineTo(x.toDouble(), y.toDouble())
 
 	fun quadTo(controlX: Double, controlY: Double, anchorX: Double, anchorY: Double) {
 		ensureMoveTo(controlX, controlY)
@@ -223,6 +288,66 @@ class GraphicsPath(
 			GetBounds.bb.getBounds(out)
 		}
 	}
+
+	// http://erich.realtimerendering.com/ptinpoly/
+	// http://stackoverflow.com/questions/217578/how-can-i-determine-whether-a-2d-point-is-within-a-polygon/2922778#2922778
+	// https://www.particleincell.com/2013/cubic-line-intersection/
+	// I run a semi-infinite ray horizontally (increasing x, fixed y) out from the test point, and count how many edges it crosses.
+	// At each crossing, the ray switches between inside and outside. This is called the Jordan curve theorem.
+	fun containsPoint(x: Double, y: Double): Boolean {
+		val testx = x
+		val testy = y
+
+		var intersects = false
+
+		visitEdges(
+			line = { x0, y0, x1, y1 ->
+				if (intersectsH0LineLine(testx, testy, x0, y0, x1, y1)) intersects = !intersects
+			},
+			quad = { x0, y0, x1, y1, x2, y2 ->
+				if (intersectsH0LineBezier(testx, testy, x0, y0, x1, y1, x1, y1, x2, y2)) intersects = !intersects
+			},
+			bezier = { x0, y0, x1, y1, x2, y2, x3, y3 ->
+				if (intersectsH0LineBezier(testx, testy, x0, y0, x1, y1, x2, y2, x3, y3)) intersects = !intersects
+			},
+			close = {
+			}
+		)
+		return intersects
+	}
+
+	fun containsPoint(x: Int, y: Int): Boolean = containsPoint(x.toDouble(), y.toDouble())
+
+	private fun intersectsH0LineLine(
+		testx: Double, testy: Double,
+		bx0: Double, by0: Double, bx1: Double, by1: Double
+	): Boolean {
+		return ((by1 > testy) != (by0 > testy)) && (testx < (bx0 - bx1) * (testy - by1) / (by0 - by1) + bx1)
+	}
+
+	private fun intersectsH0LineBezier(
+		ax: Double, ay: Double,
+		bx0: Double, by0: Double, bx1: Double, by1: Double, bx2: Double, by2: Double, bx3: Double, by3: Double
+	): Boolean {
+		// @TODO: Proper bezier intersection
+		return intersectsH0LineLine(ax, ay, bx0, by0, bx2, by2)
+	}
+
+	//private fun intersectsLineLine(
+	//	ax0: Double, ay0: Double, ax1: Double, ay1: Double,
+	//	bx0: Double, by0: Double, bx1: Double, by1: Double
+	//): Boolean {
+	//	var intersects = false
+	//	return intersects
+	//}
+//
+	//private fun intersectsLineBezier(
+	//	ax0: Double, ay0: Double, ax1: Double, ay1: Double,
+	//	bx0: Double, by0: Double, bx1: Double, by1: Double, bx2: Double, by2: Double, bx3: Double, by3: Double
+	//): Boolean {
+	//	// @TODO: Proper bezier intersection
+	//	return intersectsLineLine(ax0, ay0, ax1, ay1, bx0, by0, bx2, by2)
+	//}
 
 	object GetBounds : Visitor {
 		val bb = BoundsBuilder()
