@@ -7,7 +7,6 @@ import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
 
 class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
@@ -60,7 +59,7 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 	}
 }
 
-class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer() {
+class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 	val ctx = canvas.call("getContext", "2d")
 
 	fun Context2d.Paint.toJsStr(): Any? {
@@ -111,32 +110,13 @@ class CanvasContext2d(val canvas: JsDynamic?) : Context2d.Renderer() {
 			setState(state, fill)
 			ctx.call("beginPath")
 
-			state.path.visit(object : GraphicsPath.Visitor {
-				override fun close() {
-					ctx.call("closePath")
-					//println("closePath")
-				}
-
-				override fun moveTo(x: Double, y: Double) {
-					ctx.call("moveTo", x, y)
-					//println("moveTo($x,$y)")
-				}
-
-				override fun lineTo(x: Double, y: Double) {
-					ctx.call("lineTo", x, y)
-					//println("lineTo($x,$y)")
-				}
-
-				override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
-					ctx.call("quadraticCurveTo", cx, cy, ax, ay)
-					//println("quadraticCurveTo($cx,$cy,$ax,$ay)")
-				}
-
-				override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
-					ctx.call("bezierCurveTo", cx1, cy1, cx2, cy2, ax, ay)
-					//println("bezierCurveTo($cx1,$cx2,$cy1,$cy2,$ax,$ay)")
-				}
-			})
+			state.path.visitCmds(
+				moveTo = { x, y -> ctx.call("moveTo", x, y) },
+				lineTo = { x, y -> ctx.call("lineTo", x, y) },
+				quadTo = { cx, cy, ax, ay -> ctx.call("quadraticCurveTo", cx, cy, ax, ay) },
+				cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> ctx.call("bezierCurveTo", cx1, cy1, cx2, cy2, ax, ay) },
+				close = { ctx.call("closePath") }
+			)
 
 			if (fill) {
 				ctx.call("fill")

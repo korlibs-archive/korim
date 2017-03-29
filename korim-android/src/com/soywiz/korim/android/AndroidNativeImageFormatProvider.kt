@@ -9,6 +9,7 @@ import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import android.text.TextPaint
+import com.soywiz.korma.geom.VectorPath
 
 
 fun Bitmap.toAndroidBitmap(): android.graphics.Bitmap {
@@ -43,17 +44,17 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 		val out = Path()
 
 		out.fillType = when (this.winding) {
-			GraphicsPath.Winding.EVEN_ODD -> Path.FillType.EVEN_ODD
-			GraphicsPath.Winding.NON_ZERO -> Path.FillType.INVERSE_EVEN_ODD
+			VectorPath.Winding.EVEN_ODD -> Path.FillType.EVEN_ODD
+			VectorPath.Winding.NON_ZERO -> Path.FillType.INVERSE_EVEN_ODD
 		}
 		//kotlin.io.println("Path:")
-		this.visit(object : GraphicsPath.Visitor {
-			override fun moveTo(x: Double, y: Double) = out.moveTo(x.toFloat(), y.toFloat())
-			override fun lineTo(x: Double, y: Double) = out.lineTo(x.toFloat(), y.toFloat())
-			override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) = out.quadTo(cx.toFloat(), cy.toFloat(), ax.toFloat(), ay.toFloat())
-			override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) = out.cubicTo(cx1.toFloat(), cy1.toFloat(), cx2.toFloat(), cy2.toFloat(), ax.toFloat(), ay.toFloat())
-			override fun close() = out.close()
-		})
+		this.visitCmds(
+			moveTo = { x, y -> out.moveTo(x.toFloat(), y.toFloat()) },
+			lineTo = { x, y -> out.lineTo(x.toFloat(), y.toFloat()) },
+			quadTo = { cx, cy, ax, ay -> out.quadTo(cx.toFloat(), cy.toFloat(), ax.toFloat(), ay.toFloat()) },
+			cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> out.cubicTo(cx1.toFloat(), cy1.toFloat(), cx2.toFloat(), cy2.toFloat(), ax.toFloat(), ay.toFloat()) },
+			close = { out.close() }
+		)
 		//kotlin.io.println("/Path")
 		return out
 	}

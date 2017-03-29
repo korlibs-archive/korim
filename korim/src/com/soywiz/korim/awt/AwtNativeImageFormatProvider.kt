@@ -7,6 +7,7 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korma.geom.VectorPath
 import java.awt.*
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.font.TextLayout
@@ -46,15 +47,15 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 
 	fun GraphicsPath.toJava2dPath(): java.awt.geom.Path2D.Double? {
 		if (this.isEmpty()) return null
-		val winding = if (winding == GraphicsPath.Winding.EVEN_ODD) java.awt.geom.GeneralPath.WIND_EVEN_ODD else java.awt.geom.GeneralPath.WIND_NON_ZERO
+		val winding = if (winding == VectorPath.Winding.EVEN_ODD) java.awt.geom.GeneralPath.WIND_EVEN_ODD else java.awt.geom.GeneralPath.WIND_NON_ZERO
 		val polyline = java.awt.geom.Path2D.Double(winding)
-		this.visit(object : GraphicsPath.Visitor {
-			override fun moveTo(x: Double, y: Double) = polyline.moveTo(x, y)
-			override fun lineTo(x: Double, y: Double) = polyline.lineTo(x, y)
-			override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) = polyline.quadTo(cx, cy, ax, ay)
-			override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) = polyline.curveTo(cx1, cy1, cx2, cy2, ax, ay)
-			override fun close() = polyline.closePath()
-		})
+		this.visitCmds(
+			moveTo = { x, y -> polyline.moveTo(x, y) },
+			lineTo = { x, y -> polyline.lineTo(x, y) },
+			quadTo = { cx, cy, ax, ay -> polyline.quadTo(cx, cy, ax, ay) },
+			cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> polyline.curveTo(cx1, cy1, cx2, cy2, ax, ay) },
+			close = { polyline.closePath() }
+		)
 		return polyline
 	}
 
