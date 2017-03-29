@@ -20,6 +20,8 @@ fun Bitmap32.toAwt(out: BufferedImage = BufferedImage(width, height, BufferedIma
 	return out
 }
 
+fun Bitmap.toAwt(out: BufferedImage = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB)): BufferedImage = this.toBMP32().toAwt(out)
+
 suspend fun awtShowImageAndWait(image: Bitmap): Unit = awtShowImageAndWait(image.toBMP32().toAwt())
 
 suspend fun awtShowImageAndWait(image: BufferedImage): Unit = korioSuspendCoroutine { c ->

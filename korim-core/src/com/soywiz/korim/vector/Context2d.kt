@@ -1,5 +1,6 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.Colors
 import com.soywiz.korma.geom.Rectangle
 import com.soywiz.korma.math.Matrix2d
@@ -9,6 +10,7 @@ import java.util.*
 class Context2d(val renderer: Renderer) {
 	enum class LineCap { BUTT, ROUND, SQUARE }
 	enum class LineJoin { BEVEL, MITER, ROUND }
+	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
 
 	open class Renderer {
 		open fun render(state: State, fill: Boolean): Unit {
@@ -265,7 +267,8 @@ class Context2d(val renderer: Renderer) {
 
 	abstract class Gradient(
 		val stops: ArrayList<Double> = arrayListOf<Double>(),
-		val colors: ArrayList<Int> = arrayListOf<Int>()
+		val colors: ArrayList<Int> = arrayListOf<Int>(),
+		val cycle: CycleMethod
 	) : Paint {
 		fun addColorStop(stop: Double, color: Int): Gradient {
 			stops += stop
@@ -276,7 +279,7 @@ class Context2d(val renderer: Renderer) {
 		abstract fun applyMatrix(m: Matrix2d): Gradient
 	}
 
-	class LinearGradient(val x0: Double, val y0: Double, val x1: Double, val y1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf()) : Gradient(stops, colors) {
+	class LinearGradient(val x0: Double, val y0: Double, val x1: Double, val y1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE) : Gradient(stops, colors, cycle) {
 		override fun applyMatrix(m: Matrix2d): Gradient = LinearGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -289,7 +292,7 @@ class Context2d(val renderer: Renderer) {
 		override fun toString(): String = "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
 	}
 
-	class RadialGradient(val x0: Double, val y0: Double, val r0: Double, val x1: Double, val y1: Double, val r1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf()) : Gradient(stops, colors) {
+	class RadialGradient(val x0: Double, val y0: Double, val r0: Double, val x1: Double, val y1: Double, val r1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE) : Gradient(stops, colors, cycle) {
 		override fun applyMatrix(m: Matrix2d): Gradient = RadialGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -302,6 +305,10 @@ class Context2d(val renderer: Renderer) {
 		)
 
 		override fun toString(): String = "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
+	}
+
+	class BitmapPaint(val bitmap: Bitmap, val matrix: Matrix2d, val repeat: Boolean = false, val smooth: Boolean = true) : Paint {
+
 	}
 
 	interface Drawable {

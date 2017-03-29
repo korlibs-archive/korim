@@ -7,14 +7,13 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import java.awt.AlphaComposite
-import java.awt.BasicStroke
-import java.awt.Font
-import java.awt.RenderingHints
+import java.awt.*
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.font.TextLayout
 import java.awt.geom.AffineTransform
+import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
+import java.awt.image.ColorModel
 
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 	suspend override fun decode(data: ByteArray): NativeImage {
@@ -61,6 +60,12 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 
 	fun convertColor(c: Int): java.awt.Color = java.awt.Color(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
 
+	fun Context2d.CycleMethod.toAwt() = when (this) {
+		Context2d.CycleMethod.NO_CYCLE -> MultipleGradientPaint.CycleMethod.NO_CYCLE
+		Context2d.CycleMethod.REPEAT -> MultipleGradientPaint.CycleMethod.REPEAT
+		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
+	}
+
 	fun Context2d.Paint.toAwt(): java.awt.Paint = when (this) {
 		is Context2d.Color -> convertColor(this.color)
 		is Context2d.LinearGradient -> java.awt.LinearGradientPaint(
@@ -69,16 +74,36 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 			this.x1.toFloat(),
 			this.y1.toFloat(),
 			this.stops.map(Double::toFloat).toFloatArray(),
-			this.colors.map { convertColor(it) }.toTypedArray()
+			this.colors.map { convertColor(it) }.toTypedArray(),
+			this.cycle.toAwt()
+
 		)
-	//is Context2d.RadialGradient -> java.awt.RadialGradientPaint(
-	//	this.x0.toFloat(),
-	//	this.y0.toFloat(),
-	//	this.x1.toFloat(),
-	//	this.y1.toFloat(),
-	//	this.stops.map(Double::toFloat).toFloatArray(),
-	//	this.colors.map { java.awt.Color(it, true) }.toTypedArray()
-	//)
+		is Context2d.RadialGradient -> java.awt.RadialGradientPaint(
+			this.x0.toFloat(),
+			this.y0.toFloat(),
+			this.r1.toFloat(),
+			this.x1.toFloat(),
+			this.y1.toFloat(),
+			this.stops.map(Double::toFloat).toFloatArray(),
+			this.colors.map { java.awt.Color(it, true) }.toTypedArray(),
+			this.cycle.toAwt()
+		)
+		is Context2d.BitmapPaint -> {
+			val bmpp = this
+			val matrix = bmpp.matrix
+			object : java.awt.TexturePaint(
+				this.bitmap.toAwt(),
+				Rectangle2D.Double(0.0, 0.0, this.bitmap.width.toDouble(), this.bitmap.height.toDouble())
+			) {
+				override fun createContext(cm: ColorModel?, deviceBounds: Rectangle?, userBounds: Rectangle2D?, xform: AffineTransform?, hints: RenderingHints?): PaintContext {
+					val at = AffineTransform()
+					at.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty)
+					val out = xform ?: AffineTransform()
+					out.concatenate(at)
+					return super.createContext(cm, deviceBounds, userBounds, out, hints)
+				}
+			}
+		}
 		else -> java.awt.Color(Colors.BLACK)
 	}
 
