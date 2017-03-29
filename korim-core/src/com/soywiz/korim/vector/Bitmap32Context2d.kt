@@ -1,7 +1,6 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.color.Colors
 
 class Bitmap32Context2d(val bmp: Bitmap32) : Context2d.Renderer() {
 	override fun render(state: Context2d.State, fill: Boolean) {

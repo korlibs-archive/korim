@@ -29,6 +29,7 @@ repositories {
 dependencies {
 	compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
 	compile "com.soywiz:korio-core:$korVersion"
+	compile "com.soywiz:korma:$korVersion"
 	testCompile "junit:junit:4.11"
 }
 

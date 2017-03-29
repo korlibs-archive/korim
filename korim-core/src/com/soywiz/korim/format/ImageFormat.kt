@@ -5,7 +5,6 @@ import com.soywiz.korio.error.ignoreErrors
 import com.soywiz.korio.stream.MemorySyncStreamToByteArray
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.openSync
-import com.soywiz.korio.vfs.VfsFile
 import java.io.File
 
 abstract class ImageFormat(vararg exts: String) {

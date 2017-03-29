@@ -1,8 +1,5 @@
 package com.soywiz.korim.bitmap
 
-import com.soywiz.korim.color.RGBA
-import com.soywiz.korio.util.UByteArray
-
 class Bitmap8(
 	width: Int,
 	height: Int,

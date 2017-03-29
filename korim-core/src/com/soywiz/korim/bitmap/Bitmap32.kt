@@ -4,7 +4,6 @@ import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korio.error.invalidOp
 import java.util.*
 
 class Bitmap32(

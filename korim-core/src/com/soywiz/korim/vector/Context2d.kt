@@ -1,9 +1,9 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.korim.color.Colors
-import com.soywiz.korim.geom.Matrix2d
-import com.soywiz.korim.geom.Rectangle
-import com.soywiz.korim.geom.Vector2
+import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.math.Matrix2d
+import com.soywiz.korma.math.Vector2
 import java.util.*
 
 class Context2d(val renderer: Renderer) {

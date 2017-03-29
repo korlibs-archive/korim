@@ -2,8 +2,8 @@ package com.soywiz.korim.font
 
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
-import com.soywiz.korim.geom.IRectangle
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korma.geom.IRectangle
 
 object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: String): BitmapFont = generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray())

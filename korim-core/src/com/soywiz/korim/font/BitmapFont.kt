@@ -4,7 +4,7 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.BitmapSlice
 import com.soywiz.korim.bitmap.slice
 import com.soywiz.korim.color.Colors
-import com.soywiz.korim.geom.IRectangle
+import com.soywiz.korma.geom.IRectangle
 
 class BitmapFont(
 	val atlas: Bitmap32,

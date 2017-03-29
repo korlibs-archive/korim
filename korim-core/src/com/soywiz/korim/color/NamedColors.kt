@@ -1,6 +1,5 @@
 package com.soywiz.korim.color
 
-import com.soywiz.korio.util.extractScaled
 import com.soywiz.korio.util.substr
 
 object NamedColors {
@@ -36,7 +35,7 @@ object NamedColors {
 					a = 255
 				}
 				else -> {
-					r = 0 ; g = 0 ; b = 0 ; a = 0xFF
+					r = 0; g = 0; b = 0; a = 0xFF
 				}
 			}
 			return RGBA.pack(r, g, b, a)

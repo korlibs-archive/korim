@@ -3,7 +3,7 @@ package com.soywiz.korim.format
 import com.soywiz.korio.util.Extra
 
 open class ImageData(
-		val frames: List<ImageFrame>
+	val frames: List<ImageFrame>
 ) : Extra by Extra.Mixin() {
 	val mainBitmap get() = frames.sortedByDescending {
 		if (it.main) {

@@ -1,6 +1,5 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.YUVA
 import com.soywiz.korio.stream.SyncStream
@@ -675,7 +674,7 @@ class JPEG : ImageFormat("jpg", "jpeg") {
 				var k = 0
 				run {
 					var c = 0
-					for (i in 1 .. 16) {
+					for (i in 1..16) {
 						delta[i] = k - c
 						if (k < numSymbols && size[k].toInt() == i) {
 							do {

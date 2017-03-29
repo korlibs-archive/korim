@@ -2,13 +2,13 @@ package com.soywiz.korim.vector.format
 
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.geom.Matrix2d
-import com.soywiz.korim.geom.Rectangle
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
 import com.soywiz.korio.util.*
+import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.math.Matrix2d
 import org.intellij.lang.annotations.Language
 
 class SVG(val root: Xml) : Context2d.SizedDrawable {
@@ -180,7 +180,8 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				var edges = 0
 				path.moveTo(pps.read(), pps.read())
 				while (pps.hasMore) {
-					val x = pps.read() ; val y = pps.read()
+					val x = pps.read();
+					val y = pps.read()
 					path.lineTo(x, y)
 					edges++
 				}
