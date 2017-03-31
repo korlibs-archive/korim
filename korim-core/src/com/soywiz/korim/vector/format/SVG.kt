@@ -8,7 +8,7 @@ import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.Rectangle
-import com.soywiz.korma.math.Matrix2d
+import com.soywiz.korma.Matrix2d
 import org.intellij.lang.annotations.Language
 
 class SVG(val root: Xml) : Context2d.SizedDrawable {

@@ -2,9 +2,9 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.Colors
+import com.soywiz.korma.Matrix2d
+import com.soywiz.korma.Vector2
 import com.soywiz.korma.geom.Rectangle
-import com.soywiz.korma.math.Matrix2d
-import com.soywiz.korma.math.Vector2
 import java.util.*
 
 class Context2d(val renderer: Renderer) {
@@ -13,15 +13,9 @@ class Context2d(val renderer: Renderer) {
 	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
 
 	open class Renderer {
-		open fun render(state: State, fill: Boolean): Unit {
-		}
-
-		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit {
-		}
-
-		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit {
-			out.bounds.setTo(0.0, 0.0, 0.0, 0.0)
-		}
+		open fun render(state: State, fill: Boolean): Unit = Unit
+		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
+		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit = run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
 	}
 
 	enum class VerticalAlign(val ratio: Double) {
@@ -94,36 +88,14 @@ class Context2d(val renderer: Renderer) {
 		}
 	}
 
-	fun save() {
-		stack.add(state.clone())
-	}
-
-	fun restore() {
-		state = stack.removeLast()
-	}
-
-	fun scale(sx: Double, sy: Double = sx) {
-		state.transform.prescale(sx, sy)
-	}
-
-	fun rotate(angle: Double) {
-		state.transform.prerotate(angle)
-	}
-
-	fun translate(tx: Double, ty: Double) {
-		state.transform.pretranslate(tx, ty)
-	}
-
-	fun transform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) {
-		state.transform.premulitply(a, b, c, d, tx, ty)
-	}
-
-	fun setTransform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) {
-		state.transform.setTo(a, b, c, d, tx, ty)
-	}
-
+	fun save() = run { stack.add(state.clone()) }
+	fun restore() = run { state = stack.removeLast() }
+	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
+	fun rotate(angle: Double) = run { state.transform.prerotate(angle) }
+	fun translate(tx: Double, ty: Double) = run { state.transform.pretranslate(tx, ty) }
+	fun transform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) = run { state.transform.premulitply(a, b, c, d, tx, ty) }
+	fun setTransform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) = run { state.transform.setTo(a, b, c, d, tx, ty) }
 	fun shear(sx: Double, sy: Double) = transform(1.0, sy, sx, 1.0, 0.0, 0.0)
-
 	fun moveTo(x: Int, y: Int) = moveTo(x.toDouble(), y.toDouble())
 	fun lineTo(x: Int, y: Int) = lineTo(x.toDouble(), y.toDouble())
 	fun quadraticCurveTo(cx: Int, cy: Int, ax: Int, ay: Int) = quadraticCurveTo(cx.toDouble(), cy.toDouble(), ax.toDouble(), ay.toDouble())
@@ -140,103 +112,30 @@ class Context2d(val renderer: Renderer) {
 	fun strokeRect(x: Int, y: Int, width: Int, height: Int) = strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 	fun fillRect(x: Int, y: Int, width: Int, height: Int) = fillRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 
-	fun arc(x: Double, y: Double, r: Double, start: Double, end: Double) {
-		state.path.arc(x, y, r, start, end)
-	}
-
-	fun strokeDot(x: Double, y: Double) {
-		beginPath()
-		moveTo(x, y)
-		lineTo(x, y)
-		stroke()
-	}
-
-	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, r: Double) {
-		state.path.arcTo(x1, y1, x2, y2, r)
-	}
-
+	fun arc(x: Double, y: Double, r: Double, start: Double, end: Double) = run { state.path.arc(x, y, r, start, end) }
+	fun strokeDot(x: Double, y: Double) = run { beginPath(); moveTo(x, y); lineTo(x, y); stroke() }
+	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, r: Double) = run { state.path.arcTo(x1, y1, x2, y2, r) }
 	fun circle(x: Double, y: Double, radius: Double) = arc(x, y, radius, 0.0, Math.PI * 2.0)
+	fun moveTo(x: Double, y: Double) = run { state.path.moveTo(x, y) }
+	fun lineTo(x: Double, y: Double) = run { state.path.lineTo(x, y) }
+	fun quadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) = run { state.path.quadTo(cx, cy, ax, ay) }
+	fun bezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) = run { state.path.cubicTo(cx1, cy1, cx2, cy2, x, y) }
+	fun rect(x: Double, y: Double, width: Double, height: Double) = run { state.path.rect(x, y, width, height) }
+	fun roundRect(x: Double, y: Double, w: Double, h: Double, rx: Double, ry: Double = rx) = run { this.beginPath(); state.path.roundRect(x, y, w, h, rx, ry); this.closePath() }
 
-	fun moveTo(x: Double, y: Double) {
-		state.path.moveTo(x, y)
-	}
+	fun path(path: GraphicsPath) = run { this.state.path.write(path) }
+	fun draw(d: Drawable) = run { d.draw(this) }
 
-	fun lineTo(x: Double, y: Double) {
-		state.path.lineTo(x, y)
-	}
+	fun strokeRect(x: Double, y: Double, width: Double, height: Double) = run { beginPath(); rect(x, y, width, height); stroke() }
 
-	fun quadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) {
-		state.path.quadTo(cx, cy, ax, ay)
-	}
+	fun fillRect(x: Double, y: Double, width: Double, height: Double) = run { beginPath(); rect(x, y, width, height); fill() }
+	fun beginPath() = run { state.path = GraphicsPath() }
 
-	fun bezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) {
-		state.path.cubicTo(cx1, cy1, cx2, cy2, x, y)
-	}
-
-	fun rect(x: Double, y: Double, width: Double, height: Double) {
-		state.path.rect(x, y, width, height)
-	}
-
-	fun roundRect(x: Double, y: Double, w: Double, h: Double, rx: Double, ry: Double = rx) {
-		if (rx == 0.0 && ry == 0.0) {
-			rect(x, y, w, h)
-		} else {
-			// @TODO: radiusX
-			val r = if (w < 2 * rx) w / 2.0 else if (h < 2 * rx) h / 2.0 else rx
-			this.beginPath();
-			this.moveTo(x + r, y);
-			this.arcTo(x + w, y, x + w, y + h, r);
-			this.arcTo(x + w, y + h, x, y + h, r);
-			this.arcTo(x, y + h, x, y, r);
-			this.arcTo(x, y, x + w, y, r);
-			this.closePath();
-		}
-	}
-
-	fun path(path: GraphicsPath) {
-		this.state.path.write(path)
-	}
-
-	fun draw(d: Drawable) {
-		d.draw(this)
-	}
-
-	fun strokeRect(x: Double, y: Double, width: Double, height: Double) {
-		beginPath()
-		rect(x, y, width, height)
-		stroke()
-	}
-
-	fun fillRect(x: Double, y: Double, width: Double, height: Double) {
-		beginPath()
-		rect(x, y, width, height)
-		fill()
-	}
-
-	fun beginPath() {
-		state.path = GraphicsPath()
-	}
-
-	fun closePath() {
-		state.path.close()
-	}
-
-	fun stroke() {
-		if (state.strokeStyle != None) renderer.render(state, fill = false)
-	}
-
-	fun fill() {
-		if (state.fillStyle != None) renderer.render(state, fill = true)
-	}
-
-	fun fillStroke() {
-		fill()
-		stroke()
-	}
-
-	fun clip() {
-		state.clip = state.path
-	}
+	fun closePath() = run { state.path.close() }
+	fun stroke() = run { if (state.strokeStyle != None) renderer.render(state, fill = false) }
+	fun fill() = run { if (state.fillStyle != None) renderer.render(state, fill = true) }
+	fun fillStroke() = run { fill(); stroke() }
+	fun clip() = run { state.clip = state.path }
 
 	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = LinearGradient(x0, y0, x1, y1)
 	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) = RadialGradient(x0, y0, r0, x1, y1, r1)
@@ -244,20 +143,12 @@ class Context2d(val renderer: Renderer) {
 	val none = None
 
 	data class Font(val name: String, val size: Double)
+	data class TextMetrics(val bounds: Rectangle = Rectangle())
 
-	data class TextMetrics(val bounds: Rectangle = Rectangle()) {
-	}
-
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics = out.apply {
-		renderer.getBounds(font, text, out)
-	}
-
+	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics = out.apply { renderer.getBounds(font, text, out) }
 	fun fillText(text: String, x: Double, y: Double): Unit = renderText(text, x, y, fill = true)
 	fun strokeText(text: String, x: Double, y: Double): Unit = renderText(text, x, y, fill = false)
-
-	fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit {
-		renderer.renderText(state, font, text, x, y, fill)
-	}
+	fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit = run { renderer.renderText(state, font, text, x, y, fill) }
 
 	interface Paint
 
