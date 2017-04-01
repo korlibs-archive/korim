@@ -1,7 +1,7 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.korio.ds.DoubleArrayList
-import com.soywiz.korio.ds.IntArrayList
+import com.soywiz.korma.ds.DoubleArrayList
+import com.soywiz.korma.ds.IntArrayList
 import com.soywiz.korma.geom.VectorPath
 
 class GraphicsPath(
