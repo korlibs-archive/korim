@@ -8,6 +8,14 @@ import com.soywiz.korma.geom.IRectangle
 object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: String): BitmapFont = generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray())
 
+	val SPACE = " "
+	val UPPERCASE = ('A'..'Z').joinToString("")
+	val LOWERCASE = ('a'..'z').joinToString("")
+	val NUMBERS = ('0'..'9').joinToString("")
+	val PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}"
+	val LATIN_BASIC = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥PÉáíóúñÑª°¿¬½¼¡«»ßµø±÷°·.²"
+	val LATIN_ALL = SPACE + UPPERCASE + LOWERCASE + NUMBERS + PUNCTUATION + LATIN_BASIC
+
 	val bni = NativeImage(1, 1)
 
 	fun generate(fontName: String, fontSize: Int, chars: IntArray): BitmapFont {
