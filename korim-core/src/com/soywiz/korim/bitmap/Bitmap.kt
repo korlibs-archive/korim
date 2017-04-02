@@ -3,15 +3,18 @@ package com.soywiz.korim.bitmap
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.util.clamp
+import com.soywiz.korma.geom.Size
+import com.soywiz.korma.geom.Sizeable
 
 abstract class Bitmap(
 	val width: Int,
 	val height: Int,
 	val bpp: Int
-) {
+) : Sizeable {
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
+	override val size: Size get() = Size(width, height)
 
 	open fun get32(x: Int, y: Int): Int = 0
 	open operator fun set(x: Int, y: Int, color: Int): Unit = Unit

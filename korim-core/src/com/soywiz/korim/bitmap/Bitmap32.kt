@@ -39,7 +39,9 @@ class Bitmap32(
 			if (mix) {
 				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], srcData[srcOffset + x])
 			} else {
-				for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
+				// System.arraycopy
+				System.arraycopy(srcData, srcOffset, dstData, dstOffset, width)
+				//for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
 			}
 		}
 	}
