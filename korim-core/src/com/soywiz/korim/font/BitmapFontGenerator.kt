@@ -23,9 +23,16 @@ object BitmapFontGenerator {
 		bnictx.font = Context2d.Font(fontName, fontSize.toDouble())
 		val bitmapHeight = bnictx.getTextBounds("a").bounds.height
 
-		val widths = chars.map { bnictx.getTextBounds("" + it.toChar()).bounds.width.toInt() }
+		val widths = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
 		val widthsSum = widths.map { it + 2 }.sum()
 		val ni = NativeImage(widthsSum.toInt(), bitmapHeight.toInt())
+
+		//println("BitmapFont:")
+		//println("bitmapHeight=$bitmapHeight")
+		//for ((index, width) in widths.withIndex()) {
+		//	val char = chars[index]
+		//	println("$index: $char: width=$width")
+		//}
 
 		val g = ni.getContext2d()
 		g.fillStyle = g.createColor(Colors.WHITE)

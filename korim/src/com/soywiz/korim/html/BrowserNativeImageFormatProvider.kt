@@ -31,6 +31,11 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 		return CanvasNativeImage(BrowserImage.decodeToCanvas(data))
 	}
 
+	suspend override fun display(bitmap: Bitmap) {
+		val img = bitmap.toHtmlNative()
+		document["body"].call("appendChild", img.canvas)
+	}
+
 	@Suppress("unused")
 	object BrowserImage {
 		suspend fun decodeToCanvas(bytes: ByteArray): JsDynamic? = korioSuspendCoroutine { c ->
@@ -86,6 +91,7 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 			}
 			is Context2d.BitmapPaint -> {
 				ctx.call("createPattern", this.bitmap.toHtmlNative().canvas, if (this.repeat) "repeat" else "no-repeat")
+				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
 			else -> "black"
 		}
@@ -100,10 +106,13 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 		}
 	}
 
+	private fun setFont(font: Context2d.Font) {
+		ctx["font"] = "${font.size}px '${font.name}'"
+	}
+
 	private fun setState(state: Context2d.State, fill: Boolean) {
 		ctx["globalAlpha"] = state.globalAlpha
-		val font = state.font
-		ctx["font"] = "${font.size}px ${font.name}"
+		setFont(state.font)
 		val t = state.transform
 		ctx.call("setTransform", t.a, t.b, t.c, t.d, t.tx, t.ty)
 		if (fill) {
@@ -124,6 +133,15 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 		}
 	}
 
+	private fun transformPaint(paint: Context2d.Paint) {
+		when (paint) {
+			is Context2d.BitmapPaint -> {
+				val m = paint.matrix
+				ctx.call("transform", m.a, m.b, m.c, m.d, m.tx, m.ty)
+			}
+		}
+	}
+
 	override fun render(state: Context2d.State, fill: Boolean) {
 		if (state.path.isEmpty()) return
 
@@ -140,13 +158,20 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 				close = { ctx.call("closePath") }
 			)
 
+			ctx.call("save")
+
 			if (fill) {
+				transformPaint(state.fillStyle)
 				ctx.call("fill")
 				//println("fill: $s")
 			} else {
+				transformPaint(state.strokeStyle)
+
 				ctx.call("stroke")
 				//println("stroke: $s")
 			}
+
+			ctx.call("restore")
 		}
 	}
 
@@ -176,6 +201,7 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 
 	override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
 		keep {
+			setFont(font)
 			val metrics = ctx.call("measureText", text)
 			val width = metrics["width"].toInt()
 			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, font.size)
