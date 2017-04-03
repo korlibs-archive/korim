@@ -75,6 +75,18 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 				}
 				grad
 			}
+			is Context2d.RadialGradient -> {
+				val grad = ctx.call("createRadialGradient", this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
+				for (n in 0 until this.stops.size) {
+					val stop = this.stops[n]
+					val color = this.colors[n]
+					grad.call("addColorStop", stop, NamedColors.toHtmlString(color))
+				}
+				grad
+			}
+			is Context2d.BitmapPaint -> {
+				ctx.call("createPattern", this.bitmap.toHtmlNative().canvas, if (this.repeat) "repeat" else "no-repeat")
+			}
 			else -> "black"
 		}
 	}
@@ -98,6 +110,16 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 			ctx["fillStyle"] = state.fillStyle.toJsStr()
 		} else {
 			ctx["lineWidth"] = state.lineWidth
+			ctx["lineJoin"] = when (state.lineJoin) {
+				Context2d.LineJoin.BEVEL -> "bevel"
+				Context2d.LineJoin.MITER -> "miter"
+				Context2d.LineJoin.ROUND -> "round"
+			}
+			ctx["lineCap"] = when (state.lineCap) {
+				Context2d.LineCap.BUTT -> "butt"
+				Context2d.LineCap.ROUND -> "round"
+				Context2d.LineCap.SQUARE -> "sqare"
+			}
 			ctx["strokeStyle"] = state.strokeStyle.toJsStr()
 		}
 	}

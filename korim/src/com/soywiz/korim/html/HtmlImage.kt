@@ -2,7 +2,9 @@ package com.soywiz.korim.html
 
 import com.jtransc.annotation.JTranscMethodBody
 import com.jtransc.js.*
+import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.bitmap.NativeImage
 
 object HtmlImage {
 	fun createHtmlCanvas(width: Int, height: Int): JsDynamic {
@@ -63,13 +65,10 @@ object HtmlImage {
 		return renderToHtmlCanvas(bmp, createHtmlCanvas(bmp.width, bmp.height));
 	}
 
-	fun htmlCanvasToDataUrl(canvas: JsDynamic): String {
-		return canvas.call("toDataURL").toJavaString()
-	}
+	fun htmlCanvasToDataUrl(canvas: JsDynamic): String = canvas.call("toDataURL").toJavaString()
 
 	fun htmlCanvasClear(canvas: JsDynamic): Unit {
-		val ctx = canvas.call("getContext", "2d")
-		ctx.call("clearRect", 0, 0, canvas["width"], canvas["height"])
+		canvas.call("getContext", "2d").call("clearRect", 0, 0, canvas["width"], canvas["height"])
 	}
 
 	fun htmlCanvasSetSize(canvas: JsDynamic, width: Int, height: Int): JsDynamic {
@@ -77,4 +76,9 @@ object HtmlImage {
 		canvas["height"] = height
 		return canvas
 	}
+}
+
+fun Bitmap.toHtmlNative(): CanvasNativeImage = when(this) {
+	is CanvasNativeImage -> this
+	else -> CanvasNativeImage(HtmlImage.bitmapToHtmlCanvas(this.toBMP32()))
 }

@@ -86,7 +86,7 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 			this.x1.toFloat(),
 			this.y1.toFloat(),
 			this.stops.map(Double::toFloat).toFloatArray(),
-			this.colors.map { java.awt.Color(it, true) }.toTypedArray(),
+			this.colors.map { convertColor(it) }.toTypedArray(),
 			this.cycle.toAwt()
 		)
 		is Context2d.BitmapPaint -> {
