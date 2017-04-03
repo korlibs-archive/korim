@@ -101,8 +101,10 @@ class Bitmap32(
 
 	fun copySliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32 {
 		val out = Bitmap32(width, height)
-		for (yy in 0 until height) for (xx in 0 until width) {
-			out[xx, y] = this[x + xx, y + yy]
+		for (yy in 0 until height) {
+			//for (xx in 0 until width) out[xx, y] = this[x + xx, y + yy]
+
+			System.arraycopy(this.data, this.index(x, y + yy), out.data, out.index(0, y), width)
 		}
 		return out
 	}
