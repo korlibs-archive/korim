@@ -7,6 +7,8 @@ import com.soywiz.korim.color.RGB
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.UByteArray
+import com.soywiz.korio.util.convertRangeClamped
+import com.soywiz.korio.util.copyOf
 import com.soywiz.korio.util.toIntSafe
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -64,7 +66,7 @@ class PNG : ImageFormat("png") {
 		null
 	}
 
-	override fun writeImage(image: ImageData, s: SyncStream, filename: String) {
+	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
 		val bitmap = image.mainBitmap
 		val width = bitmap.width
 		val height = bitmap.height
@@ -84,7 +86,9 @@ class PNG : ImageFormat("png") {
 			s.write32_be(crc.value.toInt()) // crc32!
 		}
 
-		val deflater = Deflater(1)
+		val level = props.quality.convertRangeClamped(0.0, 1.0, 0.0, 9.0).toInt()
+
+		val deflater = Deflater(level)
 
 		fun compress(data: ByteArray): ByteArray {
 			return DeflaterInputStream(ByteArrayInputStream(data), deflater).readBytes()

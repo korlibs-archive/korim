@@ -73,7 +73,7 @@ class TGA : ImageFormat("tga") {
 		return ImageData(listOf(ImageFrame(out)))
 	}
 
-	override fun writeImage(image: ImageData, s: SyncStream, filename: String) {
+	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
 		val bitmap = image.mainBitmap
 		when (bitmap) {
 			is Bitmap8 -> {

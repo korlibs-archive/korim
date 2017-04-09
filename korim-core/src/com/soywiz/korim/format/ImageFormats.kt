@@ -24,10 +24,10 @@ object ImageFormats : ImageFormat("") {
 		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4))
 	}
 
-	override fun writeImage(image: ImageData, s: SyncStream, filename: String) {
+	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
 		val ext = PathInfo(filename).extensionLC
 		println("filename: $filename")
 		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext'")
-		format.writeImage(image, s, filename)
+		format.writeImage(image, s, filename, props)
 	}
 }
