@@ -26,7 +26,7 @@ object ImageFormats : ImageFormat("") {
 
 	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
 		val ext = PathInfo(filename).extensionLC
-		println("filename: $filename")
+		//println("filename: $filename")
 		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext'")
 		format.writeImage(image, s, filename, props)
 	}

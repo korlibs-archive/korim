@@ -67,28 +67,53 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
-	fun Context2d.Paint.toAwt(): java.awt.Paint = when (this) {
-		is Context2d.Color -> convertColor(this.color)
-		is Context2d.LinearGradient -> java.awt.LinearGradientPaint(
-			this.x0.toFloat(),
-			this.y0.toFloat(),
-			this.x1.toFloat(),
-			this.y1.toFloat(),
-			this.stops.map(Double::toFloat).toFloatArray(),
-			this.colors.map { convertColor(it) }.toTypedArray(),
-			this.cycle.toAwt()
+	fun Context2d.Paint.toAwt(): java.awt.Paint = try {
+		this.toAwtUnsafe()
+	} catch (e: Throwable) {
+		println("Context2d.Paint.toAwt: $e")
+		Color.RED
+	}
 
-		)
-		is Context2d.RadialGradient -> java.awt.RadialGradientPaint(
-			this.x0.toFloat(),
-			this.y0.toFloat(),
-			this.r1.toFloat(),
-			this.x1.toFloat(),
-			this.y1.toFloat(),
-			this.stops.map(Double::toFloat).toFloatArray(),
-			this.colors.map { convertColor(it) }.toTypedArray(),
-			this.cycle.toAwt()
-		)
+	fun Context2d.Paint.toAwtUnsafe(): java.awt.Paint = when (this) {
+		is Context2d.Color -> convertColor(this.color)
+		is Context2d.Gradient -> {
+			val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(it) }).distinctBy { it.first }
+			val stops = pairs.map { it.first }.toFloatArray()
+			val colors = pairs.map { it.second }.toTypedArray()
+			val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
+			val defaultColor = colors.firstOrNull() ?: Color.RED
+
+			when (this) {
+				is Context2d.LinearGradient -> {
+					if (valid) {
+						java.awt.LinearGradientPaint(
+							this.x0.toFloat(), this.y0.toFloat(),
+							this.x1.toFloat(), this.y1.toFloat(),
+							stops,
+							colors,
+							this.cycle.toAwt()
+						)
+					} else {
+						defaultColor
+					}
+				}
+				is Context2d.RadialGradient -> {
+					if (valid) {
+						java.awt.RadialGradientPaint(
+							this.x0.toFloat(), this.y0.toFloat(), this.r1.toFloat(),
+							this.x1.toFloat(), this.y1.toFloat(),
+							stops,
+							colors,
+							this.cycle.toAwt()
+						)
+					} else {
+						defaultColor
+					}
+				}
+				else -> TODO()
+			}
+
+		}
 		is Context2d.BitmapPaint -> {
 			val bmpp = this
 			val matrix = bmpp.matrix
