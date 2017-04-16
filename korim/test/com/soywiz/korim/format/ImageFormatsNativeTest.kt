@@ -4,8 +4,11 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.sync
 import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.ResourcesVfs
+import com.soywiz.korio.vfs.toVfs
+import com.soywiz.korma.geom.Size
 import org.junit.Assert
 import org.junit.Test
+import java.io.File
 
 class ImageFormatsNativeTest {
 	@Test
@@ -55,5 +58,14 @@ class ImageFormatsNativeTest {
 		//diff.transformColor { RGBA.pack(RGBA.getR(it) * 4, RGBA.getG(it) * 4, RGBA.getB(it) * 4, 0xFF) }
 		//diff.transformColor { RGBA.pack(RGBA.getR(it) * 0xFF, RGBA.getG(it) * 0xFF, RGBA.getB(it) * 0xFF, 0xFF) }
 		//awtShowImage(diff); Thread.sleep(10000L)
+	}
+
+	@Test
+	fun svg() = syncTest {
+		val bi = ResourcesVfs["logo.svg"].readBitmapInfo()!!
+		Assert.assertEquals(Size(128, 128), bi.size)
+		val bitmap = ResourcesVfs["logo.svg"].readBitmap()
+		//showImageAndWait(bitmap)
+		//File("c:/temp/logosvg.png").toVfs().writeBitmap(bitmap.toBMP32())
 	}
 }

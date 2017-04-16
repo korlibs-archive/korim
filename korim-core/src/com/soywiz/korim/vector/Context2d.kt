@@ -1,6 +1,7 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap
+import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
@@ -232,4 +233,11 @@ fun Context2d.SizedDrawable.filled(paint: Context2d.Paint): Context2d.SizedDrawa
 			c.fill()
 		}
 	}
+}
+
+fun Context2d.SizedDrawable.render(): NativeImage {
+	val image = NativeImage(this.width, this.height)
+	val ctx = image.getContext2d()
+	this.draw(ctx)
+	return image
 }

@@ -14,8 +14,13 @@ import org.intellij.lang.annotations.Language
 class SVG(val root: Xml) : Context2d.SizedDrawable {
 	constructor(@Language("xml") str: String) : this(Xml(str))
 
+	val x = root.int("x", 0)
+	val y = root.int("y", 0)
+
 	override val width = root.int("width", 128)
 	override val height = root.int("height", 128)
+
+	val viewBox = root.getString("viewBox") ?: "0 0 $width $height"
 
 	class Style {
 		val props = hashMapOf<String, Any?>()
