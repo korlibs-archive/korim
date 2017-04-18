@@ -35,14 +35,14 @@ suspend fun VfsFile.readImageData(): ImageData = ImageFormats.readImage(this.rea
 suspend fun VfsFile.readBitmapListNoNative(): List<Bitmap> = this.readImageData().frames.map { it.bitmap }
 
 suspend fun AsyncInputStream.readNativeImage(): NativeImage = decodeImageBytes(this.readAll())
-suspend fun AsyncInputStream.readImageData(basename: String = "file.bin"): ImageData = ImageFormats.readImage(this.readAll().openSync(), basename)
+suspend fun AsyncInputStream.readImageData(basename: String = "file.bin"): ImageData = ImageFormats.readImageInWorker(this.readAll().openSync(), basename)
 suspend fun AsyncInputStream.readBitmapListNoNative(): List<Bitmap> = this.readImageData().frames.map { it.bitmap }
 suspend fun AsyncInputStream.readBitmap(basename: String = "file.bin"): Bitmap {
 	val bytes = this.readAll()
 	return try {
-		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decode(bytes, basename)
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decodeInWorker(bytes, basename)
 	} catch (t: Throwable) {
-		ImageFormats.decode(bytes, basename)
+		ImageFormats.decodeInWorker(bytes, basename)
 	}
 }
 
@@ -51,9 +51,9 @@ suspend fun VfsFile.readBitmapInfo(): ImageInfo? = ImageFormats.decodeHeader(thi
 suspend fun VfsFile.readBitmap(): Bitmap {
 	val bytes = this.read()
 	return try {
-		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decode(bytes, this.basename)
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else ImageFormats.decodeInWorker(bytes, this@readBitmap.basename)
 	} catch (t: Throwable) {
-		ImageFormats.decode(bytes, this.basename)
+		ImageFormats.decodeInWorker(bytes, this@readBitmap.basename)
 	}
 }
 
@@ -69,8 +69,8 @@ suspend inline fun disableNativeImageLoading(callback: () -> Unit) {
 	}
 }
 
-suspend fun VfsFile.readBitmapNoNative(): Bitmap = ImageFormats.decode(this.read(), this.basename)
+suspend fun VfsFile.readBitmapNoNative(): Bitmap = ImageFormats.decodeInWorker(this.read(), this.basename)
 
 suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat = ImageFormats) {
-	this.write(format.encode(bitmap, this.basename))
+	this.write(format.encodeInWorker(bitmap, this.basename))
 }

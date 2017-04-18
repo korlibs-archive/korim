@@ -18,7 +18,7 @@ import java.awt.image.ColorModel
 
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 	suspend override fun decode(data: ByteArray): NativeImage {
-		return AwtNativeImage(awtReadImage(data))
+		return AwtNativeImage(awtReadImageInWorker(data))
 	}
 
 	override fun create(width: Int, height: Int): NativeImage {

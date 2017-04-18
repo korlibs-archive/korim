@@ -1,6 +1,7 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
+import com.soywiz.korio.async.executeInWorkerSync
 import com.soywiz.korio.error.ignoreErrors
 import com.soywiz.korio.stream.MemorySyncStreamToByteArray
 import com.soywiz.korio.stream.SyncStream
@@ -20,15 +21,23 @@ abstract class ImageFormat(vararg exts: String) {
 		}
 	}
 
+	suspend fun readImageInWorker(s: SyncStream, filename: String = "unknown"): ImageData = executeInWorkerSync { readImage(s, filename) }
+
 	fun read(s: SyncStream, filename: String = "unknown"): Bitmap = readImage(s, filename).mainBitmap
 	fun read(file: File) = this.read(file.openSync(), file.name)
 	fun read(s: ByteArray, filename: String = "unknown"): Bitmap = read(s.openSync(), filename)
+
 	fun check(s: SyncStream, filename: String): Boolean = ignoreErrors(show = true) { decodeHeader(s, filename) != null } ?: false
+
 	fun decode(s: SyncStream, filename: String = "unknown") = this.read(s, filename)
 	fun decode(file: File) = this.read(file.openSync("r"), file.name)
 	fun decode(s: ByteArray, filename: String = "unknown"): Bitmap = read(s.openSync(), filename)
 
+	suspend fun decodeInWorker(s: ByteArray, filename: String = "unknown"): Bitmap = executeInWorkerSync { read(s.openSync(), filename) }
+
 	fun encode(frames: List<ImageFrame>, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray { writeImage(ImageData(frames), this, filename, props) }
 	fun encode(image: ImageData, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray { writeImage(image, this, filename, props) }
 	fun encode(bitmap: Bitmap, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = encode(listOf(ImageFrame(bitmap)), filename, props)
+
+	suspend fun encodeInWorker(bitmap: Bitmap, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = executeInWorkerSync { encode(bitmap, filename, props) }
 }

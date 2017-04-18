@@ -3,6 +3,7 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korio.async.executeInWorkerSync
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
 import java.awt.BorderLayout
 import java.awt.event.WindowAdapter
@@ -77,5 +78,6 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 }
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data))
+suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIO.read(ByteArrayInputStream(data)) }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))
