@@ -39,7 +39,11 @@ object RGBA : ColorFormat32() {
 
 	@JvmStatic fun packRGB_A(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 
-	@JvmStatic fun blend(c1: Int, c2: Int, factor: Int): Int {
+	@JvmStatic fun blendComponent(c1: Int, c2: Int, factor: Double): Int {
+		return (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
+	}
+
+	@JvmStatic fun blendRGB(c1: Int, c2: Int, factor: Int): Int {
 		val f1 = 256 - factor
 		return ((
 			((((c1 and 0xFF00FF) * f1) + ((c2 and 0xFF00FF) * factor)) and 0xFF00FF00.toInt())
@@ -47,7 +51,19 @@ object RGBA : ColorFormat32() {
 				((((c1 and 0x00FF00) * f1) + ((c2 and 0x00FF00) * factor)) and 0x00FF0000))) ushr 8
 	}
 
-	@JvmStatic fun blend(c1: Int, c2: Int, factor: Double): Int = blend(c1, c2, (factor * 256).toInt())
+	@Deprecated("", ReplaceWith("blendRGB(c1, c2, factor)", "com.soywiz.korim.color.RGBA.blendRGB"))
+	@JvmStatic fun blend(c1: Int, c2: Int, factor: Int): Int = blendRGB(c1, c2, factor)
+
+	@Deprecated("", ReplaceWith("blendRGB(c1, c2, factor)", "com.soywiz.korim.color.RGBA.blendRGB"))
+	@JvmStatic fun blend(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, factor)
+
+	@JvmStatic fun blendRGB(c1: Int, c2: Int, factor: Double): Int = blend(c1, c2, (factor * 256).toInt())
+
+	@JvmStatic fun blendRGBA(c1: Int, c2: Int, factor: Double): Int {
+		val RGB = blendRGB(c1 and 0xFFFFFF, c2 and 0xFFFFFF, (factor * 256).toInt())
+		val A = blendComponent(getA(c1), getA(c2), factor)
+		return packRGB_A(RGB, A)
+	}
 
 	@JvmStatic operator fun invoke(r: Int, g: Int, b: Int, a: Int) = pack(r, g, b, a)
 
@@ -70,5 +86,14 @@ object RGBA : ColorFormat32() {
 				)
 			}
 		}
+	}
+
+	@JvmStatic fun multiply(c1: Int, c2: Int): Int {
+		return RGBA.pack(
+			(RGBA.getR(c1) * RGBA.getR(c2)) / 0xFF,
+			(RGBA.getG(c1) * RGBA.getG(c2)) / 0xFF,
+			(RGBA.getB(c1) * RGBA.getB(c2)) / 0xFF,
+			(RGBA.getA(c1) * RGBA.getA(c2)) / 0xFF
+		)
 	}
 }
