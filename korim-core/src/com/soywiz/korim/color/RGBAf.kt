@@ -1,33 +1,44 @@
 package com.soywiz.korim.color
 
+import com.soywiz.korio.util.niceStr
+
 class RGBAf(
-	_r: Float = 1f,
-	_g: Float = 1f,
-	_b: Float = 1f,
-	_a: Float = 1f
+	private var _r: Float = 1f,
+	private var _g: Float = 1f,
+	private var _b: Float = 1f,
+	private var _a: Float = 1f
 ) {
-	private var _r: Float = r
-	private var _g: Float = g
-	private var _b: Float = b
-	private var _a: Float = a
+	private var dirty = true
 
-	var r: Float; set(v) = run { _r = v; updateColor() }; get() = _r
-	var g: Float; set(v) = run { _g = v; updateColor() }; get() = _g
-	var b: Float; set(v) = run { _b = v; updateColor() }; get() = _b
-	var a: Float; set(v) = run { _a = v; updateColor() }; get() = _a
+	var r: Float; set(v) = run { _r = v; makeDirty() }; get() = _r
+	var g: Float; set(v) = run { _g = v; makeDirty() }; get() = _g
+	var b: Float; set(v) = run { _b = v; makeDirty() }; get() = _b
+	var a: Float; set(v) = run { _a = v; makeDirty() }; get() = _a
 
-	private fun updateColor() {
-		rgba = RGBA.packfFast(_r, _g, _b, _a)
+	var rd: Double; set(v) = run { _r = v.toFloat(); makeDirty() }; get() = _r.toDouble()
+	var gd: Double; set(v) = run { _g = v.toFloat(); makeDirty() }; get() = _g.toDouble()
+	var bd: Double; set(v) = run { _b = v.toFloat(); makeDirty() }; get() = _b.toDouble()
+	var ad: Double; set(v) = run { _a = v.toFloat(); makeDirty() }; get() = _a.toDouble()
+
+	private fun makeDirty() {
+		dirty = true
 	}
 
-	var rgba: Int = -1; private set
+	private var _rgba: Int = -1
+	val rgba: Int get() {
+		if (dirty) {
+			dirty = false
+			_rgba = RGBA.packfFast(_r, _g, _b, _a)
+		}
+		return _rgba
+	}
 
 	fun setTo(r: Float, g: Float, b: Float, a: Float) {
 		this._r = r
 		this._g = g
 		this._b = b
 		this._a = a
-		updateColor()
+		makeDirty()
 	}
 
 	fun copyFrom(that: RGBAf) = setTo(that.r, that.g, that.b, that.a)
@@ -37,4 +48,8 @@ class RGBAf(
 	fun toRGBA(): Int = RGBA.packFast((r * 255).toInt() and 0xFF, (g * 255).toInt() and 0xFF, (b * 255).toInt() and 0xFF, (a * 255).toInt() and 0xFF)
 
 	fun setToIdentity() = setTo(1f, 1f, 1f, 1f)
+
+	override fun toString(): String = "RGBAf(${r.niceStr}, ${g.niceStr}, ${b.niceStr}, ${a.niceStr})"
 }
+
+inline fun RGBAf(r: Number, g: Number, b: Number, a: Number) = RGBAf(r.toFloat(), g.toFloat(), b.toFloat(), a.toFloat())
