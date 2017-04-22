@@ -4,7 +4,7 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.BitmapSlice
 import com.soywiz.korim.bitmap.slice
 import com.soywiz.korim.color.Colors
-import com.soywiz.korma.geom.IRectangle
+import com.soywiz.korma.geom.RectangleInt
 
 class BitmapFont(
 	val atlas: Bitmap32,
@@ -43,5 +43,5 @@ class BitmapFont(
 		val advance = info.advance
 	}
 
-	data class GlyphInfo(val id: Int, val bounds: IRectangle, val advance: Int)
+	data class GlyphInfo(val id: Int, val bounds: RectangleInt, val advance: Int)
 }

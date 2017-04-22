@@ -3,7 +3,7 @@ package com.soywiz.korim.font
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korma.geom.IRectangle
+import com.soywiz.korma.geom.RectangleInt
 
 object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: String): BitmapFont = generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray())
@@ -44,7 +44,7 @@ object BitmapFontGenerator {
 		for ((index, char) in chars.withIndex()) {
 			val width = widths[index]
 			g.fillText(String(intArrayOf(char), 0, 1), x.toDouble(), 0.0)
-			glyphs += BitmapFont.GlyphInfo(char, IRectangle(x, 0, width, ni.height), width)
+			glyphs += BitmapFont.GlyphInfo(char, RectangleInt(x, 0, width, ni.height), width)
 			x += width + 2
 		}
 		return BitmapFont(ni.toBMP32(), fontSize.toInt(), fontSize.toInt(), glyphs)
