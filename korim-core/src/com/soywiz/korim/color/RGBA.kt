@@ -1,5 +1,6 @@
 package com.soywiz.korim.color
 
+import com.soywiz.korio.util.clamp
 import com.soywiz.korio.util.extract8
 
 object RGBA : ColorFormat32() {
@@ -18,7 +19,13 @@ object RGBA : ColorFormat32() {
 	@JvmStatic fun getRGB(v: Int): Int = v and 0xFFFFFF
 
 	@JvmStatic fun multipliedByAlpha(v: Int): Int {
-		return pack((getR(v) * getAd(v)).toInt(), (getG(v) * getAd(v)).toInt(), (getB(v) * getAd(v)).toInt(), getA(v))
+		val alpha = getAd(v).clamp(0.0, 1.0)
+		return packFast((getR(v) * alpha).toInt(), (getG(v) * alpha).toInt(), (getB(v) * alpha).toInt(), getA(v))
+	}
+
+	@JvmStatic fun premultiply(v: Int): Int {
+		val alpha = getAd(v).clamp(0.0, 1.0)
+		return packFast((getR(v) * alpha).toInt(), (getG(v) * alpha).toInt(), (getB(v) * alpha).toInt(), getA(v))
 	}
 
 	@JvmStatic fun mutliplyByAlpha(v: Int, alpha: Double): Int = RGBA.pack(getR(v), getG(v), getB(v), (getA(v) * alpha).toInt())
@@ -28,7 +35,7 @@ object RGBA : ColorFormat32() {
 		if (alpha == 0.0) {
 			return Colors.TRANSPARENT_WHITE
 		} else {
-			return pack((getR(v) / getAd(v)).toInt(), (getG(v) / getAd(v)).toInt(), (getB(v) / getAd(v)).toInt(), getA(v))
+			return pack((getR(v) / alpha).toInt(), (getG(v) / alpha).toInt(), (getB(v) / alpha).toInt(), getA(v))
 		}
 	}
 

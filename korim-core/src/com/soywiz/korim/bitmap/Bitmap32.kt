@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.ColorFormat
+import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
@@ -9,7 +10,8 @@ import java.util.*
 class Bitmap32(
 	width: Int,
 	height: Int,
-	val data: IntArray = IntArray(width * height)
+	val data: IntArray = IntArray(width * height),
+	var premultiplied: Boolean = false
 ) : Bitmap(width, height, 32), Iterable<Int> {
 	private val temp = IntArray(Math.max(width, height))
 
@@ -242,6 +244,28 @@ class Bitmap32(
 	}
 
 	override fun getContext2d(): Context2d = Context2d(Bitmap32Context2d(this))
+
+	fun clone() = Bitmap32(width, height, this.data.copyOf(), premultiplied)
+
+	fun premultipliedIfRequired(): Bitmap32 = if (this.premultiplied) this else premultiplied()
+	fun depremultipliedIfRequired(): Bitmap32 = if (!this.premultiplied) this else depremultiplied()
+	fun premultiplied(): Bitmap32 = this.clone().apply { premultiplyInplace() }
+	fun depremultiplied(): Bitmap32 = this.clone().apply { depremultiplyInplace() }
+
+	fun premultiplyInplace() {
+		if (premultiplied) return
+		premultiplied = true
+		for (n in 0 until data.size) {
+			data[n] = RGBA.premultiply(data[n])
+			//data[n] = Colors.RED
+		}
+	}
+
+	fun depremultiplyInplace() {
+		if (!premultiplied) return
+		premultiplied = false
+		for (n in 0 until data.size) data[n] = RGBA.depremultiply(data[n])
+	}
 
 	override fun iterator(): Iterator<Int> = data.iterator()
 }
