@@ -175,6 +175,14 @@ class Bitmap32(
 	}
 
 	companion object {
+		fun copyRect(src: Bitmap32, srcX: Int, srcY: Int, dst: Bitmap32, dstX: Int, dstY: Int, width: Int, height: Int) {
+			for (y in 0 until height) {
+				val srcIndex = src.index(srcX, srcY + y)
+				val dstIndex = dst.index(dstX, dstY + y)
+				System.arraycopy(src.data, srcIndex, dst.data, dstIndex, width)
+			}
+		}
+
 		fun createWithAlpha(color: Bitmap32, alpha: Bitmap32, alphaChannel: BitmapChannel = BitmapChannel.RED): Bitmap32 {
 			val out = Bitmap32(color.width, color.height)
 			out.put(color)
