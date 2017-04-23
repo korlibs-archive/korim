@@ -14,6 +14,12 @@ class Context2d(val renderer: Renderer) {
 	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
 
 	open class Renderer {
+		open fun renderShape(shape: Shape, transform: Matrix2d): Unit {
+			val ctx = Context2d(this)
+			ctx.setTransform(transform)
+			shape.draw(ctx)
+		}
+
 		open fun render(state: State, fill: Boolean): Unit = Unit
 		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
 		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit = run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
@@ -150,6 +156,10 @@ class Context2d(val renderer: Renderer) {
 
 	fun fillStroke() = run { fill(); stroke() }
 	fun clip() = run { state.clip = state.path }
+
+	fun drawShape(shape: Shape) {
+		renderer.renderShape(shape, state.transform)
+	}
 
 	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = LinearGradient(x0, y0, x1, y1)
 	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) = RadialGradient(x0, y0, r0, x1, y1, r1)
