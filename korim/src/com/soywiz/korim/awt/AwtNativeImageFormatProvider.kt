@@ -7,8 +7,8 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korim.vector.Shape
 import com.soywiz.korma.Matrix2d
-import com.soywiz.korma.Vector2
 import com.soywiz.korma.geom.VectorPath
 import java.awt.*
 import java.awt.RenderingHints.KEY_ANTIALIASING
@@ -35,18 +35,43 @@ class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 
 class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
-	override fun getContext2d(): Context2d = Context2d(AwtContext2d(awtImage))
+	override fun getContext2d(): Context2d = Context2d(AwtContext2dRender(awtImage))
 }
 
-class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
+fun BufferedImage.createGraphics(antialiasing: Boolean): Graphics2D = this.createGraphics().apply {
+	addRenderingHints(
+		if (antialiasing) {
+			mapOf<Any, Any>(
+				KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_ON
+				, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_QUALITY
+				, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_QUALITY
+				, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
+				, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+				, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_ON
+			)
+		} else {
+			mapOf(
+				KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_OFF
+				, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_SPEED
+				, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_SPEED
+				, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+				, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
+				, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_OFF
+			)
+		}
+	)
+}
+
+private fun BufferedImage.scaled(scale: Double): BufferedImage {
+	val out = BufferedImage(Math.ceil(this.width * scale).toInt(), Math.ceil(this.height * scale).toInt(), this.type)
+	out.createGraphics(antialiasing = true).drawImage(this, 0, 0, out.width, out.height, null)
+	return out
+}
+
+
+class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true) : Context2d.Renderer() {
 	val awtTransform = AffineTransform()
-	val g = awtImage.createGraphics().apply {
-		addRenderingHints(mapOf(
-			KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_ON,
-			RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_ON,
-			RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_ON
-		))
-	}
+	val g = awtImage.createGraphics(antialiasing = antialiasing)
 
 	fun GraphicsPath.toJava2dPath(): java.awt.geom.Path2D.Double? {
 		if (this.isEmpty()) return null
@@ -62,6 +87,31 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		return polyline
 	}
 
+
+
+	override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
+		when (shapeRasterizerMethod) {
+			Context2d.ShapeRasterizerMethod.NONE -> {
+				super.renderShape(shape, transform, shapeRasterizerMethod)
+			}
+			Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
+				val scale = shapeRasterizerMethod.scale
+				val newBi = BufferedImage(Math.ceil(awtImage.width * scale).toInt(), Math.ceil(awtImage.height * scale).toInt(), awtImage.type)
+				val bi = Context2d(AwtContext2dRender(newBi, antialiasing = false))
+				bi.scale(scale, scale)
+				bi.transform(transform)
+				bi.draw(shape)
+				val renderBi = when (shapeRasterizerMethod) {
+					Context2d.ShapeRasterizerMethod.X1 -> newBi
+					Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
+					Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
+					else -> newBi
+				}
+				this.g.drawImage(renderBi, 0, 0, null)
+			}
+		}
+	}
+
 	fun convertColor(c: Int): java.awt.Color = java.awt.Color(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
 
 	fun Context2d.CycleMethod.toAwt() = when (this) {
@@ -71,7 +121,7 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 	}
 
 	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
-		this.toAwtUnsafe()
+		this.toAwtUnsafe(transform)
 	} catch (e: Throwable) {
 		println("Context2d.Paint.toAwt: $e")
 		Color.RED
@@ -84,68 +134,70 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		Context2d.Gradient.InterpolationMethod.NORMAL -> MultipleGradientPaint.ColorSpaceType.SRGB
 	}
 
-	fun Context2d.Paint.toAwtUnsafe(): java.awt.Paint = when (this) {
+	fun Context2d.Paint.toAwtUnsafe(transform: AffineTransform): java.awt.Paint = when (this) {
 		is Context2d.Color -> convertColor(this.color)
-		is Context2d.Gradient -> {
-			val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(it) }).distinctBy { it.first }
-			val stops = pairs.map { it.first }.toFloatArray()
-			val colors = pairs.map { it.second }.toTypedArray()
-			val defaultColor = colors.firstOrNull() ?: Color.RED
-
+		is Context2d.TransformedPaint -> {
 			val t1 = AffineTransform(this.transform.toAwt())
+			//t1.preConcatenate(this.transform.toAwt())
+			//t1.preConcatenate(transform)
 
 			when (this) {
-				is Context2d.LinearGradient -> {
-					val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
-					if (valid) {
-						java.awt.LinearGradientPaint(
-							Point2D.Double(this.x0, this.y0),
-							Point2D.Double(this.x1 + 0.001, this.y1),
-							stops,
-							colors,
-							this.cycle.toAwt(),
-							this.interpolationMethod.toAwt(),
-							t1
-						)
-					} else {
-						defaultColor
-					}
-				}
-				is Context2d.RadialGradient -> {
-					val valid = (pairs.size >= 2)
-					if (valid) {
-						java.awt.RadialGradientPaint(
-							Point2D.Double(this.x0, this.y0),
-							this.r1.toFloat(),
-							Point2D.Double(this.x1, this.y1),
-							stops,
-							colors,
-							this.cycle.toAwt(),
-							this.interpolationMethod.toAwt(),
-							t1
-						)
-					} else {
-						defaultColor
-					}
-				}
-				else -> TODO()
-			}
+				is Context2d.Gradient -> {
+					val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(it) }).distinctBy { it.first }
+					val stops = pairs.map { it.first }.toFloatArray()
+					val colors = pairs.map { it.second }.toTypedArray()
+					val defaultColor = colors.firstOrNull() ?: Color.RED
 
-		}
-		is Context2d.BitmapPaint -> {
-			val bmpp = this
-			val matrix = bmpp.transform
-			object : java.awt.TexturePaint(
-				this.bitmap.toAwt(),
-				Rectangle2D.Double(0.0, 0.0, this.bitmap.width.toDouble(), this.bitmap.height.toDouble())
-			) {
-				override fun createContext(cm: ColorModel?, deviceBounds: Rectangle?, userBounds: Rectangle2D?, xform: AffineTransform?, hints: RenderingHints?): PaintContext {
-					val at = AffineTransform()
-					at.setTransform(matrix.a, matrix.b, matrix.c, matrix.d, matrix.tx, matrix.ty)
-					val out = xform ?: AffineTransform()
-					out.concatenate(at)
-					return super.createContext(cm, deviceBounds, userBounds, out, hints)
+					when (this) {
+						is Context2d.LinearGradient -> {
+							val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
+							if (valid) {
+								java.awt.LinearGradientPaint(
+									Point2D.Double(this.x0, this.y0),
+									Point2D.Double(this.x1, this.y1),
+									stops,
+									colors,
+									this.cycle.toAwt(),
+									this.interpolationMethod.toAwt(),
+									t1
+								)
+							} else {
+								defaultColor
+							}
+						}
+						is Context2d.RadialGradient -> {
+							val valid = (pairs.size >= 2)
+							if (valid) {
+								java.awt.RadialGradientPaint(
+									Point2D.Double(this.x0, this.y0),
+									this.r1.toFloat(),
+									Point2D.Double(this.x1, this.y1),
+									stops,
+									colors,
+									this.cycle.toAwt(),
+									this.interpolationMethod.toAwt(),
+									t1
+								)
+							} else {
+								defaultColor
+							}
+						}
+						else -> TODO()
+					}
 				}
+				is Context2d.BitmapPaint -> {
+					object : java.awt.TexturePaint(
+						this.bitmap.toAwt(),
+						Rectangle2D.Double(0.0, 0.0, this.bitmap.width.toDouble(), this.bitmap.height.toDouble())
+					) {
+						override fun createContext(cm: ColorModel?, deviceBounds: Rectangle?, userBounds: Rectangle2D?, xform: AffineTransform?, hints: RenderingHints?): PaintContext {
+							val out = xform ?: AffineTransform()
+							out.concatenate(t1)
+							return super.createContext(cm, deviceBounds, userBounds, out, hints)
+						}
+					}
+				}
+				else -> java.awt.Color(Colors.BLACK)
 			}
 		}
 		else -> java.awt.Color(Colors.BLACK)

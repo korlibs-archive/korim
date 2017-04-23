@@ -55,16 +55,24 @@ interface StyledShape : Shape {
 		path.addBounds(bb)
 	}
 
+	override fun buildSvg(svg: SvgBuilder) {
+		super.buildSvg(svg)
+	}
+
 	override fun draw(c: Context2d) {
-		c.beginPath()
-		//c.keep {
-		//	c.transform(transform)
+		c.keepTransform {
+			c.transform(transform)
+			c.beginPath()
 			path.draw(c)
 			if (clip != null) {
 				clip!!.draw(c)
 				c.clip()
 			}
-		//}
+			drawInternal(c)
+		}
+	}
+
+	fun drawInternal(c: Context2d) {
 	}
 }
 
@@ -74,8 +82,7 @@ data class FillShape(
 	override val paint: Context2d.Paint,
 	override val transform: Matrix2d
 ) : StyledShape {
-	override fun draw(c: Context2d) {
-		super.draw(c)
+	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
 	}
 }
@@ -93,10 +100,9 @@ data class PolylineShape(
 	val joints: String?,
 	val miterLimit: Double
 ) : StyledShape {
-	override fun draw(c: Context2d) {
+	override fun drawInternal(c: Context2d) {
 		c.lineWidth = thickness
 		c.lineCap = endCaps
-		super.draw(c)
 		c.stroke(paint)
 	}
 }

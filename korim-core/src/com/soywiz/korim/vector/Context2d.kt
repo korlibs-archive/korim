@@ -13,8 +13,12 @@ class Context2d(val renderer: Renderer) {
 	enum class LineJoin { BEVEL, MITER, ROUND }
 	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
 
+	enum class ShapeRasterizerMethod(val scale: Double) {
+		NONE(0.0), X1(1.0), X2(2.0), X4(4.0)
+	}
+
 	open class Renderer {
-		open fun renderShape(shape: Shape, transform: Matrix2d): Unit {
+		open fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: ShapeRasterizerMethod): Unit {
 			val ctx = Context2d(this)
 			ctx.setTransform(transform)
 			shape.draw(ctx)
@@ -73,7 +77,7 @@ class Context2d(val renderer: Renderer) {
 		)
 	}
 
-	internal var state = State()
+	@PublishedApi internal var state = State()
 	private val stack = LinkedList<State>()
 
 	var lineWidth: Double; get() = state.lineWidth; set(value) = run { state.lineWidth = value }
@@ -92,6 +96,21 @@ class Context2d(val renderer: Renderer) {
 			callback()
 		} finally {
 			restore()
+		}
+	}
+
+	inline fun keepTransform(callback: () -> Unit) {
+		val t = state.transform
+		val a = t.a
+		val b = t.b
+		val c = t.c
+		val d = t.d
+		val tx = t.tx
+		val ty = t.ty
+		try {
+			callback()
+		} finally {
+			t.setTo(a, b, c, d, tx, ty)
 		}
 	}
 
@@ -157,8 +176,8 @@ class Context2d(val renderer: Renderer) {
 	fun fillStroke() = run { fill(); stroke() }
 	fun clip() = run { state.clip = state.path }
 
-	fun drawShape(shape: Shape) {
-		renderer.renderShape(shape, state.transform)
+	fun drawShape(shape: Shape, rasterizerMethod: Context2d.ShapeRasterizerMethod = Context2d.ShapeRasterizerMethod.X4) {
+		renderer.renderShape(shape, state.transform, rasterizerMethod)
 	}
 
 	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = LinearGradient(x0, y0, x1, y1)

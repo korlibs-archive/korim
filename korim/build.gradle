@@ -7,4 +7,5 @@ sourceSets {
 dependencies {
 	compile project(":korim-core")
 	compile "com.soywiz:korio:$korVersion"
+	//compile "com.kitfox.svg:svg-salamander:1.0"
 }
