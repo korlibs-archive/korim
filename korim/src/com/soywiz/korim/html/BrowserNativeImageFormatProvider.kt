@@ -134,11 +134,9 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 	}
 
 	private fun transformPaint(paint: Context2d.Paint) {
-		when (paint) {
-			is Context2d.BitmapPaint -> {
-				val m = paint.matrix
-				ctx.call("transform", m.a, m.b, m.c, m.d, m.tx, m.ty)
-			}
+		if (paint is Context2d.TransformedPaint) {
+			val m = paint.transform
+			ctx.call("transform", m.a, m.b, m.c, m.d, m.tx, m.ty)
 		}
 	}
 

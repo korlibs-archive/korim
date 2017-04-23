@@ -157,6 +157,10 @@ class Context2d(val renderer: Renderer) {
 
 	data class Color(val color: Int) : Paint
 
+	interface TransformedPaint : Paint {
+		val transform: Matrix2d
+	}
+
 	abstract class Gradient(
 		val x0: Double,
 		val y0: Double,
@@ -164,8 +168,14 @@ class Context2d(val renderer: Renderer) {
 		val y1: Double,
 		val stops: ArrayList<Double> = arrayListOf<Double>(),
 		val colors: ArrayList<Int> = arrayListOf<Int>(),
-		val cycle: CycleMethod
-	) : Paint {
+		val cycle: CycleMethod,
+		override val transform: Matrix2d,
+		val interpolationMethod: InterpolationMethod
+	) : TransformedPaint {
+		enum class InterpolationMethod {
+			LINEAR, NORMAL
+		}
+
 		fun addColorStop(stop: Double, color: Int): Gradient {
 			stops += stop
 			colors += color
@@ -175,7 +185,7 @@ class Context2d(val renderer: Renderer) {
 		abstract fun applyMatrix(m: Matrix2d): Gradient
 	}
 
-	class LinearGradient(x0: Double, y0: Double, x1: Double, y1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE) : Gradient(x0, y0, x1, y1, stops, colors, cycle) {
+	class LinearGradient(x0: Double, y0: Double, x1: Double, y1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
 		override fun applyMatrix(m: Matrix2d): Gradient = LinearGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -188,7 +198,7 @@ class Context2d(val renderer: Renderer) {
 		override fun toString(): String = "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
 	}
 
-	class RadialGradient(x0: Double, y0: Double, val r0: Double, x1: Double, y1: Double, val r1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE) : Gradient(x0, y0, x1, y1, stops, colors, cycle) {
+	class RadialGradient(x0: Double, y0: Double, val r0: Double, x1: Double, y1: Double, val r1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
 		override fun applyMatrix(m: Matrix2d): Gradient = RadialGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -203,7 +213,7 @@ class Context2d(val renderer: Renderer) {
 		override fun toString(): String = "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
 	}
 
-	class BitmapPaint(val bitmap: Bitmap, val matrix: Matrix2d, val repeat: Boolean = false, val smooth: Boolean = true) : Paint {
+	class BitmapPaint(val bitmap: Bitmap, override val transform: Matrix2d, val repeat: Boolean = false, val smooth: Boolean = true) : TransformedPaint {
 
 	}
 

@@ -7,11 +7,14 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korma.Matrix2d
+import com.soywiz.korma.Vector2
 import com.soywiz.korma.geom.VectorPath
 import java.awt.*
 import java.awt.RenderingHints.KEY_ANTIALIASING
 import java.awt.font.TextLayout
 import java.awt.geom.AffineTransform
+import java.awt.geom.Point2D
 import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import java.awt.image.ColorModel
@@ -67,11 +70,18 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
-	fun Context2d.Paint.toAwt(): java.awt.Paint = try {
+	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
 		this.toAwtUnsafe()
 	} catch (e: Throwable) {
 		println("Context2d.Paint.toAwt: $e")
 		Color.RED
+	}
+
+	fun Matrix2d.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
+
+	fun Context2d.Gradient.InterpolationMethod.toAwt() = when (this) {
+		Context2d.Gradient.InterpolationMethod.LINEAR -> MultipleGradientPaint.ColorSpaceType.LINEAR_RGB
+		Context2d.Gradient.InterpolationMethod.NORMAL -> MultipleGradientPaint.ColorSpaceType.SRGB
 	}
 
 	fun Context2d.Paint.toAwtUnsafe(): java.awt.Paint = when (this) {
@@ -80,31 +90,39 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 			val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(it) }).distinctBy { it.first }
 			val stops = pairs.map { it.first }.toFloatArray()
 			val colors = pairs.map { it.second }.toTypedArray()
-			val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
 			val defaultColor = colors.firstOrNull() ?: Color.RED
+
+			val t1 = AffineTransform(this.transform.toAwt())
 
 			when (this) {
 				is Context2d.LinearGradient -> {
+					val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
 					if (valid) {
 						java.awt.LinearGradientPaint(
-							this.x0.toFloat(), this.y0.toFloat(),
-							this.x1.toFloat(), this.y1.toFloat(),
+							Point2D.Double(this.x0, this.y0),
+							Point2D.Double(this.x1 + 0.001, this.y1),
 							stops,
 							colors,
-							this.cycle.toAwt()
+							this.cycle.toAwt(),
+							this.interpolationMethod.toAwt(),
+							t1
 						)
 					} else {
 						defaultColor
 					}
 				}
 				is Context2d.RadialGradient -> {
+					val valid = (pairs.size >= 2)
 					if (valid) {
 						java.awt.RadialGradientPaint(
-							this.x0.toFloat(), this.y0.toFloat(), this.r1.toFloat(),
-							this.x1.toFloat(), this.y1.toFloat(),
+							Point2D.Double(this.x0, this.y0),
+							this.r1.toFloat(),
+							Point2D.Double(this.x1, this.y1),
 							stops,
 							colors,
-							this.cycle.toAwt()
+							this.cycle.toAwt(),
+							this.interpolationMethod.toAwt(),
+							t1
 						)
 					} else {
 						defaultColor
@@ -116,7 +134,7 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 		}
 		is Context2d.BitmapPaint -> {
 			val bmpp = this
-			val matrix = bmpp.matrix
+			val matrix = bmpp.transform
 			object : java.awt.TexturePaint(
 				this.bitmap.toAwt(),
 				Rectangle2D.Double(0.0, 0.0, this.bitmap.width.toDouble(), this.bitmap.height.toDouble())
@@ -147,21 +165,30 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 
 	fun Context2d.Font.toAwt() = Font(this.name, Font.PLAIN, this.size.toInt())
 
+	inline fun Graphics2D.keepTransform(callback: () -> Unit) {
+		val old = AffineTransform(this.transform)
+		try {
+			callback()
+		} finally {
+			this.transform = old
+		}
+	}
+
 	fun applyState(state: Context2d.State, fill: Boolean) {
 		val t = state.transform
 		awtTransform.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
 		g.transform = awtTransform
 		g.clip = state.clip?.toJava2dPath()
 		if (fill) {
-			g.paint = state.fillStyle.toAwt()
+			g.paint = state.fillStyle.toAwt(awtTransform)
 		} else {
 			g.stroke = BasicStroke(
-				state.lineWidth.toFloat(),
+				(state.lineWidth).toFloat(),
 				state.lineCap.toAwt(),
 				state.lineJoin.toAwt(),
 				state.miterLimit.toFloat()
 			)
-			g.paint = state.strokeStyle.toAwt()
+			g.paint = state.strokeStyle.toAwt(awtTransform)
 		}
 		val comp = AlphaComposite.SRC_OVER
 		g.composite = if (state.globalAlpha == 1.0) AlphaComposite.getInstance(comp) else AlphaComposite.getInstance(comp, state.globalAlpha.toFloat())
@@ -169,7 +196,9 @@ class AwtContext2d(val awtImage: BufferedImage) : Context2d.Renderer() {
 
 	override fun render(state: Context2d.State, fill: Boolean) {
 		if (state.path.isEmpty()) return
+
 		applyState(state, fill)
+
 		val awtPath = state.path.toJava2dPath()
 		if (fill) {
 			g.fill(awtPath)
