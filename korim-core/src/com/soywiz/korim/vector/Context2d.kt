@@ -94,7 +94,9 @@ class Context2d(val renderer: Renderer) {
 	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
 	fun rotate(angle: Double) = run { state.transform.prerotate(angle) }
 	fun translate(tx: Double, ty: Double) = run { state.transform.pretranslate(tx, ty) }
+	fun transform(m: Matrix2d) = run { state.transform.premultiply(m) }
 	fun transform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) = run { state.transform.premultiply(a, b, c, d, tx, ty) }
+	fun setTransform(m: Matrix2d) = run { state.transform.copyFrom(m) }
 	fun setTransform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) = run { state.transform.setTo(a, b, c, d, tx, ty) }
 	fun shear(sx: Double, sy: Double) = transform(1.0, sy, sx, 1.0, 0.0, 0.0)
 	fun moveTo(x: Int, y: Int) = moveTo(x.toDouble(), y.toDouble())
@@ -135,6 +137,17 @@ class Context2d(val renderer: Renderer) {
 	fun closePath() = run { state.path.close() }
 	fun stroke() = run { if (state.strokeStyle != None) renderer.render(state, fill = false) }
 	fun fill() = run { if (state.fillStyle != None) renderer.render(state, fill = true) }
+
+	fun fill(paint: Paint) {
+		this.fillStyle = paint
+		this.fill()
+	}
+
+	fun stroke(paint: Paint) {
+		this.strokeStyle = paint
+		this.stroke()
+	}
+
 	fun fillStroke() = run { fill(); stroke() }
 	fun clip() = run { state.clip = state.path }
 
@@ -219,6 +232,10 @@ class Context2d(val renderer: Renderer) {
 
 	interface Drawable {
 		fun draw(c: Context2d)
+	}
+
+	interface BoundsDrawable : Drawable {
+		val bounds: Rectangle
 	}
 
 	interface SizedDrawable : Drawable {
