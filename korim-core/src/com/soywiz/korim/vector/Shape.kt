@@ -1,27 +1,87 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.korim.bitmap.toUri
+import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.serialization.xml.Xml
+import com.soywiz.korio.util.niceStr
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.BoundsBuilder
+import com.soywiz.korma.geom.Rectangle
 import com.soywiz.korma.geom.VectorPath
 
-class SvgBuilder {
-	fun toXml(): Xml {
-		TODO()
-	}
+/*
+<svg width="80px" height="30px" viewBox="0 0 80 30"
+     xmlns="http://www.w3.org/2000/svg">
+
+  <defs>
+    <linearGradient id="Gradient01">
+      <stop offset="20%" stop-color="#39F" />
+      <stop offset="90%" stop-color="#F3F" />
+    </linearGradient>
+  </defs>
+
+  <rect x="10" y="10" width="60" height="10"
+        fill="url(#Gradient01)" />
+</svg>
+ */
+
+class SvgBuilder(val bounds: Rectangle, val scale: Double) {
+	val defs = arrayListOf<Xml>()
+	val nodes = arrayListOf<Xml>()
+
+	//val tx = -bounds.x
+	//val ty = -bounds.y
+
+	fun toXml(): Xml = Xml.Tag(
+		"svg",
+		mapOf(
+			"width" to "${bounds.width * scale}px",
+			"height" to "${bounds.height * scale}px",
+			"viewBox" to "0 0 ${bounds.width * scale} ${bounds.height * scale}",
+			"xmlns" to "http://www.w3.org/2000/svg",
+			"xmlns:xlink" to "http://www.w3.org/1999/xlink"
+		),
+		listOf(
+			Xml.Tag("defs", mapOf(), defs)
+			,Xml.Tag("g", mapOf("transform" to Matrix2d().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()), nodes)
+		) //+ nodes
+	)
 }
+
+private fun Matrix2d.toSvg() = this.run { "matrix($a, $b, $c, $d, $tx, $ty)" }
 
 fun VectorPath.toSvgPathString(): String {
 	val parts = arrayListOf<String>()
+
+	fun Double.fixX() = this.niceStr
+	fun Double.fixY() = this.niceStr
+
 	this.visitCmds(
-		moveTo = { x, y -> parts += "M$x $y" },
-		lineTo = { x, y -> parts += "L$x $y" },
-		quadTo = { x1, y1, x2, y2 -> parts += "Q$x1 $y1, $x2 $y2" },
-		cubicTo = { x1, y1, x2, y2, x3, y3 -> parts += "C$x1 $y1, $x2 $y2, $x3 $y3" },
+		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },
+		lineTo = { x, y -> parts += "L${x.fixX()} ${y.fixY()}" },
+		quadTo = { x1, y1, x2, y2 -> parts += "Q${x1.fixX()} ${y1.fixY()}, ${x2.fixX()} ${y2.fixY()}" },
+		cubicTo = { x1, y1, x2, y2, x3, y3 -> parts += "C${x1.fixX()} ${y1.fixY()}, ${x2.fixX()} ${y2.fixY()}, ${x3.fixX()} ${y3.fixY()}" },
 		close = { parts += "Z" }
 	)
 	return parts.joinToString("")
 }
+
+//fun VectorPath.toSvgPathString(scale: Double, tx: Double, ty: Double): String {
+//	val parts = arrayListOf<String>()
+//
+//	//fun Double.fix() = (this * scale).toInt()
+//	fun Double.fixX() = ((this + tx) * scale).niceStr
+//	fun Double.fixY() = ((this + ty) * scale).niceStr
+//
+//	this.visitCmds(
+//		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },
+//		lineTo = { x, y -> parts += "L${x.fixX()} ${y.fixY()}" },
+//		quadTo = { x1, y1, x2, y2 -> parts += "Q${x1.fixX()} ${y1.fixY()}, ${x2.fixX()} ${y2.fixY()}" },
+//		cubicTo = { x1, y1, x2, y2, x3, y3 -> parts += "C${x1.fixX()} ${y1.fixY()}, ${x2.fixX()} ${y2.fixY()}, ${x3.fixX()} ${y3.fixY()}" },
+//		close = { parts += "Z" }
+//	)
+//	return parts.joinToString("")
+//}
 
 interface Shape : Context2d.Drawable {
 	fun addBounds(bb: BoundsBuilder): Unit
@@ -29,21 +89,15 @@ interface Shape : Context2d.Drawable {
 	}
 }
 
-fun Shape.toSvg(): Xml {
-	return SvgBuilder().apply { buildSvg(this) }.toXml()
+fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
+	val bb = BoundsBuilder()
+	addBounds(bb)
+	bb.getBounds(out)
 }
 
-/*
-fun GraphicsPath.draw(ctx: Context2d): Unit {
-	this.visitCmds(
-		moveTo = { x, y -> ctx.moveTo(x, y) },
-		lineTo = { x, y -> ctx.lineTo(x, y) },
-		quadTo = { x1, y1, x2, y2 -> ctx.quadraticCurveTo(x1, y1, x2, y2) },
-		cubicTo = { x1, y1, x2, y2, x3, y3 -> ctx.bezierCurveTo(x1, y1, x2, y2, x3, y3) },
-		close = { ctx.closePath() }
-	)
+fun Shape.toSvg(scale: Double = 1.0): Xml {
+	return SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
 }
-*/
 
 interface StyledShape : Shape {
 	val path: GraphicsPath
@@ -56,8 +110,15 @@ interface StyledShape : Shape {
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
-		super.buildSvg(svg)
+		svg.nodes += Xml.Tag("path", mapOf(
+			//"d" to path.toSvgPathString(svg.scale, svg.tx, svg.ty)
+			"d" to path.toSvgPathString()
+		) + getSvgXmlAttributes(svg), listOf())
 	}
+
+	fun getSvgXmlAttributes(svg: SvgBuilder): Map<String, String> = mapOf(
+		//"transform" to transform.toSvg()
+	)
 
 	override fun draw(c: Context2d) {
 		c.keepTransform {
@@ -76,6 +137,89 @@ interface StyledShape : Shape {
 	}
 }
 
+private fun colorToSvg(color: Int): String {
+	val r = RGBA.getR(color)
+	val g = RGBA.getG(color)
+	val b = RGBA.getB(color)
+	val af = RGBA.getAf(color)
+	return "rgba($r,$g,$b,$af)"
+}
+
+fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
+	val id = svg.defs.size
+	/*
+	svg.defs += when (this) {
+		is Context2d.Paint.
+		Xml.Tag("")
+	}
+	return "url(#def$id)"
+	*/
+	when (this) {
+		is Context2d.Gradient -> {
+			val stops = (0 until numberOfStops).map {
+				val ratio = this.stops[it]
+				val color = this.colors[it]
+				Xml.Tag("stop", mapOf("offset" to "${ratio * 100}%", "stop-color" to colorToSvg(color)), listOf())
+			}
+
+			when (this) {
+				is Context2d.LinearGradient -> {
+					svg.defs += Xml.Tag("linearGradient",
+						mapOf(
+							"id" to "def$id",
+							"x1" to "$x0", "y1" to "$y0",
+							"x2" to "$x1", "y2" to "$y1",
+							"gradientTransform" to transform.toSvg()
+						),
+						stops
+					)
+				}
+				is Context2d.RadialGradient -> {
+					svg.defs += Xml.Tag("radialGradient",
+						mapOf(
+							"id" to "def$id",
+							"cx" to "$x0", "cy" to "$y0",
+							"fx" to "$x1", "fy" to "$y1",
+							"r" to "$r1",
+							"gradientTransform" to transform.toSvg()
+						),
+						stops
+					)
+				}
+			}
+			return "url(#def$id)"
+		}
+		is Context2d.BitmapPaint -> {
+			//<pattern id="img1" patternUnits="userSpaceOnUse" width="100" height="100">
+			//<image xlink:href="wall.jpg" x="0" y="0" width="100" height="100" />
+			//</pattern>
+
+
+			svg.defs += Xml.Tag("pattern", mapOf(
+				"id" to "def$id",
+				"patternUnits" to "userSpaceOnUse",
+				"width" to "${bitmap.width}",
+				"height" to "${bitmap.height}",
+				"patternTransform" to transform.toSvg()
+			), listOf(
+				Xml.Tag("image",
+					mapOf(
+						"xlink:href" to bitmap.toUri(),
+						"width" to "${bitmap.width}",
+						"height" to "${bitmap.height}"
+					),
+					listOf()
+				)
+			))
+			return "url(#def$id)"
+		}
+		is Context2d.Color -> {
+			return colorToSvg(color)
+		}
+		else -> return "red"
+	}
+}
+
 data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
@@ -85,6 +229,10 @@ data class FillShape(
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
 	}
+
+	override fun getSvgXmlAttributes(svg: SvgBuilder) = super.getSvgXmlAttributes(svg) + mapOf(
+		"fill" to paint.toSvg(svg)
+	)
 }
 
 data class PolylineShape(
@@ -105,6 +253,11 @@ data class PolylineShape(
 		c.lineCap = endCaps
 		c.stroke(paint)
 	}
+
+	override fun getSvgXmlAttributes(svg: SvgBuilder) = super.getSvgXmlAttributes(svg) + mapOf(
+		"stroke-width" to "$thickness",
+		"stroke" to paint.toSvg(svg)
+	)
 }
 
 class CompoundShape(
@@ -116,5 +269,9 @@ class CompoundShape(
 
 	override fun draw(c: Context2d) {
 		for (component in components) component.draw(c)
+	}
+
+	override fun buildSvg(svg: SvgBuilder) {
+		for (component in components) component.buildSvg(svg)
 	}
 }

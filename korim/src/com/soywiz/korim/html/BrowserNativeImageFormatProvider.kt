@@ -4,10 +4,12 @@ import com.jtransc.js.*
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
+import com.soywiz.korim.bitmap.ensureNative
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
+import com.soywiz.korma.Matrix2d
 
 class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
 	override fun toNonNativeBmp(): Bitmap {
@@ -16,7 +18,7 @@ class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].to
 		return Bitmap32(width, height, data)
 	}
 
-	override fun getContext2d(): Context2d = Context2d(CanvasContext2d(canvas))
+	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(canvas))
 }
 
 class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
@@ -34,6 +36,10 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 	suspend override fun display(bitmap: Bitmap) {
 		val img = bitmap.toHtmlNative()
 		document["body"].call("appendChild", img.canvas)
+	}
+
+	override fun copy(bmp: Bitmap): NativeImage {
+		return CanvasNativeImage(HtmlImage.bitmapToHtmlCanvas(bmp.toBMP32()))
 	}
 
 	@Suppress("unused")
@@ -64,7 +70,10 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 	}
 }
 
-class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
+class CanvasContext2dRenderer(private val canvas: JsDynamic?) : Context2d.Renderer() {
+	override val width: Int get() = canvas["width"].toInt()
+	override val height: Int get() = canvas["height"].toInt()
+
 	val ctx = canvas.call("getContext", "2d")
 
 	fun Context2d.Paint.toJsStr(): Any? {
@@ -137,6 +146,16 @@ class CanvasContext2d(canvas: JsDynamic?) : Context2d.Renderer() {
 		if (paint is Context2d.TransformedPaint) {
 			val m = paint.transform
 			ctx.call("transform", m.a, m.b, m.c, m.d, m.tx, m.ty)
+		}
+	}
+
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+		ctx.call("save")
+		try {
+			transform.run { ctx.call("setTransform", a, b, c, d, tx, ty) }
+			ctx.call("drawImage", (image.ensureNative() as CanvasNativeImage).canvas, x, y, width, height)
+		} finally {
+			ctx.call("restore")
 		}
 	}
 

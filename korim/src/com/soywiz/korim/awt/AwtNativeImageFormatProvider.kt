@@ -2,12 +2,12 @@ package com.soywiz.korim.awt
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
+import com.soywiz.korim.bitmap.ensureNative
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import com.soywiz.korim.vector.Shape
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.VectorPath
 import java.awt.*
@@ -20,58 +20,58 @@ import java.awt.image.BufferedImage
 import java.awt.image.ColorModel
 
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
-	suspend override fun decode(data: ByteArray): NativeImage {
-		return AwtNativeImage(awtReadImageInWorker(data))
-	}
-
-	override fun create(width: Int, height: Int): NativeImage {
-		return AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
-	}
-
-	override suspend fun display(bitmap: Bitmap): Unit {
-		awtShowImageAndWait(bitmap)
-	}
+	suspend override fun decode(data: ByteArray): NativeImage = AwtNativeImage(awtReadImageInWorker(data))
+	override fun create(width: Int, height: Int): NativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
+	override fun copy(bmp: Bitmap): NativeImage = AwtNativeImage(bmp.toAwt())
+	override suspend fun display(bitmap: Bitmap): Unit = awtShowImageAndWait(bitmap)
 }
 
 class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
-	override fun getContext2d(): Context2d = Context2d(AwtContext2dRender(awtImage))
+	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
 }
+
+fun createRenderingHints(antialiasing: Boolean): RenderingHints = RenderingHints(if (antialiasing) {
+	mapOf(
+		KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_ON
+		, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_QUALITY
+		, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_QUALITY
+		//, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
+		, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BICUBIC
+		, RenderingHints.KEY_ALPHA_INTERPOLATION to RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY
+		, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_ON
+		, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_ON
+	)
+} else {
+	mapOf(
+		KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_OFF
+		, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_SPEED
+		, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_SPEED
+		, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+		, RenderingHints.KEY_ALPHA_INTERPOLATION to RenderingHints.VALUE_ALPHA_INTERPOLATION_SPEED
+		, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
+		, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_OFF
+	)
+})
 
 fun BufferedImage.createGraphics(antialiasing: Boolean): Graphics2D = this.createGraphics().apply {
-	addRenderingHints(
-		if (antialiasing) {
-			mapOf<Any, Any>(
-				KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_ON
-				, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_QUALITY
-				, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_QUALITY
-				, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
-				, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_ON
-				, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_ON
-			)
-		} else {
-			mapOf(
-				KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_OFF
-				, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_SPEED
-				, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_SPEED
-				, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
-				, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_OFF
-				, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_OFF
-			)
-		}
-	)
+	addRenderingHints(createRenderingHints(antialiasing))
 }
 
-private fun BufferedImage.scaled(scale: Double): BufferedImage {
-	val out = BufferedImage(Math.ceil(this.width * scale).toInt(), Math.ceil(this.height * scale).toInt(), this.type)
-	out.createGraphics(antialiasing = true).drawImage(this, 0, 0, out.width, out.height, null)
-	return out
-}
-
+//private fun BufferedImage.scaled(scale: Double): BufferedImage {
+//	val out = BufferedImage(Math.ceil(this.width * scale).toInt(), Math.ceil(this.height * scale).toInt(), this.type)
+//	out.createGraphics(antialiasing = true).drawImage(this, 0, 0, out.width, out.height, null)
+//	return out
+//}
 
 class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true) : Context2d.Renderer() {
+	//val nativeImage = AwtNativeImage(awtImage)
+	override val width: Int get() = awtImage.width
+	override val height: Int get() = awtImage.height
 	val awtTransform = AffineTransform()
 	val g = awtImage.createGraphics(antialiasing = antialiasing)
+
+	val hints = createRenderingHints(antialiasing)
 
 	fun GraphicsPath.toJava2dPath(): java.awt.geom.Path2D.Double? {
 		if (this.isEmpty()) return null
@@ -87,29 +87,32 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		return polyline
 	}
 
+	//override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
+	//	when (shapeRasterizerMethod) {
+	//		Context2d.ShapeRasterizerMethod.NONE -> {
+	//			super.renderShape(shape, transform, shapeRasterizerMethod)
+	//		}
+	//		Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
+	//			val scale = shapeRasterizerMethod.scale
+	//			val newBi = BufferedImage(Math.ceil(awtImage.width * scale).toInt(), Math.ceil(awtImage.height * scale).toInt(), awtImage.type)
+	//			val bi = Context2d(AwtContext2dRender(newBi, antialiasing = false))
+	//			bi.scale(scale, scale)
+	//			bi.transform(transform)
+	//			bi.draw(shape)
+	//			val renderBi = when (shapeRasterizerMethod) {
+	//				Context2d.ShapeRasterizerMethod.X1 -> newBi
+	//				Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
+	//				Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
+	//				else -> newBi
+	//			}
+	//			this.g.drawImage(renderBi, 0, 0, null)
+	//		}
+	//	}
+	//}
 
-
-	override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
-		when (shapeRasterizerMethod) {
-			Context2d.ShapeRasterizerMethod.NONE -> {
-				super.renderShape(shape, transform, shapeRasterizerMethod)
-			}
-			Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
-				val scale = shapeRasterizerMethod.scale
-				val newBi = BufferedImage(Math.ceil(awtImage.width * scale).toInt(), Math.ceil(awtImage.height * scale).toInt(), awtImage.type)
-				val bi = Context2d(AwtContext2dRender(newBi, antialiasing = false))
-				bi.scale(scale, scale)
-				bi.transform(transform)
-				bi.draw(shape)
-				val renderBi = when (shapeRasterizerMethod) {
-					Context2d.ShapeRasterizerMethod.X1 -> newBi
-					Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
-					Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
-					else -> newBi
-				}
-				this.g.drawImage(renderBi, 0, 0, null)
-			}
-		}
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+		//transform.toAwt()
+		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x, y, width, height, null)
 	}
 
 	fun convertColor(c: Int): java.awt.Color = java.awt.Color(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
@@ -193,7 +196,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 						override fun createContext(cm: ColorModel?, deviceBounds: Rectangle?, userBounds: Rectangle2D?, xform: AffineTransform?, hints: RenderingHints?): PaintContext {
 							val out = xform ?: AffineTransform()
 							out.concatenate(t1)
-							return super.createContext(cm, deviceBounds, userBounds, out, hints)
+							return super.createContext(cm, deviceBounds, userBounds, out, this@AwtContext2dRender.hints)
 						}
 					}
 				}
@@ -252,6 +255,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		applyState(state, fill)
 
 		val awtPath = state.path.toJava2dPath()
+		g.setRenderingHints(hints)
 		if (fill) {
 			g.fill(awtPath)
 		} else {
@@ -284,6 +288,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		at.translate(x - ox, y - baseline + oy)
 		//println("translate: ${x - ox}, ${y - oy}")
 		val outline = tl.getOutline(at)
+		g.setRenderingHints(hints)
 		if (fill) {
 			g.fill(outline)
 		} else {

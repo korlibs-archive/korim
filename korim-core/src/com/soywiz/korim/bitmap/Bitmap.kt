@@ -34,7 +34,7 @@ abstract class Bitmap(
 
 	abstract fun swapRows(y0: Int, y1: Int)
 
-	open fun getContext2d(): Context2d = throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
+	open fun getContext2d(antialiasing: Boolean = true): Context2d = throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
 
 	open fun createWithThisFormat(width: Int, height: Int): Bitmap = invalidOp("Unsupported createWithThisFormat")
 

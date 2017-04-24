@@ -9,6 +9,7 @@ import com.soywiz.korim.format.NativeImageFormatProvider
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import android.text.TextPaint
+import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.VectorPath
 
 
@@ -25,10 +26,12 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) : NativeIma
 		return Bitmap32(width, height, out)
 	}
 
-	override fun getContext2d(): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))
+	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))
 }
 
 class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Renderer() {
+	override val width: Int get() = bmp.width
+	override val height: Int get() = bmp.height
 	//val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
 	val paint = Paint(Paint.DITHER_FLAG or Paint.FILTER_BITMAP_FLAG or TextPaint.ANTI_ALIAS_FLAG or TextPaint.SUBPIXEL_TEXT_FLAG).apply {
 		hinting = Paint.HINTING_ON
@@ -149,9 +152,17 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 		paint.getTextBounds(text, 0, text.length, rect)
 		out.bounds.setTo(rect.left.toDouble(), rect.top.toDouble(), rect.width().toDouble(), rect.height().toDouble())
 	}
+
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+		TODO()
+	}
 }
 
 class AndroidNativeImageFormatProvider : NativeImageFormatProvider() {
+	override fun copy(bmp: Bitmap): NativeImage {
+		TODO()
+	}
+
 	override fun create(width: Int, height: Int): NativeImage {
 		val bmp = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
 		//bmp.setPixels()

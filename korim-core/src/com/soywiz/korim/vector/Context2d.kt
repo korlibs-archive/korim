@@ -2,13 +2,20 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
+import com.soywiz.korim.bitmap.scaled
 import com.soywiz.korim.color.Colors
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
+import com.soywiz.korma.ds.DoubleArrayList
+import com.soywiz.korma.ds.IntArrayList
 import com.soywiz.korma.geom.Rectangle
+import java.awt.image.BufferedImage
 import java.util.*
 
 class Context2d(val renderer: Renderer) {
+	val width: Int get() = renderer.width
+	val height: Int get() = renderer.height
+
 	enum class LineCap { BUTT, ROUND, SQUARE }
 	enum class LineJoin { BEVEL, MITER, ROUND }
 	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
@@ -17,16 +24,14 @@ class Context2d(val renderer: Renderer) {
 		NONE(0.0), X1(1.0), X2(2.0), X4(4.0)
 	}
 
-	open class Renderer {
-		open fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: ShapeRasterizerMethod): Unit {
-			val ctx = Context2d(this)
-			ctx.setTransform(transform)
-			shape.draw(ctx)
-		}
+	abstract class Renderer {
+		abstract val width: Int
+		abstract val height: Int
 
 		open fun render(state: State, fill: Boolean): Unit = Unit
 		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
 		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit = run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
+		open fun drawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height, transform: Matrix2d = Matrix2d()): Unit = Unit
 	}
 
 	enum class VerticalAlign(val ratio: Double) {
@@ -177,12 +182,37 @@ class Context2d(val renderer: Renderer) {
 	fun clip() = run { state.clip = state.path }
 
 	fun drawShape(shape: Shape, rasterizerMethod: Context2d.ShapeRasterizerMethod = Context2d.ShapeRasterizerMethod.X4) {
-		renderer.renderShape(shape, state.transform, rasterizerMethod)
+		when (rasterizerMethod) {
+			Context2d.ShapeRasterizerMethod.NONE -> {
+				shape.draw(this)
+			}
+			Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
+				val scale = rasterizerMethod.scale
+				val newBi = NativeImage(Math.ceil(renderer.width * scale).toInt(), Math.ceil(renderer.height * scale).toInt())
+				val bi = newBi.getContext2d(antialiasing = false)
+				//val bi = Context2d(AwtContext2dRender(newBi, antialiasing = true))
+				bi.scale(scale, scale)
+				bi.transform(state.transform)
+				bi.draw(shape)
+				val renderBi = when (rasterizerMethod) {
+					Context2d.ShapeRasterizerMethod.X1 -> newBi
+					Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
+					Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
+					else -> newBi
+				}
+				keepTransform {
+					setTransform(Matrix2d())
+					this.renderer.drawImage(renderBi, 0, 0)
+				}
+			}
+		}
 	}
 
 	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = LinearGradient(x0, y0, x1, y1)
 	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) = RadialGradient(x0, y0, r0, x1, y1, r1)
 	fun createColor(color: Int) = Color(color)
+	fun createPattern(bitmap: Bitmap, repeat: Boolean = false, smooth: Boolean = true, transform: Matrix2d = Matrix2d()) = BitmapPaint(bitmap, transform, repeat, smooth)
+
 	val none = None
 
 	data class Font(val name: String, val size: Double)
@@ -192,6 +222,22 @@ class Context2d(val renderer: Renderer) {
 	fun fillText(text: String, x: Double, y: Double): Unit = renderText(text, x, y, fill = true)
 	fun strokeText(text: String, x: Double, y: Double): Unit = renderText(text, x, y, fill = false)
 	fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit = run { renderer.renderText(state, font, text, x, y, fill) }
+
+	fun drawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height) {
+		if (true) {
+			beginPath()
+			moveTo(x, y)
+			lineTo(x + width, y)
+			lineTo(x + width, y + height)
+			lineTo(x, y + height)
+			//lineTo(x, y)
+			closePath()
+			fillStyle = createPattern(image, transform = Matrix2d().scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble()))
+			fill()
+		} else {
+			renderer.drawImage(image, x, y, width, height, state.transform)
+		}
+	}
 
 	interface Paint
 
@@ -208,8 +254,8 @@ class Context2d(val renderer: Renderer) {
 		val y0: Double,
 		val x1: Double,
 		val y1: Double,
-		val stops: ArrayList<Double> = arrayListOf<Double>(),
-		val colors: ArrayList<Int> = arrayListOf<Int>(),
+		val stops: DoubleArrayList = DoubleArrayList(),
+		val colors: IntArrayList = IntArrayList(),
 		val cycle: CycleMethod,
 		override val transform: Matrix2d,
 		val interpolationMethod: InterpolationMethod
@@ -217,6 +263,8 @@ class Context2d(val renderer: Renderer) {
 		enum class InterpolationMethod {
 			LINEAR, NORMAL
 		}
+
+		val numberOfStops = stops.size
 
 		fun addColorStop(stop: Double, color: Int): Gradient {
 			stops += stop
@@ -227,20 +275,20 @@ class Context2d(val renderer: Renderer) {
 		abstract fun applyMatrix(m: Matrix2d): Gradient
 	}
 
-	class LinearGradient(x0: Double, y0: Double, x1: Double, y1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
+	class LinearGradient(x0: Double, y0: Double, x1: Double, y1: Double, stops: DoubleArrayList = DoubleArrayList(), colors: IntArrayList = IntArrayList(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
 		override fun applyMatrix(m: Matrix2d): Gradient = LinearGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
 			m.transformX(x1, y1),
 			m.transformY(x1, y1),
-			ArrayList(stops),
-			ArrayList(colors)
+			DoubleArrayList(stops),
+			IntArrayList(colors)
 		)
 
 		override fun toString(): String = "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
 	}
 
-	class RadialGradient(x0: Double, y0: Double, val r0: Double, x1: Double, y1: Double, val r1: Double, stops: ArrayList<Double> = arrayListOf(), colors: ArrayList<Int> = arrayListOf(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
+	class RadialGradient(x0: Double, y0: Double, val r0: Double, x1: Double, y1: Double, val r1: Double, stops: DoubleArrayList = DoubleArrayList(), colors: IntArrayList = IntArrayList(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
 		override fun applyMatrix(m: Matrix2d): Gradient = RadialGradient(
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -248,8 +296,8 @@ class Context2d(val renderer: Renderer) {
 			m.transformX(x1, y1),
 			m.transformY(x1, y1),
 			r1,
-			ArrayList(stops),
-			ArrayList(colors)
+			DoubleArrayList(stops),
+			IntArrayList(colors)
 		)
 
 		override fun toString(): String = "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
