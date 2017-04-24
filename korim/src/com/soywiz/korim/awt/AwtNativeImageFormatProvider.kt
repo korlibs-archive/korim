@@ -20,10 +20,17 @@ import java.awt.image.BufferedImage
 import java.awt.image.ColorModel
 
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
-	suspend override fun decode(data: ByteArray): NativeImage = AwtNativeImage(awtReadImageInWorker(data))
-	override fun create(width: Int, height: Int): NativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
-	override fun copy(bmp: Bitmap): NativeImage = AwtNativeImage(bmp.toAwt())
+	suspend override fun decode(data: ByteArray): AwtNativeImage = AwtNativeImage(awtReadImageInWorker(data))
+	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
+	override fun copy(bmp: Bitmap): AwtNativeImage = AwtNativeImage(bmp.toAwt())
 	override suspend fun display(bitmap: Bitmap): Unit = awtShowImageAndWait(bitmap)
+
+	//override fun scaled(bmp: Bitmap, scale: Double): AwtNativeImage {
+	//	val out = create((bmp.width * scale).toInt(), (bmp.height * scale).toInt())
+	//	val g = out.awtImage.createGraphics()
+	//	g.drawImage((bmp.ensureNative() as AwtNativeImage).awtImage, RescaleOp(scale.toFloat(), 0f, RenderingHints(mapOf(RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR))), 0, 0)
+	//	return out
+	//}
 }
 
 class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {
@@ -31,13 +38,14 @@ class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, 
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
 }
 
+//fun createRenderingHints(antialiasing: Boolean): RenderingHints = RenderingHints(mapOf<RenderingHints.Key, Any>())
+
 fun createRenderingHints(antialiasing: Boolean): RenderingHints = RenderingHints(if (antialiasing) {
 	mapOf(
 		KEY_ANTIALIASING to java.awt.RenderingHints.VALUE_ANTIALIAS_ON
 		, RenderingHints.KEY_RENDERING to RenderingHints.VALUE_RENDER_QUALITY
 		, RenderingHints.KEY_COLOR_RENDERING to RenderingHints.VALUE_COLOR_RENDER_QUALITY
-		//, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
-		, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BICUBIC
+		, RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
 		, RenderingHints.KEY_ALPHA_INTERPOLATION to RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY
 		, RenderingHints.KEY_TEXT_ANTIALIASING to RenderingHints.VALUE_TEXT_ANTIALIAS_ON
 		, RenderingHints.KEY_FRACTIONALMETRICS to RenderingHints.VALUE_FRACTIONALMETRICS_ON
@@ -112,6 +120,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
 		//transform.toAwt()
+		//BufferedImageOp
 		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x, y, width, height, null)
 	}
 

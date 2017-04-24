@@ -42,8 +42,8 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	fun getBd(v: Int): Double = getB(v).toDouble() / 255.0
 	fun getAd(v: Int): Double = getA(v).toDouble() / 255.0
 
-	fun clamp0_FF(a: Int): Int = Math.min(Math.max(a, 0), 255)
-	fun clampFF(a: Int): Int = Math.min(a, 255)
+	//fun clamp0_FF(a: Int): Int = Math.min(Math.max(a, 0), 255)
+	//fun clampFF(a: Int): Int = Math.min(a, 255)
 
 	fun toRGBA(v: Int) = RGBA.packFast(getR(v), getG(v), getB(v), getA(v))
 
@@ -54,8 +54,9 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	)
 
 	companion object {
-		fun clamp0_FF(v: Int) = if (v < 0x00) 0x00 else if (v > 0xFF) 0xFF else v
-		fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
+		@JvmStatic fun clamp0_FF(v: Int) = if (v < 0x00) 0x00 else if (v > 0xFF) 0xFF else v
+		@JvmStatic fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
+		@JvmStatic fun clampFF(a: Int): Int = Math.min(a, 255)
 	}
 
 	inline fun decodeInternal(data: ByteArray, dataOffset: Int, out: IntArray, outOffset: Int, size: Int, read: (data: ByteArray, io: Int) -> Int): Unit {

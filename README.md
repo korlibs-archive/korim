@@ -15,7 +15,9 @@ compile "com.soywiz:korim:$korVersion"
 
 ### Bitmap classes
 
-Bitmap base class + Bitmap8 and Bitmap32
+Bitmap base class + Bitmap8 and Bitmap32.
+And other fancy bitmaps: BitmapIndexed as base + Bitmap1, Bitmap2, Bitmap4
+Ad BitmapChannel
 
 ### Image Formats
 
@@ -25,7 +27,7 @@ PNG, JPG, TGA, BMP, ICO and PSD.
 
 ### Color Formats
 
-Korim provides color formats to convert easily and fast.
+Korim provides color formats to convert easily and fast and to perform, mixing, de/premultiplication and other operations quickly.
 
 ### Vectorial Image Formats
 
@@ -36,6 +38,8 @@ Korim supports loading, rasterizing and drawing vector SVG files.
 It provides a single interface for vector rendering.
 So you can use a single interface and leverage JavaScript Canvas,
 AWT's Graphics2D and Android Canvas.
+It allows converting shapes into SVG.
+Also allows to draw shapes with fills in contact without artifacts in a portable way.
 
 ### AWT Utilities
 

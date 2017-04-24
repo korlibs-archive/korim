@@ -32,23 +32,34 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 	//val tx = -bounds.x
 	//val ty = -bounds.y
 
-	fun toXml(): Xml = Xml.Tag(
-		"svg",
-		mapOf(
-			"width" to "${bounds.width * scale}px",
-			"height" to "${bounds.height * scale}px",
-			"viewBox" to "0 0 ${bounds.width * scale} ${bounds.height * scale}",
-			"xmlns" to "http://www.w3.org/2000/svg",
-			"xmlns:xlink" to "http://www.w3.org/1999/xlink"
-		),
-		listOf(
-			Xml.Tag("defs", mapOf(), defs)
-			,Xml.Tag("g", mapOf("transform" to Matrix2d().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()), nodes)
-		) //+ nodes
-	)
+	fun toXml(): Xml {
+		return Xml.Tag(
+			"svg",
+			linkedMapOf(
+				"width" to "${(bounds.width * scale).niceStr}px",
+				"height" to "${(bounds.height * scale).niceStr}px",
+				"viewBox" to "0 0 ${(bounds.width * scale).niceStr} ${(bounds.height * scale).niceStr}",
+				"xmlns" to "http://www.w3.org/2000/svg",
+				"xmlns:xlink" to "http://www.w3.org/1999/xlink"
+			),
+			listOf(
+				Xml.Tag("defs", mapOf(), defs)
+				, Xml.Tag("g", mapOf("transform" to Matrix2d().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()), nodes)
+			) //+ nodes
+		)
+	}
 }
 
-private fun Matrix2d.toSvg() = this.run { "matrix($a, $b, $c, $d, $tx, $ty)" }
+private fun Matrix2d.toSvg() = this.run {
+	when (getType()) {
+		Matrix2d.Type.IDENTITY -> "translate()"
+		Matrix2d.Type.TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr})"
+		Matrix2d.Type.SCALE -> "scale(${a.niceStr}, ${d.niceStr})"
+		Matrix2d.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
+		else -> "matrix(${a.niceStr}, ${b.niceStr}, ${c.niceStr}, ${d.niceStr}, ${tx.niceStr}, ${ty.niceStr})"
+	}
+
+}
 
 fun VectorPath.toSvgPathString(): String {
 	val parts = arrayListOf<String>()

@@ -71,6 +71,6 @@ suspend inline fun disableNativeImageLoading(callback: () -> Unit) {
 
 suspend fun VfsFile.readBitmapNoNative(): Bitmap = ImageFormats.decodeInWorker(this.read(), this.basename)
 
-suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat = ImageFormats) {
-	this.write(format.encodeInWorker(bitmap, this.basename))
+suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat = ImageFormats, props: ImageEncodingProps = ImageEncodingProps()) {
+	this.write(format.encodeInWorker(bitmap, this.basename, props))
 }
