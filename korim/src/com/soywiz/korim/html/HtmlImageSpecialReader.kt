@@ -12,9 +12,13 @@ class HtmlImageSpecialReader : VfsSpecialReader<NativeImage>(NativeImage::class.
 
 	override suspend fun readSpecial(vfs: Vfs, path: String): NativeImage {
 		val canvas = when (vfs) {
-			is LocalVfs, is UrlVfs -> {
+			is LocalVfs -> {
 				//println("LOCAL: HtmlImageSpecialReader: $vfs, $path")
 				BrowserNativeImageFormatProvider.BrowserImage.loadImage(path)
+			}
+			is UrlVfs -> {
+				//println("URL: HtmlImageSpecialReader: $vfs, $path")
+				BrowserNativeImageFormatProvider.BrowserImage.loadImage(vfs.getFullUrl(path))
 			}
 			else -> {
 				//println("OTHER: HtmlImageSpecialReader: $vfs, $path")
