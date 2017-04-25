@@ -44,10 +44,19 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 
 	@Suppress("unused")
 	object BrowserImage {
-		suspend fun decodeToCanvas(bytes: ByteArray): JsDynamic? = korioSuspendCoroutine { c ->
+		suspend fun decodeToCanvas(bytes: ByteArray): JsDynamic? {
 			val blob = jsNew("Blob", jsArray(bytes), jsObject("type" to "image/png"))
 			val blobURL = global["URL"].call("createObjectURL", blob)
+			try {
+				return loadImage(blobURL)
+			} finally {
+				global["URL"].call("revokeObjectURL", blobURL)
+			}
+		}
 
+		suspend fun loadImage(url: String): JsDynamic? = loadImage(url.toJsDynamic())
+
+		suspend fun loadImage(jsUrl: JsDynamic?): JsDynamic? = korioSuspendCoroutine { c ->
 			val img = jsNew("Image")
 			img["onload"] = jsFunctionRaw0 {
 				val canvas = document.call("createElement", "canvas")
@@ -55,13 +64,12 @@ class BrowserNativeImageFormatProvider : NativeImageFormatProvider() {
 				canvas["height"] = img["height"]
 				val ctx = canvas.call("getContext", "2d")
 				ctx.call("drawImage", img, 0, 0)
-				global["URL"].call("revokeObjectURL", blobURL)
 				c.resume(canvas)
 			}
 			img["onerror"] = jsFunctionRaw0 {
 				c.resumeWithException(RuntimeException("error loading image"))
 			}
-			img["src"] = blobURL
+			img["src"] = jsUrl
 		}
 
 		fun imgData(canvas: JsDynamic?, out: IntArray): Unit {

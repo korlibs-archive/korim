@@ -1,0 +1,2 @@
+com.soywiz.korim.awt.AwtImageSpecialReader # <target=java>
+com.soywiz.korim.html.HtmlImageSpecialReader # <target=js>

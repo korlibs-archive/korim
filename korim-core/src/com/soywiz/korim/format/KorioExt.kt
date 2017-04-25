@@ -48,6 +48,15 @@ suspend fun AsyncInputStream.readBitmap(basename: String = "file.bin"): Bitmap {
 
 suspend fun VfsFile.readBitmapInfo(): ImageInfo? = ImageFormats.decodeHeader(this.readAsSyncStream())
 
+suspend fun VfsFile.readBitmapOptimized(): Bitmap {
+	try {
+		return this.readSpecial<NativeImage>()
+	} catch (t: Throwable) {
+		t.printStackTrace()
+		return this.readBitmap()
+	}
+}
+
 suspend fun VfsFile.readBitmap(): Bitmap {
 	val bytes = this.read()
 	return try {

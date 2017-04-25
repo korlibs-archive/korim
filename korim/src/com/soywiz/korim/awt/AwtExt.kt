@@ -11,6 +11,7 @@ import java.awt.event.WindowEvent
 import java.awt.image.BufferedImage
 import java.awt.image.DataBufferInt
 import java.io.ByteArrayInputStream
+import java.io.File
 import javax.imageio.ImageIO
 import javax.swing.ImageIcon
 import javax.swing.JFrame
@@ -79,5 +80,6 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data))
 suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIO.read(ByteArrayInputStream(data)) }
+suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { ImageIO.read(file) }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))
