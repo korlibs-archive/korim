@@ -2,6 +2,7 @@ package com.soywiz.korim.awt
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.async.executeInWorkerSync
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
@@ -80,8 +81,15 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 	return Bitmap32(image.width, image.height, ints, premultiplied)
 }
 
-fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data))
-suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIO.read(ByteArrayInputStream(data)) }
-suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { ImageIO.read(file) }
+private fun BufferedImage.toArgbPre(): BufferedImage {
+	val out = NativeImage(this.width, this.height) as AwtNativeImage
+	val g = out.awtImage.createGraphics()
+	g.drawImage(this, 0, 0, null)
+	return out.awtImage
+}
+
+fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data)).toArgbPre()
+suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIO.read(ByteArrayInputStream(data)).toArgbPre() }
+suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { ImageIO.read(file).toArgbPre() }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))
