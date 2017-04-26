@@ -173,9 +173,16 @@ class PNG : ImageFormat("png") {
 				for (y in 0 until height) {
 					out.write8(pos++, 0) // no filter
 					val index = bitmap.index(0, y)
-					for (x in 0 until width) {
-						out.write32_le(pos, bitmap.data[index + x])
-						pos += 4
+					if (bitmap.premultiplied) {
+						for (x in 0 until width) {
+							out.write32_le(pos, RGBA.depremultiplyFast(bitmap.data[index + x]))
+							pos += 4
+						}
+					} else {
+						for (x in 0 until width) {
+							out.write32_le(pos, bitmap.data[index + x])
+							pos += 4
+						}
 					}
 				}
 
