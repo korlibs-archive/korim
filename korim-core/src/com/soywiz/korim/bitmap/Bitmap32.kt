@@ -1,7 +1,6 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.ColorFormat
-import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
@@ -11,9 +10,14 @@ class Bitmap32(
 	width: Int,
 	height: Int,
 	val data: IntArray = IntArray(width * height),
-	var premultiplied: Boolean = false
-) : Bitmap(width, height, 32), Iterable<Int> {
+	premultiplied: Boolean = false
+) : Bitmap(width, height, 32, premultiplied), Iterable<Int> {
 	private val temp = IntArray(Math.max(width, height))
+
+	//constructor(width: Int, height: Int, value: Int, premultiplied: Boolean = false) : this(width, height, IntArray(width * height) { value }, premultiplied)
+	constructor(width: Int, height: Int, value: Int, premultiplied: Boolean = false) : this(width, height, premultiplied = premultiplied) {
+		Arrays.fill(data, value)
+	}
 
 	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height) {
 		setEach(generator)
@@ -255,16 +259,87 @@ class Bitmap32(
 	fun premultiplyInplace() {
 		if (premultiplied) return
 		premultiplied = true
-		for (n in 0 until data.size) {
-			data[n] = RGBA.premultiply(data[n])
-			//data[n] = Colors.RED
-		}
+		for (n in 0 until data.size) data[n] = RGBA.premultiplyFast(data[n])
 	}
 
 	fun depremultiplyInplace() {
 		if (!premultiplied) return
 		premultiplied = false
-		for (n in 0 until data.size) data[n] = RGBA.depremultiply(data[n])
+		for (n in 0 until data.size) data[n] = RGBA.depremultiplyFast(data[n])
+		//for (n in 0 until data.size) data[n] = RGBA.depremultiplyAccurate(data[n])
+	}
+
+	/*
+	// @TODO: Optimize memory usage
+	private fun mipmapInplace(levels: Int): Bitmap32 {
+		var cwidth = width
+		var cheight = height
+		for (level in 0 until levels) {
+			cwidth /= 2
+			for (y in 0 until cheight) {
+				RGBA.downScaleBy2AlreadyPremultiplied(
+					data, index(0, y), 1,
+					data, index(0, y), 1,
+					cwidth
+				)
+			}
+			cheight /= 2
+			for (x in 0 until cwidth) {
+				RGBA.downScaleBy2AlreadyPremultiplied(
+					data, index(x, 0), width,
+					data, index(x, 0), width,
+					cheight
+				)
+			}
+		}
+
+		return this
+	}
+
+	fun mipmap(levels: Int): Bitmap32 {
+		val divide = Math.pow(2.0, levels.toDouble()).toInt()
+		//val owidth =
+		val temp = Bitmap32(width, height, this.data.copyOf(), this.premultiplied)
+		val out = Bitmap32(width / divide, height / divide, premultiplied = true)
+		temp.premultiplyInplace()
+		temp.mipmapInplace(levels)
+		Bitmap32.copyRect(temp, 0, 0, out, 0, 0, out.width, out.height)
+		out.depremultiplyInplace()
+		//return temp
+		return out
+	}
+	*/
+
+	fun mipmap(levels: Int): Bitmap32 {
+		val temp = this.clone()
+		temp.premultiplyInplace()
+		val dst = temp.data
+
+		var twidth = width
+		var theight = height
+
+		for (level in 0 until levels) {
+			twidth /= 2
+			theight /= 2
+			for (y in 0 until theight) {
+				var n = temp.index(0, y)
+				var m = temp.index(0, y * 2)
+
+				for (x in 0 until twidth) {
+					val c1 = dst[m]
+					val c2 = dst[m + 1]
+					val c3 = dst[m + width]
+					val c4 = dst[m + width + 1]
+					dst[n] = RGBA.blendRGBAFastAlreadyPremultiplied_05(c1, c2, c3, c4)
+					m += 2
+					n++
+				}
+			}
+		}
+		val out = Bitmap32(twidth, theight, premultiplied = true)
+		Bitmap32.copyRect(temp, 0, 0, out, 0, 0, twidth, theight)
+		//out.depremultiplyInplace()
+		return out
 	}
 
 	override fun iterator(): Iterator<Int> = data.iterator()

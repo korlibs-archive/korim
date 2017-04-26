@@ -2,14 +2,13 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
-import com.soywiz.korim.bitmap.scaled
+import com.soywiz.korim.bitmap.mipmap
 import com.soywiz.korim.color.Colors
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
 import com.soywiz.korma.ds.DoubleArrayList
 import com.soywiz.korma.ds.IntArrayList
 import com.soywiz.korma.geom.Rectangle
-import java.awt.image.BufferedImage
 import java.util.*
 
 class Context2d(val renderer: Renderer) {
@@ -196,8 +195,8 @@ class Context2d(val renderer: Renderer) {
 				bi.draw(shape)
 				val renderBi = when (rasterizerMethod) {
 					Context2d.ShapeRasterizerMethod.X1 -> newBi
-					Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
-					Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
+					Context2d.ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
+					Context2d.ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
 					else -> newBi
 				}
 				keepTransform {

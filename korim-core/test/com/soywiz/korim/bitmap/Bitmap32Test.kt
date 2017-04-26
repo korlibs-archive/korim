@@ -1,7 +1,12 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.Colors
+import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.format.readBitmapNoNative
+import com.soywiz.korio.async.syncTest
+import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 
 class Bitmap32Test {
@@ -23,5 +28,13 @@ class Bitmap32Test {
 		val c = Bitmap32(16, 16)
 		c.fill(Colors.RED)
 		Assert.assertTrue(c.all { it == Colors.RED })
+	}
+
+	@Test
+	@Ignore
+	fun mipmaps() = syncTest {
+		val bmp = Bitmap32(4096 * 2, 4096 * 2, Colors.BLACK)
+		val bitmap2 = bmp.mipmap(2)
+		//awtShowImage(bitmap2); Thread.sleep(10000L)
 	}
 }

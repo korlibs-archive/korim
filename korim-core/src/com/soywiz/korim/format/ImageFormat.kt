@@ -35,8 +35,8 @@ abstract class ImageFormat(vararg exts: String) {
 
 	suspend fun decodeInWorker(s: ByteArray, filename: String = "unknown"): Bitmap = executeInWorkerSync { read(s.openSync(), filename) }
 
-	fun encode(frames: List<ImageFrame>, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray { writeImage(ImageData(frames), this, filename, props) }
-	fun encode(image: ImageData, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray { writeImage(image, this, filename, props) }
+	fun encode(frames: List<ImageFrame>, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray(frames.area * 4) { writeImage(ImageData(frames), this, filename, props) }
+	fun encode(image: ImageData, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = MemorySyncStreamToByteArray(image.area * 4) { writeImage(image, this, filename, props) }
 	fun encode(bitmap: Bitmap, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = encode(listOf(ImageFrame(bitmap)), filename, props)
 
 	suspend fun encodeInWorker(bitmap: Bitmap, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): ByteArray = executeInWorkerSync { encode(bitmap, filename, props) }

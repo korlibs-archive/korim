@@ -9,7 +9,7 @@ abstract class BitmapIndexed(
 	width: Int, height: Int,
 	var data: ByteArray = ByteArray(width * height / (8 / bpp)),
 	var palette: IntArray = IntArray(1 shl bpp)
-) : Bitmap(width, height, bpp) {
+) : Bitmap(width, height, bpp, false) {
 	override fun toString() = "BitmapIndexed(bpp=$bpp, width=$width, height=$height, clut=${palette.size})"
 
 	protected val temp = ByteArray(Math.max(width, height))

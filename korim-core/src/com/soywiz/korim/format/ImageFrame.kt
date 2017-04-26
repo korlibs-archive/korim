@@ -9,4 +9,8 @@ open class ImageFrame(
 	val targetX: Int = 0,
 	val targetY: Int = 0,
 	val main: Boolean = true
-) : Extra by Extra.Mixin()
+) : Extra by Extra.Mixin() {
+	val area: Int get() = bitmap.area
+}
+
+val Iterable<ImageFrame>.area: Int get() = this.sumBy { it.area }

@@ -1,6 +1,6 @@
 package com.soywiz.korim.color
 
-import com.soywiz.korim.color.RGBA.blendRGB
+import com.soywiz.korio.util.clamp
 
 object RGBA : ColorFormat32() {
 	//private inline val R_SHIFT: Int get() = 0
@@ -65,13 +65,47 @@ object RGBA : ColorFormat32() {
 
 	@JvmStatic fun mutliplyByAlpha(v: Int, alpha: Double): Int = RGBA.pack(getFastR(v), getFastG(v), getFastB(v), (getFastA(v) * alpha).toInt())
 
-	@JvmStatic fun depremultiply(v: Int): Int {
+	@JvmStatic fun depremultiply(v: Int): Int = depremultiplyFast(v)
+
+	@JvmStatic fun depremultiplyAccurate(v: Int): Int {
 		val alpha = getAd(v)
 		if (alpha == 0.0) {
 			return Colors.TRANSPARENT_WHITE
 		} else {
-			return pack((getFastR(v) / alpha).toInt(), (getFastG(v) / alpha).toInt(), (getFastB(v) / alpha).toInt(), getFastA(v))
+			val ialpha = 1.0 / alpha
+			return pack((getFastR(v) * ialpha).toInt(), (getFastG(v) * ialpha).toInt(), (getFastB(v) * ialpha).toInt(), getFastA(v))
 		}
+	}
+
+	@JvmStatic fun depremultiplyFast(v: Int): Int {
+		val A = (v ushr 24) + 1
+
+		//java.lang.Integer.divideUnsigned()
+		val R = (((v and 0x0000FF) shl 8) / A) and 0x0000F0
+		val G = (((v and 0x00FF00) shl 8) / A) and 0x00FF00
+		val B = (((v and 0xFF0000) shl 8) / A) and 0xFF0000
+
+		return (v and 0x00FFFFFF.inv()) or B or G or R
+
+		/*
+		val R = getFastR(v)
+		val G = getFastG(v)
+		val B = getFastB(v)
+		val A = getFastA(v) + 1
+
+		val nR = R * 256 / A
+		val nG = G * 256 / A
+		val nB = B * 256 / A
+
+		return pack(nR, nG, nB, A)
+		*/
+
+
+
+		//val A = (v ushr 24) + 1
+		//val RG = ((((v shl 8) and 0xFF00FF00.toInt()) / A)) and 0x00FF00FF
+		//val B = (((v and 0x0000FF00) / A) shl 8) and 0x0000FF00
+		//return (A shl 24) or RG or B
 	}
 
 	@JvmStatic fun packFast(r: Int, g: Int, b: Int, a: Int) = (r shl 0) or (g shl 8) or (b shl 16) or (a shl 24)
@@ -134,4 +168,50 @@ object RGBA : ColorFormat32() {
 			(RGBA.getFastA(c1) * RGBA.getFastA(c2)) / 0xFF
 		)
 	}
+
+	@JvmStatic fun blendRGBAFastAlreadyPremultiplied_05(c1: Int, c2: Int): Int {
+		//val R1 = getFastR(c1)
+		//val G1 = getFastG(c1)
+		//val B1 = getFastB(c1)
+		//val A1 = getFastA(c1)
+		//
+		//val R2 = getFastR(c2)
+		//val G2 = getFastG(c2)
+		//val B2 = getFastB(c2)
+		//val A2 = getFastA(c2)
+		//
+		//return RGBA.pack((R1 + R2) / 2, (G1 + G2) / 2, (B1 + B2) / 2, (A1 + A2) / 2)
+
+		val RB = (((c1 and 0xFF00FF) + (c2 and 0xFF00FF)) ushr 1) and 0xFF00FF
+		val G = (((c1 and 0x00FF00) + (c2 and 0x00FF00)) ushr 1) and 0x00FF00
+		val A = (((c1 ushr 24) + (c2 ushr 24)) ushr 1) and 0xFF
+		return (A shl 24) or RB or G
+	}
+
+	@JvmStatic fun blendRGBAFastAlreadyPremultiplied_05(c1: Int, c2: Int, c3: Int, c4: Int): Int {
+		val RB = (((c1 and 0xFF00FF) + (c2 and 0xFF00FF) + (c3 and 0xFF00FF) + (c4 and 0xFF00FF)) ushr 2) and 0xFF00FF
+		val G = (((c1 and 0x00FF00) + (c2 and 0x00FF00) + (c3 and 0x00FF00) + (c4 and 0x00FF00)) ushr 2) and 0x00FF00
+		val A = (((c1 ushr 24) + (c2 ushr 24) + (c3 ushr 24) + (c4 ushr 24)) ushr 2) and 0xFF
+		return (A shl 24) or RB or G
+	}
+
+	//@JvmStatic fun downScaleBy2AlreadyPremultiplied(
+	//	dstData: IntArray, dstOffset: Int, dstStep: Int,
+	//	srcData: IntArray, srcOffset: Int, srcStep: Int,
+	//	count: Int
+	//) {
+	//	var src = srcOffset
+	//	var dst = dstOffset
+	//	if (count > 0) {
+	//		for (n in 0 until count) {
+	//			var c1 = srcData[src]
+	//			val c2 = srcData[src + srcStep]
+	//			dstData[dst] = RGBA.blendRGBAFastAlreadyPremultiplied_05(c1, c2)
+	//			//dstData[dst] = c1
+	//			src += srcStep + srcStep
+	//			dst += dstStep
+	//			c1 = c2
+	//		}
+	//	}
+	//}
 }

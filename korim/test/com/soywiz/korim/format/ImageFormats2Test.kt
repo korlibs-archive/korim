@@ -1,9 +1,12 @@
 package com.soywiz.korim.format
 
+import com.soywiz.korim.awt.awtShowImage
+import com.soywiz.korim.bitmap.mipmap
 import com.soywiz.korio.async.sync
 import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
+import org.junit.Ignore
 import org.junit.Test
 
 class ImageFormats2Test {
@@ -18,9 +21,19 @@ class ImageFormats2Test {
 	fun png24() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
-		//awtShowImage(bitmap); Thread.sleep(10000L)
+		//val bitmap2 = bitmap.toBMP32().mipmap(2)
+		//val bitmap2 = bitmap.toBMP32()
+		//awtShowImage(bitmap2); Thread.sleep(10000L)
 	}
 
+	@Test
+	@Ignore
+	fun mipmaps() = syncTest {
+		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
+		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		val bitmap2 = bitmap.toBMP32().mipmap(2)
+		awtShowImage(bitmap2); Thread.sleep(10000L)
+	}
 
 	@Test
 	fun png32() = syncTest {

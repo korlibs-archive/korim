@@ -5,6 +5,8 @@ import com.soywiz.korio.util.Extra
 open class ImageData(
 	val frames: List<ImageFrame>
 ) : Extra by Extra.Mixin() {
+	val area: Int get() = frames.area
+
 	val mainBitmap get() = frames.sortedByDescending {
 		if (it.main) {
 			Int.MAX_VALUE

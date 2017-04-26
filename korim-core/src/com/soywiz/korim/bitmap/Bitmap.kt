@@ -9,7 +9,8 @@ import com.soywiz.korma.geom.Sizeable
 abstract class Bitmap(
 	val width: Int,
 	val height: Int,
-	val bpp: Int
+	val bpp: Int,
+	var premultiplied: Boolean
 ) : Sizeable {
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height

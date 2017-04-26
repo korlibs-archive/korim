@@ -11,7 +11,7 @@ import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
 import com.soywiz.korma.Matrix2d
 
-class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas) {
+class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].toInt(), canvas["height"].toInt(), canvas, false) {
 	override fun toNonNativeBmp(): Bitmap {
 		val data = IntArray(width * height)
 		BrowserNativeImageFormatProvider.BrowserImage.imgData(canvas, data)

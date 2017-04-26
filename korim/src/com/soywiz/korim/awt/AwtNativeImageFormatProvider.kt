@@ -19,21 +19,87 @@ import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import java.awt.image.ColorModel
 
+fun BufferedImage.clone(width: Int = this.width, height: Int = this.height): BufferedImage {
+	val out = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE)
+	val g = out.createGraphics()
+	g.drawImage(this, 0, 0, null)
+	return out
+}
+
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 	suspend override fun decode(data: ByteArray): AwtNativeImage = AwtNativeImage(awtReadImageInWorker(data))
-	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB))
+	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB_PRE))
 	override fun copy(bmp: Bitmap): AwtNativeImage = AwtNativeImage(bmp.toAwt())
 	override suspend fun display(bitmap: Bitmap): Unit = awtShowImageAndWait(bitmap)
 
-	//override fun scaled(bmp: Bitmap, scale: Double): AwtNativeImage {
-	//	val out = create((bmp.width * scale).toInt(), (bmp.height * scale).toInt())
+	override fun mipmap(bmp: Bitmap, levels: Int): NativeImage = bmp.toBMP32().mipmap(levels).ensureNative()
+
+	//override fun mipmap(bmp: Bitmap, levels: Int): NativeImage = mipmapInternal(bmp, levels)
+	////override fun mipmap(bmp: Bitmap): NativeImage = mipmapInternal(bmp, 1)
+//
+	//private fun mipmapInternal(bmp: Bitmap, levels: Int): NativeImage {
+	//	val temp = (bmp.ensureNative() as AwtNativeImage).awtImage.clone()
+	//	val g = temp.createGraphics()
+	//	g.setRenderingHints(mapOf(
+	//		RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
+	//	))
+	//	var twidth = bmp.width
+	//	var theight = bmp.height
+	//	for (n in 0 until levels) {
+	//		val swidth = twidth
+	//		val sheight = theight
+	//		twidth /= 2
+	//		theight /= 2
+	//		g.drawImage(
+	//			temp,
+	//			0, 0, twidth, theight,
+	//			0, 0, swidth, sheight,
+	//			null
+	//		)
+	//	}
+//
+	//	return AwtNativeImage(temp.clone(twidth, theight))
+//
+	//	/*
+	//	val scale = Math.pow(2.0, levels.toDouble()).toInt()
+	//	val newWidth = bmp.width / scale
+	//	val newHeight = bmp.height / scale
+	//	val out = NativeImage(newWidth, newHeight) as AwtNativeImage
 	//	val g = out.awtImage.createGraphics()
-	//	g.drawImage((bmp.ensureNative() as AwtNativeImage).awtImage, RescaleOp(scale.toFloat(), 0f, RenderingHints(mapOf(RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR))), 0, 0)
+	//	g.setRenderingHints(mapOf(
+	//		RenderingHints.KEY_INTERPOLATION to RenderingHints.VALUE_INTERPOLATION_BILINEAR
+	//	))
+	//	g.drawImage(
+	//		awtImageToDraw,
+	//		0, 0,
+	//		newWidth,
+	//		newHeight,
+	//		null
+	//	)
 	//	return out
+	//	*/
 	//}
 }
 
-class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage) {
+//fun createVolatileImage(width: Int, height: Int): VolatileImage {
+//	if (width == 0 || height == 0) invalidOp("Invalid image format")
+//
+//	val ge = GraphicsEnvironment.getLocalGraphicsEnvironment()
+//	val gc = ge.defaultScreenDevice.defaultConfiguration
+//	var image: VolatileImage? = null
+//
+//	image = gc.createCompatibleVolatileImage(width, height, Transparency.TRANSLUCENT)
+//
+//	val valid = image!!.validate(gc)
+//
+//	if (valid == VolatileImage.IMAGE_INCOMPATIBLE) {
+//		invalidOp("Image incompatible")
+//	}
+//
+//	return image
+//}
+
+class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE) {
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
 }
