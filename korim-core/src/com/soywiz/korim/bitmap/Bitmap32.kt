@@ -2,6 +2,7 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
 import java.util.*
@@ -197,13 +198,13 @@ class Bitmap32(
 		}
 
 		// https://en.wikipedia.org/wiki/Structural_similarity
-		fun matchesSSMI(a: Bitmap, b: Bitmap): Boolean = TODO()
+		suspend fun matchesSSMI(a: Bitmap, b: Bitmap): Boolean = TODO()
 
-		fun matches(a: Bitmap, b: Bitmap, threshold: Int = 32): Boolean {
+		suspend fun matches(a: Bitmap, b: Bitmap, threshold: Int = 32): Boolean {
 			val diff = diff(a, b)
+			//for (c in diff.data) println("%02X, %02X, %02X".format(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c)))
 			return diff.data.all {
-				(RGBA.getR(it) < threshold) && (RGBA.getG(it) < threshold) &&
-					(RGBA.getB(it) < threshold) && (RGBA.getA(it) < threshold)
+				(RGBA.getR(it) < threshold) && (RGBA.getG(it) < threshold) && (RGBA.getB(it) < threshold) && (RGBA.getA(it) < threshold)
 			}
 		}
 
@@ -211,18 +212,25 @@ class Bitmap32(
 			if (a.width != b.width || a.height != b.height) throw IllegalArgumentException("$a not matches $b size")
 			val a32 = a.toBMP32()
 			val b32 = b.toBMP32()
-			val out = Bitmap32(a.width, a.height)
+			val out = Bitmap32(a.width, a.height, premultiplied = true)
+			//showImageAndWait(a32)
+			//showImageAndWait(b32)
 			for (n in 0 until out.area) {
-				val c1 = RGBA.multipliedByAlpha(a32.data[n])
-				val c2 = RGBA.multipliedByAlpha(b32.data[n])
+				val c1 = RGBA.premultiplyFast(a32.data[n])
+				val c2 = RGBA.premultiplyFast(b32.data[n])
 
 				val dr = Math.abs(RGBA.getR(c1) - RGBA.getR(c2))
 				val dg = Math.abs(RGBA.getG(c1) - RGBA.getG(c2))
 				val db = Math.abs(RGBA.getB(c1) - RGBA.getB(c2))
 				val da = Math.abs(RGBA.getA(c1) - RGBA.getA(c2))
+				//val da = 0
 
+				//println("%02X, %02X, %02X".format(RGBA.getR(c1), RGBA.getR(c2), dr))
 				out.data[n] = RGBA.pack(dr, dg, db, da)
+
+				//println("$dr, $dg, $db, $da : ${out.data[n]}")
 			}
+			//showImageAndWait(out)
 			return out
 		}
 	}

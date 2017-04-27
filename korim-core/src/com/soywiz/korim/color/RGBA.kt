@@ -77,35 +77,44 @@ object RGBA : ColorFormat32() {
 		}
 	}
 
-	@JvmStatic fun depremultiplyFast(v: Int): Int {
-		val A = (v ushr 24) + 1
+	fun Double.clampf1() = if (this > 1.0) 1.0 else this
+	fun Int.clamp255() = if (this > 255) 255 else this
 
-		//java.lang.Integer.divideUnsigned()
+	@JvmStatic fun depremultiplyFast(v: Int): Int {
+		val A = v ushr 24
+		val alpha = A.toDouble() / 255.0
+		if (alpha == 0.0) return 0
+		val ialpha = 1.0 / alpha
+		val R = (getFastR(v) * ialpha).toInt().clamp255()
+		val G = (getFastG(v) * ialpha).toInt().clamp255()
+		val B = (getFastB(v) * ialpha).toInt().clamp255()
+		return packFast(R, G, B, A)
+	}
+
+	@JvmStatic fun depremultiplyFastOld(v: Int): Int {
+		val A = (v ushr 24)
+		if (A == 0) return 0
+		val R = ((((v ushr 0) and 0xFF) * 255) / A).clamp(0, 0xFF)
+		val G = ((((v ushr 8) and 0xFF) * 255) / A).clamp(0, 0xFF)
+		val B = ((((v ushr 16) and 0xFF) * 255) / A).clamp(0, 0xFF)
+		return packFast(R, G, B, A)
+	}
+
+	@JvmStatic fun depremultiplyFaster(v: Int): Int {
+		val A = (v ushr 24)
+		val A1 = A + 1
+		val R = ((((v ushr 0) and 0xFF) shl 8) / A1) and 0xFF
+		val G = ((((v ushr 8) and 0xFF) shl 8) / A1) and 0xFF
+		val B = ((((v ushr 16) and 0xFF) shl 8) / A1) and 0xFF
+		return packFast(R, G, B, A)
+	}
+
+	@JvmStatic fun depremultiplyFastest(v: Int): Int {
+		val A = (v ushr 24) + 1
 		val R = (((v and 0x0000FF) shl 8) / A) and 0x0000F0
 		val G = (((v and 0x00FF00) shl 8) / A) and 0x00FF00
 		val B = (((v and 0xFF0000) shl 8) / A) and 0xFF0000
-
 		return (v and 0x00FFFFFF.inv()) or B or G or R
-
-		/*
-		val R = getFastR(v)
-		val G = getFastG(v)
-		val B = getFastB(v)
-		val A = getFastA(v) + 1
-
-		val nR = R * 256 / A
-		val nG = G * 256 / A
-		val nB = B * 256 / A
-
-		return pack(nR, nG, nB, A)
-		*/
-
-
-
-		//val A = (v ushr 24) + 1
-		//val RG = ((((v shl 8) and 0xFF00FF00.toInt()) / A)) and 0x00FF00FF
-		//val B = (((v and 0x0000FF00) / A) shl 8) and 0x0000FF00
-		//return (A shl 24) or RG or B
 	}
 
 	@JvmStatic fun packFast(r: Int, g: Int, b: Int, a: Int) = (r shl 0) or (g shl 8) or (b shl 16) or (a shl 24)
@@ -141,8 +150,10 @@ object RGBA : ColorFormat32() {
 
 	@JvmStatic fun rgbaToBgra(v: Int) = ((v shl 16) and 0x00FF0000) or ((v shr 16) and 0x000000FF) or (v and 0xFF00FF00.toInt())
 
+	@JvmStatic private fun d2i(v: Double): Int = (ColorFormat.clampf01(v.toFloat()) * 255).toInt()
 	@JvmStatic private fun f2i(v: Float): Int = (ColorFormat.clampf01(v) * 255).toInt()
 
+	@JvmStatic fun packf(r: Double, g: Double, b: Double, a: Double): Int = packFast(d2i(r), d2i(g), d2i(b), d2i(a))
 	@JvmStatic fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
 	@JvmStatic fun packf(rgb: Int, a: Float): Int = packRGB_A(rgb, f2i(a))
 

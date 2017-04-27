@@ -21,12 +21,27 @@ class ImageFormatsTest {
 	}
 
 	@Test
-	fun png24Encoder() = syncTest {
+	fun png32Encoder() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
 		val data = PNG().encode(bitmap)
 		val bitmap2 = PNG().decode(data)
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
 		Assert.assertEquals("Bitmap32(190, 190)", bitmap2.toString())
+		Assert.assertEquals(true, Bitmap32.matches(bitmap, bitmap2))
+	}
+
+	@Test
+	fun png32EncoderPremultiplied() = syncTest {
+		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative().toBMP32()
+		val bitmap = bitmapOriginal.premultiplied()
+		//showImageAndWait(bitmap)
+		val data = PNG().encode(bitmap)
+		val bitmap2 = PNG().decode(data)
+		//showImageAndWait(bitmap2)
+		Assert.assertEquals("Bitmap32(190, 190)", bitmap.toString())
+		Assert.assertEquals("Bitmap32(190, 190)", bitmap2.toString())
+		//showImageAndWait(Bitmap32.diff(bitmap, bitmap2))
+		Assert.assertEquals(true, Bitmap32.matches(bitmapOriginal, bitmap2))
 	}
 
 	@Test
