@@ -4,6 +4,7 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.mipmap
 import com.soywiz.korim.color.Colors
+import com.soywiz.korio.util.redirect
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
 import com.soywiz.korma.ds.DoubleArrayList
@@ -49,10 +50,15 @@ class Context2d(val renderer: Renderer) {
 		fun getOffsetX(width: Double): Double = width * ratio
 	}
 
-	class State(
+	enum class ScaleMode(val hScale: Boolean, val vScale: Boolean) {
+		NONE(false, false), HORIZONTAL(true, false), VERTICAL(false, true), NORMAL(true, true);
+	}
+
+	data class State(
 		var transform: Matrix2d = Matrix2d(),
 		var clip: GraphicsPath? = null,
 		var path: GraphicsPath = GraphicsPath(),
+		var lineScaleMode: ScaleMode = ScaleMode.NORMAL,
 		var lineWidth: Double = 1.0,
 		var lineCap: LineCap = LineCap.BUTT,
 		var lineJoin: LineJoin = LineJoin.MITER,
@@ -64,34 +70,26 @@ class Context2d(val renderer: Renderer) {
 		var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
 		var globalAlpha: Double = 1.0
 	) {
-		fun clone(): State = State(
+		fun clone(): State = this.copy(
 			transform = transform.clone(),
 			clip = clip?.clone(),
-			path = path.clone(),
-			lineWidth = lineWidth,
-			lineCap = lineCap,
-			lineJoin = lineJoin,
-			miterLimit = miterLimit,
-			strokeStyle = strokeStyle,
-			fillStyle = fillStyle,
-			font = font,
-			verticalAlign = verticalAlign,
-			horizontalAlign = horizontalAlign,
-			globalAlpha = globalAlpha
+			path = path.clone()
 		)
 	}
 
 	@PublishedApi internal var state = State()
 	private val stack = LinkedList<State>()
 
-	var lineWidth: Double; get() = state.lineWidth; set(value) = run { state.lineWidth = value }
-	var lineCap: LineCap; get() = state.lineCap; set(value) = run { state.lineCap = value }
-	var strokeStyle: Paint; get() = state.strokeStyle; set(value) = run { state.strokeStyle = value }
-	var fillStyle: Paint; get() = state.fillStyle; set(value) = run { state.fillStyle = value }
-	var font: Font; get() = state.font; set(value) = run { state.font = value }
-	var verticalAlign: VerticalAlign; get() = state.verticalAlign; set(value) = run { state.verticalAlign = value }
-	var horizontalAlign: HorizontalAlign; get() = state.horizontalAlign; set(value) = run { state.horizontalAlign = value }
-	var globalAlpha: Double; get() = state.globalAlpha; set(value) = run { state.globalAlpha = value }
+	var lineScaleMode: ScaleMode by state::lineScaleMode.redirect()
+	var lineWidth: Double by state::lineWidth.redirect()
+	var lineCap: LineCap by state::lineCap.redirect()
+	var strokeStyle: Paint by state::strokeStyle.redirect()
+	var fillStyle: Paint by state::fillStyle.redirect()
+	var font: Font by state::font.redirect()
+	var verticalAlign: VerticalAlign by state::verticalAlign.redirect()
+	var horizontalAlign: HorizontalAlign by state::horizontalAlign.redirect()
+	var globalAlpha: Double by state::globalAlpha.redirect()
+
 	inline fun keepApply(callback: Context2d.() -> Unit) = this.apply { keep { callback() } }
 
 	inline fun keep(callback: () -> Unit) {
@@ -190,19 +188,24 @@ class Context2d(val renderer: Renderer) {
 				val newBi = NativeImage(Math.ceil(renderer.width * scale).toInt(), Math.ceil(renderer.height * scale).toInt())
 				val bi = newBi.getContext2d(antialiasing = false)
 				//val bi = Context2d(AwtContext2dRender(newBi, antialiasing = true))
-				bi.scale(scale, scale)
-				bi.transform(state.transform)
-				bi.draw(shape)
-				val renderBi = when (rasterizerMethod) {
-					Context2d.ShapeRasterizerMethod.X1 -> newBi
-					Context2d.ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
-					Context2d.ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
-					else -> newBi
-				}
-				keepTransform {
-					setTransform(Matrix2d())
-					this.renderer.drawImage(renderBi, 0, 0)
-				}
+				//val oldLineScale = bi.lineScale
+				//try {
+					bi.scale(scale, scale)
+					bi.transform(state.transform)
+					bi.draw(shape)
+					val renderBi = when (rasterizerMethod) {
+						Context2d.ShapeRasterizerMethod.X1 -> newBi
+						Context2d.ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
+						Context2d.ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
+						else -> newBi
+					}
+					keepTransform {
+						setTransform(Matrix2d())
+						this.renderer.drawImage(renderBi, 0, 0)
+					}
+				//} finally {
+				//	bi.lineScale = oldLineScale
+				//}
 			}
 		}
 	}

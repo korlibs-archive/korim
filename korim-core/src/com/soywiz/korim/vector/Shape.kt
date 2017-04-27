@@ -253,13 +253,14 @@ data class PolylineShape(
 	override val transform: Matrix2d,
 	val thickness: Double,
 	val pixelHinting: Boolean,
-	val scaleMode: String,
+	val scaleMode: Context2d.ScaleMode,
 	val startCaps: Context2d.LineCap,
 	val endCaps: Context2d.LineCap,
 	val joints: String?,
 	val miterLimit: Double
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
+		c.lineScaleMode = scaleMode
 		c.lineWidth = thickness
 		c.lineCap = endCaps
 		c.stroke(paint)
