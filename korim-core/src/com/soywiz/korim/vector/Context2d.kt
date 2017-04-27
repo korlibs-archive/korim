@@ -4,7 +4,7 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.mipmap
 import com.soywiz.korim.color.Colors
-import com.soywiz.korio.util.redirect
+import com.soywiz.korio.util.redirectField
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
 import com.soywiz.korma.ds.DoubleArrayList
@@ -25,6 +25,13 @@ class Context2d(val renderer: Renderer) {
 	}
 
 	abstract class Renderer {
+		companion object{
+			val DUMMY = object : Renderer() {
+				override val width: Int = 128
+				override val height: Int = 128
+			}
+		}
+
 		abstract val width: Int
 		abstract val height: Int
 
@@ -77,18 +84,18 @@ class Context2d(val renderer: Renderer) {
 		)
 	}
 
-	@PublishedApi internal var state = State()
+	var state = State()
 	private val stack = LinkedList<State>()
 
-	var lineScaleMode: ScaleMode by state::lineScaleMode.redirect()
-	var lineWidth: Double by state::lineWidth.redirect()
-	var lineCap: LineCap by state::lineCap.redirect()
-	var strokeStyle: Paint by state::strokeStyle.redirect()
-	var fillStyle: Paint by state::fillStyle.redirect()
-	var font: Font by state::font.redirect()
-	var verticalAlign: VerticalAlign by state::verticalAlign.redirect()
-	var horizontalAlign: HorizontalAlign by state::horizontalAlign.redirect()
-	var globalAlpha: Double by state::globalAlpha.redirect()
+	var lineScaleMode: ScaleMode by redirectField { state::lineScaleMode }
+	var lineWidth: Double by redirectField { state::lineWidth }
+	var lineCap: LineCap by redirectField { state::lineCap }
+	var strokeStyle: Paint by redirectField { state::strokeStyle }
+	var fillStyle: Paint by redirectField { state::fillStyle }
+	var font: Font by redirectField { state::font }
+	var verticalAlign: VerticalAlign by redirectField { state::verticalAlign }
+	var horizontalAlign: HorizontalAlign by redirectField { state::horizontalAlign }
+	var globalAlpha: Double by redirectField { state::globalAlpha }
 
 	inline fun keepApply(callback: Context2d.() -> Unit) = this.apply { keep { callback() } }
 

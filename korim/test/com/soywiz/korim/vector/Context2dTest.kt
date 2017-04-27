@@ -17,7 +17,27 @@ class Context2dTest {
 	}
 
 	@Test
-	fun name(): Unit = sync(EventLoopTest()) {
+	fun testPropertiesAndKeep() {
+		val ctx = Context2d(Context2d.Renderer.DUMMY)
+		ctx.apply {
+			keep {
+				lineWidth = 22.0
+				keep {
+					keep {
+						lineWidth = 33.0
+						Assert.assertEquals(33.0, state.lineWidth, 0.0001)
+						Assert.assertEquals(33.0, lineWidth, 0.0001)
+					}
+				}
+				Assert.assertEquals(22.0, state.lineWidth, 0.0001)
+				lineWidth = 11.0
+				Assert.assertEquals(11.0, state.lineWidth, 0.0001)
+			}
+		}
+	}
+
+	@Test
+	fun name2(): Unit = sync(EventLoopTest()) {
 		val img = NativeImage(256, 256)
 		val ctx = img.getContext2d()
 		ctx.apply {
@@ -48,10 +68,14 @@ class Context2dTest {
 				stroke()
 			}
 		}
+		//showImageAndWait(img)
+		//LocalVfs("c:/temp/c2dactual.png").writeBitmap(img.toBmp32())
+		//LocalVfs("c:/temp/c2dreference.png").writeBitmap(ResourcesVfs["c2dreference.png"].readBitmap().toBMP32())
+		//img.toBmp32()
 		Assert.assertTrue(
 			Bitmap32.matches(
-				ResourcesVfs["c2dreference.png"].readBitmap(),
-				img.toBmp32()
+				ResourcesVfs["c2dreference.png"].readBitmap().toBMP32().depremultiplied(),
+				img.toBmp32().depremultiplied()
 			)
 		)
 
@@ -60,7 +84,7 @@ class Context2dTest {
 	}
 
 	@Test
-	fun name2(): Unit = sync(EventLoopTest()) {
+	fun name3(): Unit = sync(EventLoopTest()) {
 		val img = NativeImage(400, 450)
 		val ctx = img.getContext2d()
 
