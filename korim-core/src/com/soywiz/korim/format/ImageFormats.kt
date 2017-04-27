@@ -1,5 +1,6 @@
 package com.soywiz.korim.format
 
+import com.soywiz.korio.service.Services
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readString
 import com.soywiz.korio.stream.slice
@@ -7,7 +8,7 @@ import com.soywiz.korio.vfs.PathInfo
 import java.util.*
 
 object ImageFormats : ImageFormat("") {
-	private val formats = ServiceLoader.load(ImageFormat::class.java).toList()
+	private val formats = Services.loadList(ImageFormat::class.java)
 
 	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
 		for (format in formats) return try {

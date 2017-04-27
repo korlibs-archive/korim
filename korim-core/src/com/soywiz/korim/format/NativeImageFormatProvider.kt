@@ -3,8 +3,9 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.ensureNative
+import com.soywiz.korio.service.Services
 
-abstract class NativeImageFormatProvider {
+abstract class NativeImageFormatProvider : Services.Impl() {
 	abstract suspend fun decode(data: ByteArray): NativeImage
 	abstract fun create(width: Int, height: Int): NativeImage
 	abstract fun copy(bmp: Bitmap): NativeImage

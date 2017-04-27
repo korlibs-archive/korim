@@ -2,21 +2,21 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
+import com.soywiz.korio.service.Services
 import com.soywiz.korio.stream.AsyncInputStream
 import com.soywiz.korio.stream.AsyncStream
 import com.soywiz.korio.stream.openSync
 import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.vfs.VfsFile
-import java.util.*
 
 suspend fun ImageFormat.decode(s: VfsFile) = this.read(s.readAsSyncStream(), s.basename)
 suspend fun ImageFormat.decode(s: AsyncStream, filename: String) = this.read(s.readAll(), filename)
 
 val nativeImageFormatProviders by lazy {
-	ServiceLoader.load(NativeImageFormatProvider::class.java).toList()
+	Services.loadList(NativeImageFormatProvider::class.java)
 }
 
-val nativeImageFormatProvider by lazy { nativeImageFormatProviders.first() }
+val nativeImageFormatProvider by lazy { Services.load(NativeImageFormatProvider::class.java) }
 
 suspend fun displayImage(bmp: Bitmap) = nativeImageFormatProvider.display(bmp)
 

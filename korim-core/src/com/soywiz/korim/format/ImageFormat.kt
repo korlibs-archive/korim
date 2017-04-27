@@ -3,12 +3,13 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korio.async.executeInWorkerSync
 import com.soywiz.korio.error.ignoreErrors
+import com.soywiz.korio.service.Services
 import com.soywiz.korio.stream.MemorySyncStreamToByteArray
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.openSync
 import java.io.File
 
-abstract class ImageFormat(vararg exts: String) {
+abstract class ImageFormat(vararg exts: String) : Services.Impl() {
 	val extensions = exts.map { it.toLowerCase().trim() }.toSet()
 	open fun readImage(s: SyncStream, filename: String = "unknown"): ImageData = TODO()
 	open fun writeImage(image: ImageData, s: SyncStream, filename: String = "unknown", props: ImageEncodingProps = ImageEncodingProps()): Unit = throw UnsupportedOperationException()
