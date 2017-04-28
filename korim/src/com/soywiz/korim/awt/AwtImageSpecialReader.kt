@@ -7,7 +7,7 @@ import com.soywiz.korio.vfs.VfsSpecialReader
 import java.io.File
 
 class AwtImageSpecialReader : VfsSpecialReader<NativeImage>(NativeImage::class.java) {
-	override val isAvailable: Boolean = true
+	override val available: Boolean = true
 
 	override suspend fun readSpecial(vfs: Vfs, path: String): NativeImage {
 		return when (vfs) {

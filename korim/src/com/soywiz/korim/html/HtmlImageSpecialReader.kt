@@ -8,7 +8,7 @@ import com.soywiz.korio.vfs.Vfs
 import com.soywiz.korio.vfs.VfsSpecialReader
 
 class HtmlImageSpecialReader : VfsSpecialReader<NativeImage>(NativeImage::class.java) {
-	override val isAvailable: Boolean = JTranscSystem.isJs()
+	override val available: Boolean = JTranscSystem.isJs()
 
 	override suspend fun readSpecial(vfs: Vfs, path: String): NativeImage {
 		val canvas = when (vfs) {
