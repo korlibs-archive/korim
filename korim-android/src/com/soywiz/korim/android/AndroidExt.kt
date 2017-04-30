@@ -13,7 +13,7 @@ import com.soywiz.korio.async.executeInWorker
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
 
 suspend fun androidShowImage(bitmap: Bitmap): Unit = korioSuspendCoroutine { c ->
-	async {
+	async(c.context) {
 		executeInWorker {
 			val ctx = KorioAndroidContext
 			val androidBitmap = bitmap.toAndroidBitmap()
