@@ -1,5 +1,3 @@
-import com.soywiz.korio.async.EventLoop
-
 //fun main(args: Array<String>) = EventLoop {
 	//val panel = SVGPanel()
 

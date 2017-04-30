@@ -5,8 +5,7 @@ import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.readBitmap
 import com.soywiz.korim.vector.format.SVG
-import com.soywiz.korio.async.EventLoopTest
-import com.soywiz.korio.async.sync
+import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
@@ -37,7 +36,7 @@ class Context2dTest {
 	}
 
 	@Test
-	fun name2(): Unit = sync(EventLoopTest()) {
+	fun name2(): Unit = syncTest {
 		val img = NativeImage(256, 256)
 		val ctx = img.getContext2d()
 		ctx.apply {
@@ -84,7 +83,7 @@ class Context2dTest {
 	}
 
 	@Test
-	fun name3(): Unit = sync(EventLoopTest()) {
+	fun name3(): Unit = syncTest {
 		val img = NativeImage(400, 450)
 		val ctx = img.getContext2d()
 
