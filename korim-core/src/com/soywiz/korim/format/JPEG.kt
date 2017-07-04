@@ -400,7 +400,7 @@ class JPEG : ImageFormat("jpg", "jpeg") {
 
 		private fun checkRestart(): Boolean {
 			if (codeBits < 24) growBufferUnsafe()
-			if (marker >= 0xD0 && marker <= 0xD7) {
+			if (marker in 0xD0..0xD7) {
 				reset()
 				return true
 			}
