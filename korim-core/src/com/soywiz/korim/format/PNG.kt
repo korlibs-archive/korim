@@ -255,7 +255,7 @@ class PNG : ImageFormat("png") {
 		val datab = ByteArray((1 + width) * height * header.bytes)
 		val stride = header.stride
 
-		InflaterInputStream(ByteArrayInputStream(pngdata.toByteArray())).readExactTo(datab)
+		InflaterInputStream(ByteArrayInputStream(pngdata.toByteArray())).toSyncStream().readExactTo(datab)
 
 		val data = datab.openSync()
 
