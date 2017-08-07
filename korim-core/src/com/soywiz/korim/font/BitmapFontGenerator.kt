@@ -21,11 +21,11 @@ object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: IntArray): BitmapFont {
 		val bnictx = bni.getContext2d()
 		bnictx.font = Context2d.Font(fontName, fontSize.toDouble())
-		val bitmapHeight = bnictx.getTextBounds("a").bounds.height
+		val bitmapHeight = bnictx.getTextBounds("a").bounds.height.toInt()
 
 		val widths = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
 		val widthsSum = widths.map { it + 2 }.sum()
-		val ni = NativeImage(widthsSum.toInt(), bitmapHeight.toInt())
+		val ni = NativeImage(widthsSum, bitmapHeight)
 
 		//println("BitmapFont:")
 		//println("bitmapHeight=$bitmapHeight")
@@ -47,7 +47,10 @@ object BitmapFontGenerator {
 			glyphs += BitmapFont.GlyphInfo(char, RectangleInt(x, 0, width, ni.height), width)
 			x += width + 2
 		}
-		return BitmapFont(ni.toBMP32(), fontSize.toInt(), fontSize.toInt(), glyphs)
+
+		println("BitmapFontGenerator.generate($fontName, $fontSize, $chars, premultiplied=${ni.premultiplied})")
+
+		return BitmapFont(ni.toBMP32(), fontSize, fontSize, glyphs)
 
 	}
 }

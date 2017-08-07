@@ -15,7 +15,7 @@ class CanvasNativeImage(val canvas: JsDynamic?) : NativeImage(canvas["width"].to
 	override fun toNonNativeBmp(): Bitmap {
 		val data = IntArray(width * height)
 		BrowserNativeImageFormatProvider.BrowserImage.imgData(canvas, data)
-		return Bitmap32(width, height, data)
+		return Bitmap32(width, height, data, premultiplied = premultiplied)
 	}
 
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(canvas))

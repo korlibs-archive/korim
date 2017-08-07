@@ -1,10 +1,12 @@
 package com.soywiz.korim.format
 
+import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korio.service.Services
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readString
 import com.soywiz.korio.stream.slice
 import com.soywiz.korio.vfs.PathInfo
+import com.soywiz.korio.vfs.VfsFile
 import java.util.*
 
 object ImageFormats : ImageFormat("") {
@@ -31,4 +33,8 @@ object ImageFormats : ImageFormat("") {
 		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext'")
 		format.writeImage(image, s, filename, props)
 	}
+}
+
+suspend fun Bitmap.writeTo(file: VfsFile, props: ImageEncodingProps = ImageEncodingProps()) {
+	file.writeBytes(ImageFormats.encode(this, file.basename, props))
 }

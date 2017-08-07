@@ -43,7 +43,7 @@ abstract class Bitmap(
 		is Bitmap32 -> this
 		is NativeImage -> this.toBmp32()
 		else -> {
-			val out = Bitmap32(width, height)
+			val out = Bitmap32(width, height, 0, premultiplied = premultiplied)
 			for (y in 0 until height) for (x in 0 until width) out[x, y] = this.get32(x, y)
 			out
 		}

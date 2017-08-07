@@ -16,15 +16,20 @@ class Bitmap32(
 	private val temp = IntArray(Math.max(width, height))
 
 	//constructor(width: Int, height: Int, value: Int, premultiplied: Boolean = false) : this(width, height, IntArray(width * height) { value }, premultiplied)
-	constructor(width: Int, height: Int, value: Int, premultiplied: Boolean = false) : this(width, height, premultiplied = premultiplied) {
+	constructor(width: Int, height: Int, value: Int, premultiplied: Boolean) : this(width, height, premultiplied = premultiplied) {
 		Arrays.fill(data, value)
 	}
 
-	constructor(width: Int, height: Int, generator: (x: Int, y: Int) -> Int) : this(width, height) {
+	@Deprecated("Use premultiplied constructor instead")
+	constructor(width: Int, height: Int, value: Int) : this(width, height, premultiplied = false) {
+		Arrays.fill(data, value)
+	}
+
+	constructor(width: Int, height: Int, premultiplied: Boolean = false, generator: (x: Int, y: Int) -> Int) : this(width, height, premultiplied = premultiplied) {
 		setEach(generator)
 	}
 
-	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap32(width, height)
+	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap32(width, height, premultiplied =  premultiplied)
 
 	override operator fun set(x: Int, y: Int, color: Int) = run { data[index(x, y)] = color }
 	override operator fun get(x: Int, y: Int): Int = data[index(x, y)]
