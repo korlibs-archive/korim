@@ -1,5 +1,6 @@
 /.gradle
 /.idea
 /build
-/korim/myexperiment
+/target
 /classes
+/out
