@@ -2,6 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.matchContents
 import com.soywiz.korio.async.syncTest
+import com.soywiz.korio.vfs.LocalVfs
 import com.soywiz.korio.vfs.ResourcesVfs
 import org.junit.Assert
 import org.junit.Test
@@ -19,6 +20,7 @@ class DDSTest {
 		val output = ResourcesVfs["dxt3.dds"].readBitmapNoNative()
 		val expected = ResourcesVfs["dxt3.png"].readBitmapNoNative()
 		Assert.assertTrue(output.matchContents(expected))
+		//output.writeTo(LocalVfs("c:/temp/dxt3.png"))
 	}
 
 	@Test
@@ -26,5 +28,6 @@ class DDSTest {
 		val output = ResourcesVfs["dxt5.dds"].readBitmapNoNative()
 		val expected = ResourcesVfs["dxt5.png"].readBitmapNoNative()
 		Assert.assertTrue(output.matchContents(expected))
+		//output.writeTo(LocalVfs("c:/temp/dxt5.png"))
 	}
 }

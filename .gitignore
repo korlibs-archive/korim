@@ -1,3 +1,5 @@
-.gradle
-.idea
-build
+/.gradle
+/.idea
+/build
+/korim/myexperiment
+/classes

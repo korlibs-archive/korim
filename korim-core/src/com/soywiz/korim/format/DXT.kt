@@ -90,12 +90,7 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 		}
 	}
 
-	final override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
-		val bytes = s.readAll()
-		val totalPixels = (bytes.size / blockSize) * 4 * 4
-		val potentialSide = Math.sqrt(totalPixels.toDouble()).toInt()
-		val width = props.width ?: potentialSide
-		val height = props.height ?: potentialSide
+	fun decodeBitmap(bytes: ByteArray, width: Int, height: Int): Bitmap32 {
 		val out = Bitmap32(width, height, premultiplied = premultiplied)
 		val blockWidth = out.width / 4
 		val blockHeight = out.height / 4
@@ -106,7 +101,16 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 				offset += blockSize
 			}
 		}
-		return ImageData(listOf(ImageFrame(out)))
+		return out
+	}
+
+	final override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
+		val bytes = s.readAll()
+		val totalPixels = (bytes.size / blockSize) * 4 * 4
+		val potentialSide = Math.sqrt(totalPixels.toDouble()).toInt()
+		val width = props.width ?: potentialSide
+		val height = props.height ?: potentialSide
+		return ImageData(listOf(ImageFrame(decodeBitmap(bytes, width, height))))
 	}
 
 	companion object {
@@ -145,12 +149,21 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 			val a1 = data.readU8(dataOffset + 1)
 			aa[0] = a0
 			aa[1] = a1
-			aa[2] = ((6 * a0) + (1 * a1)) / 7
-			aa[3] = ((5 * a0) + (2 * a1)) / 7
-			aa[4] = ((4 * a0) + (3 * a1)) / 7
-			aa[5] = ((3 * a0) + (4 * a1)) / 7
-			aa[6] = ((2 * a0) + (5 * a1)) / 7
-			aa[7] = ((1 * a0) + (6 * a1)) / 7
+			if (a0 > a1) {
+				aa[2] = ((6 * a0) + (1 * a1)) / 7
+				aa[3] = ((5 * a0) + (2 * a1)) / 7
+				aa[4] = ((4 * a0) + (3 * a1)) / 7
+				aa[5] = ((3 * a0) + (4 * a1)) / 7
+				aa[6] = ((2 * a0) + (5 * a1)) / 7
+				aa[7] = ((1 * a0) + (6 * a1)) / 7
+			} else {
+				aa[2] = ((4 * a0) + (1 * a1)) / 5
+				aa[3] = ((3 * a0) + (2 * a1)) / 5
+				aa[4] = ((2 * a0) + (3 * a1)) / 5
+				aa[5] = ((1 * a0) + (4 * a1)) / 5
+				aa[6] = 0x00
+				aa[7] = 0xFF
+			}
 		}
 	}
 }
