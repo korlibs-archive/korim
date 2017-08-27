@@ -23,7 +23,7 @@ Ad BitmapChannel
 
 Korim provides utilities for reading and writing some image formats without any kind of additional dependency.
 
-PNG, JPG, TGA, BMP, ICO and PSD.
+PNG, JPG, TGA, BMP, ICO, PSD and DDS (DXT1, DXT2, DXT3, DXT4 and DXT5).
 
 ### Color Formats
 
