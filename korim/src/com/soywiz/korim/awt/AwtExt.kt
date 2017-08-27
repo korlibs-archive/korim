@@ -85,31 +85,32 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 }
 
 fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): BufferedImage {
-	return ImageIO.createImageInputStream(s).use { i ->
-		// Get the reader
-		val readers = ImageIO.getImageReaders(i)
-
-		if (!readers.hasNext()) {
-			throw IllegalArgumentException("No reader for: " + s) // Or simply return null
-		}
-
-		val reader = readers.next()
-
-		try {
-			// Set input
-			reader.input = i
-
-			// Configure the param to use the destination type you want
-			val param = reader.defaultReadParam
-			//param.destinationType = ImageTypeSpecifier.createFromBufferedImageType(type)
-
-			// Finally read the image, using settings from param
-			reader.read(0, param)
-		} finally {
-			// Dispose reader in finally block to avoid memory leaks
-			reader.dispose()
-		}
-	}
+	return ImageIO.read(s).clone(type = type)
+	//return ImageIO.createImageInputStream(s).use { i ->
+	//	// Get the reader
+	//	val readers = ImageIO.getImageReaders(i)
+//
+	//	if (!readers.hasNext()) {
+	//		throw IllegalArgumentException("No reader for: " + s) // Or simply return null
+	//	}
+//
+	//	val reader = readers.next()
+//
+	//	try {
+	//		// Set input
+	//		reader.input = i
+//
+	//		// Configure the param to use the destination type you want
+	//		val param = reader.defaultReadParam
+	//		//param.destinationType = ImageTypeSpecifier.createFromBufferedImageType(type)
+//
+	//		// Finally read the image, using settings from param
+	//		reader.read(0, param).clone(type = type)
+	//	} finally {
+	//		// Dispose reader in finally block to avoid memory leaks
+	//		reader.dispose()
+	//	}
+	//}
 }
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIOReadFormat(ByteArrayInputStream(data))

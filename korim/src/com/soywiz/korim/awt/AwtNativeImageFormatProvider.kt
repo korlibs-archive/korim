@@ -21,8 +21,8 @@ import java.awt.image.ColorModel
 
 const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB_PRE
 
-fun BufferedImage.clone(width: Int = this.width, height: Int = this.height): BufferedImage {
-	val out = BufferedImage(width, height, AWT_INTERNAL_IMAGE_TYPE)
+fun BufferedImage.clone(width: Int = this.width, height: Int = this.height, type: Int = AWT_INTERNAL_IMAGE_TYPE): BufferedImage {
+	val out = BufferedImage(width, height, type)
 	//println("BufferedImage.clone:${this.type} -> ${out.type}")
 	val g = out.createGraphics(false)
 	g.drawImage(this, 0, 0, width, height, null)
