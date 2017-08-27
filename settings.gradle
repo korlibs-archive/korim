@@ -3,5 +3,4 @@ include(
 		'korim-core',
 		'korim-android',
 		'korim',
-		'korim-dxt',
 )

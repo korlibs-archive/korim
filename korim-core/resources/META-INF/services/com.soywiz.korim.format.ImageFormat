@@ -5,3 +5,9 @@ com.soywiz.korim.format.PSD
 com.soywiz.korim.format.ICO
 com.soywiz.korim.format.TGA
 com.soywiz.korim.format.SVG
+com.soywiz.korim.format.DDS
+com.soywiz.korim.format.DXT1
+com.soywiz.korim.format.DXT2
+com.soywiz.korim.format.DXT3
+com.soywiz.korim.format.DXT4
+com.soywiz.korim.format.DXT5
