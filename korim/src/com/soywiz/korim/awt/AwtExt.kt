@@ -2,7 +2,6 @@ package com.soywiz.korim.awt
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.async.executeInWorkerSync
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
@@ -13,10 +12,14 @@ import java.awt.image.BufferedImage
 import java.awt.image.DataBufferInt
 import java.io.ByteArrayInputStream
 import java.io.File
+import java.io.FileInputStream
+import java.io.InputStream
 import javax.imageio.ImageIO
+import javax.imageio.ImageTypeSpecifier
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
+
 
 fun Bitmap32.toAwt(out: BufferedImage = BufferedImage(width, height, if (this.premultiplied) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB)): BufferedImage {
 	transferTo(out)
@@ -81,15 +84,36 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 	return Bitmap32(image.width, image.height, ints, premultiplied)
 }
 
-private fun BufferedImage.toArgbPre(): BufferedImage {
-	val out = NativeImage(this.width, this.height) as AwtNativeImage
-	val g = out.awtImage.createGraphics()
-	g.drawImage(this, 0, 0, null)
-	return out.awtImage
+fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): BufferedImage {
+	return ImageIO.createImageInputStream(s).use { i ->
+		// Get the reader
+		val readers = ImageIO.getImageReaders(i)
+
+		if (!readers.hasNext()) {
+			throw IllegalArgumentException("No reader for: " + s) // Or simply return null
+		}
+
+		val reader = readers.next()
+
+		try {
+			// Set input
+			reader.input = i
+
+			// Configure the param to use the destination type you want
+			val param = reader.defaultReadParam
+			//param.destinationType = ImageTypeSpecifier.createFromBufferedImageType(type)
+
+			// Finally read the image, using settings from param
+			reader.read(0, param)
+		} finally {
+			// Dispose reader in finally block to avoid memory leaks
+			reader.dispose()
+		}
+	}
 }
 
-fun awtReadImage(data: ByteArray): BufferedImage = ImageIO.read(ByteArrayInputStream(data)).toArgbPre()
-suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIO.read(ByteArrayInputStream(data)).toArgbPre() }
-suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { ImageIO.read(file).toArgbPre() }
+fun awtReadImage(data: ByteArray): BufferedImage = ImageIOReadFormat(ByteArrayInputStream(data))
+suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIOReadFormat(ByteArrayInputStream(data)) }
+suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { FileInputStream(file).use { ImageIOReadFormat(it) } }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))

@@ -19,16 +19,20 @@ import java.awt.geom.Rectangle2D
 import java.awt.image.BufferedImage
 import java.awt.image.ColorModel
 
+const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB_PRE
+
 fun BufferedImage.clone(width: Int = this.width, height: Int = this.height): BufferedImage {
-	val out = BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB_PRE)
-	val g = out.createGraphics()
-	g.drawImage(this, 0, 0, null)
+	val out = BufferedImage(width, height, AWT_INTERNAL_IMAGE_TYPE)
+	//println("BufferedImage.clone:${this.type} -> ${out.type}")
+	val g = out.createGraphics(false)
+	g.drawImage(this, 0, 0, width, height, null)
+	g.dispose()
 	return out
 }
 
 class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 	suspend override fun decode(data: ByteArray): AwtNativeImage = AwtNativeImage(awtReadImageInWorker(data))
-	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), BufferedImage.TYPE_INT_ARGB_PRE))
+	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), AWT_INTERNAL_IMAGE_TYPE))
 	override fun copy(bmp: Bitmap): AwtNativeImage = AwtNativeImage(bmp.toAwt())
 	override suspend fun display(bitmap: Bitmap): Unit = awtShowImageAndWait(bitmap)
 
@@ -99,7 +103,7 @@ class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 //	return image
 //}
 
-class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE) {
+class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, awtImage.type == AWT_INTERNAL_IMAGE_TYPE) {
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
 }
