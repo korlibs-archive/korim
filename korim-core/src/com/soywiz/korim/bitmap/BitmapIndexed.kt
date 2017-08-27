@@ -10,6 +10,10 @@ abstract class BitmapIndexed(
 	var data: ByteArray = ByteArray(width * height / (8 / bpp)),
 	var palette: IntArray = IntArray(1 shl bpp)
 ) : Bitmap(width, height, bpp, false) {
+	init {
+		if (data.size < width * height) throw RuntimeException("Bitmap data is too short: width=$width, height=$height, data=ByteArray(${data.size}), area=${width * height}")
+	}
+
 	override fun toString() = "BitmapIndexed(bpp=$bpp, width=$width, height=$height, clut=${palette.size})"
 
 	protected val temp = ByteArray(Math.max(width, height))

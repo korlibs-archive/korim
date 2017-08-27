@@ -1,5 +1,6 @@
 package com.soywiz.korim.color
 
+import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.util.*
 
 interface ColorFormatBase {
@@ -96,6 +97,10 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		val out = IntArray(size)
 		decode(data, dataOffset, out, 0, size, littleEndian)
 		return out
+	}
+
+	open fun decodeToBitmap32(width: Int, height: Int, data: ByteArray, dataOffset: Int = 0, littleEndian: Boolean = true): Bitmap32 {
+		return Bitmap32(width, height, decode(data, dataOffset, width * height, littleEndian))
 	}
 
 	open fun encode(colors: IntArray, colorsOffset: Int, out: ByteArray, outOffset: Int, size: Int, littleEndian: Boolean = true): Unit {

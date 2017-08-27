@@ -122,6 +122,23 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 			return BGR_565.toRGBA(v)
 		}
 
+		//fun blendComponent(l: Int, r: Int, num: Int, den: Int): Int {
+		//	return l + ((r - l) * num / den)
+		//}
+		//
+		//fun blendRGBA(l: Int, r: Int, num: Int, den: Int): Int {
+		//	return RGBA.packFast(
+		//			blendComponent(RGBA.getFastR(l), RGBA.getFastR(r), num, den),
+		//			blendComponent(RGBA.getFastG(l), RGBA.getFastG(r), num, den),
+		//			blendComponent(RGBA.getFastB(l), RGBA.getFastB(r), num, den),
+		//			blendComponent(RGBA.getFastA(l), RGBA.getFastA(r), num, den)
+		//	)
+		//}
+
+		const val FACT_2_3: Int = ((2.0 / 3.0) * 256).toInt()
+		const val FACT_1_3: Int = ((1.0 / 3.0) * 256).toInt()
+		const val FACT_1_2: Int = ((1.0 / 2.0) * 256).toInt()
+
 		fun decodeDxt1ColorCond(data: ByteArray, dataOffset: Int, cc: IntArray) {
 			val c0 = data.readU16_le(dataOffset + 0)
 			val c1 = data.readU16_le(dataOffset + 2)
@@ -129,10 +146,13 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 			cc[0] = decodeRGB656(c0)
 			cc[1] = decodeRGB656(c1)
 			if (c0 > c1) {
-				cc[2] = RGBA.blendRGB(cc[0], cc[1], 2.0 / 3.0)
-				cc[3] = RGBA.blendRGB(cc[0], cc[1], 1.0 / 3.0)
+				cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
+				cc[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
+				//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
+				//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 			} else {
-				cc[2] = RGBA.blendRGB(cc[0], cc[1], 1.0 / 2.0)
+				cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_1_2)
+				//cc[2] = blendRGBA(cc[0], cc[1], 1, 2)
 				cc[3] = Colors.TRANSPARENT_BLACK
 			}
 		}
@@ -140,8 +160,10 @@ abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize
 		fun decodeDxt1Color(data: ByteArray, dataOffset: Int, cc: IntArray) {
 			cc[0] = decodeRGB656(data.readU16_le(dataOffset + 0))
 			cc[1] = decodeRGB656(data.readU16_le(dataOffset + 2))
-			cc[2] = RGBA.blendRGB(cc[0], cc[1], 2.0 / 3.0)
-			cc[3] = RGBA.blendRGB(cc[0], cc[1], 1.0 / 3.0)
+			cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
+			cc[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
+			//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
+			//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 		}
 
 		fun decodeDxt5Alpha(data: ByteArray, dataOffset: Int, aa: IntArray) {

@@ -13,6 +13,10 @@ class Bitmap32(
 	val data: IntArray = IntArray(width * height),
 	premultiplied: Boolean = false
 ) : Bitmap(width, height, 32, premultiplied), Iterable<Int> {
+	init {
+		if (data.size < width * height) throw RuntimeException("Bitmap data is too short: width=$width, height=$height, data=ByteArray(${data.size}), area=${width * height}")
+	}
+
 	private val temp = IntArray(Math.max(width, height))
 
 	//constructor(width: Int, height: Int, value: Int, premultiplied: Boolean = false) : this(width, height, IntArray(width * height) { value }, premultiplied)
