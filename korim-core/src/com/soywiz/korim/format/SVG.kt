@@ -7,7 +7,7 @@ import com.soywiz.korio.stream.readString
 import com.soywiz.korio.stream.slice
 
 class SVG : ImageFormat("svg") {
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		val start = s.slice().readString(Math.min(100, s.length.toInt())).trim().toLowerCase()
 		try {
 			if (start.startsWith("<svg") || start.startsWith("<?xml")) {
@@ -25,7 +25,7 @@ class SVG : ImageFormat("svg") {
 		}
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		val content = s.slice().readAll().toString(Charsets.UTF_8).trim()
 		val svg = com.soywiz.korim.vector.format.SVG(content)
 		return ImageData(listOf(ImageFrame(

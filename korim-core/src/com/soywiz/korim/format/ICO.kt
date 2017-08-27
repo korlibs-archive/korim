@@ -9,7 +9,7 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
 class ICO : ImageFormat("ico") {
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readU16_le() != 0) return null
 		if (s.readU16_le() != 1) return null
 		val count = s.readU16_le()
@@ -17,7 +17,7 @@ class ICO : ImageFormat("ico") {
 		return ImageInfo()
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		data class DirEntry(
 			val width: Int, val height: Int,
 			val colorCount: Int,
@@ -41,7 +41,7 @@ class ICO : ImageFormat("ico") {
 
 		fun readBitmap(e: DirEntry, s: SyncStream): Bitmap {
 			val tryPNGHead = s.slice().readU32_be()
-			if (tryPNGHead == 0x89_50_4E_47L) return PNG().decode(s.slice(), "$filename.png")
+			if (tryPNGHead == 0x89_50_4E_47L) return PNG().decode(s.slice(), props.copy(filename = "${props.filename}.png"))
 
 			val headerSize = s.readS32_le()
 			val width = s.readS32_le()

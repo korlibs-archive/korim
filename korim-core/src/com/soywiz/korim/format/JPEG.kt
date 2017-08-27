@@ -11,7 +11,7 @@ import java.io.InputStream
 import java.util.*
 
 class JPEG : ImageFormat("jpg", "jpeg") {
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? = try {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = try {
 		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
 		decoder.decodeHeader()
 		ImageInfo().apply {
@@ -23,7 +23,7 @@ class JPEG : ImageFormat("jpg", "jpeg") {
 		null
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		val decoder = JPEGDecoder(ByteArrayInputStream(s.readAll()))
 		decoder.decodeHeader()
 		decoder.startDecode()

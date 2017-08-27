@@ -6,7 +6,7 @@ import com.soywiz.korio.stream.*
 
 @Suppress("UNUSED_VARIABLE")
 class BMP : ImageFormat("bmp") {
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readStringz(2) != "BM") return null
 		// FILE HEADER
 		val size = s.readS32_le()
@@ -26,8 +26,8 @@ class BMP : ImageFormat("bmp") {
 		}
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
-		val h = decodeHeader(s, filename) ?: throw IllegalArgumentException("Not a BMP file")
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
+		val h = decodeHeader(s, props) ?: throw IllegalArgumentException("Not a BMP file")
 
 		val compression = s.readS32_le()
 		val sizeImage = s.readS32_le()

@@ -14,4 +14,6 @@ open class ImageData(
 			it.bitmap.width * it.bitmap.height * (it.bitmap.bpp * it.bitmap.bpp)
 		}
 	}.firstOrNull()?.bitmap ?: throw IllegalArgumentException("No bitmap found")
+
+	override fun toString(): String = "ImageData($frames)"
 }

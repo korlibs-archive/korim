@@ -11,6 +11,8 @@ open class ImageFrame(
 	val main: Boolean = true
 ) : Extra by Extra.Mixin() {
 	val area: Int get() = bitmap.area
+
+	override fun toString(): String = "ImageFrame($bitmap, time=$time, targetX=$targetX, targetY=$targetY, main=$main)"
 }
 
 val Iterable<ImageFrame>.area: Int get() = this.sumBy { it.area }

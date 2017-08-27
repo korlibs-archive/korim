@@ -7,11 +7,11 @@ import com.soywiz.korio.stream.readU16_be
 
 // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 class PSD : ImageFormat("psd") {
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
 	}
 
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readStringz(4) != "8BPS") return null
 		val version = s.readU16_be()
 		when (version) {

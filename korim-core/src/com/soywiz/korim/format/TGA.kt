@@ -7,7 +7,7 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.*
 
 class TGA : ImageFormat("tga") {
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		try {
 			val h = readHeader(s)
 			return ImageInfo().apply {
@@ -61,7 +61,7 @@ class TGA : ImageFormat("tga") {
 		return Info(width = width, height = height, flipY = flipY, bitsPerPixel = pixelDepth)
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		val info = readHeader(s)
 		val format = when (info.bitsPerPixel) {
 			24 -> RGB
@@ -73,7 +73,7 @@ class TGA : ImageFormat("tga") {
 		return ImageData(listOf(ImageFrame(out)))
 	}
 
-	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
+	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
 		val bitmap = image.mainBitmap
 		when (bitmap) {
 			is Bitmap8 -> {

@@ -53,7 +53,7 @@ class PNG : ImageFormat("png") {
 		val stride = width * bytes
 	}
 
-	override fun decodeHeader(s: SyncStream, filename: String): ImageInfo? = try {
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = try {
 		val header = readCommon(s, readHeader = true) as Header
 		ImageInfo().apply {
 			this.width = header.width
@@ -64,7 +64,7 @@ class PNG : ImageFormat("png") {
 		null
 	}
 
-	override fun writeImage(image: ImageData, s: SyncStream, filename: String, props: ImageEncodingProps) {
+	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
 		val bitmap = image.mainBitmap
 		val width = bitmap.width
 		val height = bitmap.height
@@ -300,7 +300,7 @@ class PNG : ImageFormat("png") {
 		}
 	}
 
-	override fun readImage(s: SyncStream, filename: String): ImageData {
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		return ImageData(listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap)))
 	}
 
