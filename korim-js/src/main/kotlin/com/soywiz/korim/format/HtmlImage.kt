@@ -2,6 +2,8 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
+import org.khronos.webgl.Int8Array
+import org.khronos.webgl.Uint16Array
 import org.khronos.webgl.get
 import org.khronos.webgl.set
 import org.w3c.dom.CanvasRenderingContext2D
