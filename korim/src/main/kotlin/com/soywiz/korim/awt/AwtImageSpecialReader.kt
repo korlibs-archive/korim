@@ -6,7 +6,7 @@ import com.soywiz.korio.vfs.Vfs
 import com.soywiz.korio.vfs.VfsSpecialReader
 import java.io.File
 
-class AwtImageSpecialReader : VfsSpecialReader<NativeImage>(NativeImage::class.java) {
+class AwtImageSpecialReader : VfsSpecialReader<NativeImage>(NativeImage::class) {
 	override suspend fun readSpecial(vfs: Vfs, path: String): NativeImage {
 		return when (vfs) {
 			is LocalVfs -> {
