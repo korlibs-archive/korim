@@ -1,11 +1,15 @@
-apply from: '../include.gradle'
-
-sourceSets {
-	test.resources.srcDirs += ['../korim-core/testresources']
-}
+apply plugin: 'kotlin-platform-jvm'
 
 dependencies {
-	compile project(":korim-core")
+	implement project(":korim-common")
+	testImplementation project(":korim-common")
+	compile libraries.kotlin_stdlib_jvm
+	testCompile libraries.kotlin_test_jvm
+	testCompile "junit:junit:4.12"
 	compile "com.soywiz:korio:$korVersion"
-	//compile "com.kitfox.svg:svg-salamander:1.0"
+	compile "com.soywiz:korma:$korVersion"
+}
+
+kotlin {
+	experimental { coroutines 'enable' }
 }

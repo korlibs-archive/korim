@@ -1,28 +1,149 @@
 buildscript {
-	ext.kotlin_version = '1.1.4-2'
+	ext.kotlinVersion = '1.2.0-beta-31'
+	ext.compilerVersion = ext.kotlinVersion
+	ext.librariesVersion = ext.kotlinVersion
+	//ext.eapChannel = 'https://dl.bintray.com/kotlin/kotlin-eap-1.1'
+	ext.eapChannel = 'http://dl.bintray.com/kotlin/kotlin-eap-1.2'
+	ext.serializationRepo = 'https://kotlin.bintray.com/kotlinx'
+	ext.serializationPluginVersion = '0.1'
+
 	repositories {
 		mavenLocal()
 		jcenter()
+		maven { url serializationRepo }
+		maven { url eapChannel }
+	}
+
+	dependencies {
+		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$compilerVersion"
+	}
+
+	ext {
+		libraries = [
+				kotlin_stdlib_common: "org.jetbrains.kotlin:kotlin-stdlib-common:$librariesVersion",
+				kotlin_stdlib_jvm   : "org.jetbrains.kotlin:kotlin-stdlib:$librariesVersion",
+				kotlin_stdlib_js    : "org.jetbrains.kotlin:kotlin-stdlib-js:$librariesVersion",
+
+				kotlin_test_common  : "org.jetbrains.kotlin:kotlin-test-common:$librariesVersion",
+				kotlin_test_jvm     : "org.jetbrains.kotlin:kotlin-test:$librariesVersion",
+				kotlin_test_js      : "org.jetbrains.kotlin:kotlin-test-js:$librariesVersion",
+
+				kotlin_reflect      : "org.jetbrains.kotlin:kotlin-reflect:$librariesVersion",
+		]
+	}
+}
+
+configurations {
+	provided
+}
+
+allprojects {
+	group 'com.soywiz'
+	version korVersion
+
+	apply plugin: 'java'
+	apply plugin: 'maven'
+	apply plugin: 'maven-publish'
+	apply plugin: 'signing'
+
+	compileJava.options.encoding = 'UTF-8'
+	compileTestJava.options.encoding = 'UTF-8'
+
+	sourceCompatibility = 1.5
+
+	repositories {
+		mavenLocal()
+		maven { url eapChannel }
 		mavenCentral()
 	}
+
 	dependencies {
-		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+		//compile "com.soywiz:korio-core:$korVersion"
+		//compile "com.soywiz:korma:$korVersion"
+		//compile "com.soywiz:korio-common:$korVersion"
+		//compile "com.soywiz:korma-common:$korVersion"
+		//testCompile "junit:junit:4.11"
 	}
-}
-apply plugin: 'kotlin'
-repositories {
-	mavenCentral()
-}
-dependencies {
-	compile "org.jetbrains.kotlin:kotlin-stdlib-jre8:$kotlin_version"
-}
-compileKotlin {
-	kotlinOptions {
-		jvmTarget = "1.8"
+
+	task javadoc2(type: Javadoc) {
+		failOnError = false
 	}
-}
-compileTestKotlin {
-	kotlinOptions {
-		jvmTarget = "1.8"
+
+	task javadocJar(type: Jar, dependsOn: javadoc2) {
+		classifier = 'javadoc'
+		from 'build/docs/javadoc'
+	}
+
+	task sourcesJar(type: Jar) {
+		from sourceSets.main.allSource
+		classifier = 'sources'
+	}
+
+	artifacts {
+		archives jar
+		archives javadocJar
+		archives sourcesJar
+	}
+
+// gradle uploadArchives
+	if (project.hasProperty('sonatypeUsername')) {
+		signing {
+			sign configurations.archives
+		}
+
+		uploadArchives {
+			repositories {
+				mavenDeployer {
+					beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+					repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+						authentication(userName: project.sonatypeUsername, password: project.sonatypePassword)
+					}
+
+					pom.project {
+						name "${project.name}"
+						packaging 'jar'
+						description 'Kotlin cORoutines IMaging utilities for JVM, Node.JS and Browser using JTransc'
+						url 'https://github.com/soywiz/korim/'
+						inceptionYear '2016'
+
+						scm {
+							url 'scm:git@github.com:soywiz/korim.git'
+							connection 'scm:git@github.com:soywiz/korim.git'
+							developerConnection 'scm:git@github.com:soywiz/korim.git'
+						}
+
+						licenses {
+							license {
+								name 'The Apache Software License, Version 2.0'
+								url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+								distribution 'repo'
+							}
+						}
+
+						developers {
+							developer {
+								id 'soywiz'
+								name 'Carlos Ballesteros Velasco'
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	publishing {
+		publications {
+			MyPublication(MavenPublication) {
+				from components.java
+				groupId project.group
+				artifactId project.name
+				version "$project.version"
+			}
+		}
+	}
+
+	task deploy(dependsOn: ['install', 'uploadArchives']) {
 	}
 }

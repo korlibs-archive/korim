@@ -1,6 +1,7 @@
 rootProject.name = 'korim-root'
 include(
-		'korim-core',
-		'korim-android',
+		'korim-common',
+		'korim-js',
 		'korim',
+		'korim-android',
 )
