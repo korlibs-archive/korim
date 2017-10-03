@@ -12,7 +12,7 @@ import kotlin.browser.document
 
 object HtmlImage {
 	fun createHtmlCanvas(width: Int, height: Int): HTMLCanvasElement {
-		val canvas = document.createElement("canvas") as HTMLCanvasElement
+		val canvas: HTMLCanvasElement = document.createElement("canvas").asDynamic()
 		canvas.width = width
 		canvas.height = height
 		return canvas
@@ -21,7 +21,7 @@ object HtmlImage {
 	fun renderToHtmlCanvas(bmpData: IntArray, bmpWidth: Int, bmpHeight: Int, canvas: HTMLCanvasElement): HTMLCanvasElement {
 		val bmpDataData = bmpData
 		val pixelCount = bmpData.size
-		val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+		val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
 		val idata = ctx.createImageData(bmpWidth.toDouble(), bmpHeight.toDouble())
 		val idataData = idata.data
 		var m = 0
@@ -44,7 +44,7 @@ object HtmlImage {
 		val width = canvas.width
 		val height = canvas.height
 		val len = width * height
-		val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+		val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
 		val data = ctx.getImageData(0.0, 0.0, width.toDouble(), height.toDouble())
 		val ddata = data.data
 		var m = 0
@@ -69,7 +69,8 @@ object HtmlImage {
 	fun htmlCanvasToDataUrl(canvas: HTMLCanvasElement): String = canvas.toDataURL()
 
 	fun htmlCanvasClear(canvas: HTMLCanvasElement): Unit {
-		(canvas.getContext("2d") as CanvasRenderingContext2D).clearRect(
+		val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
+		ctx.clearRect(
 			0.0, 0.0, canvas.width.toDouble(), canvas.height.toDouble()
 		)
 	}

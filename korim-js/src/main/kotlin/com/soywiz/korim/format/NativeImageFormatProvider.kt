@@ -13,6 +13,7 @@ import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 import org.w3c.files.BlobPropertyBag
 import kotlin.browser.document
+import kotlin.dom.createElement
 import kotlin.math.ceil
 
 class CanvasNativeImage(val canvas: HTMLCanvasElement) : NativeImage(canvas.width.toInt(), canvas.height.toInt(), canvas, false) {
@@ -33,7 +34,8 @@ actual object NativeImageFormatProvider {
 	}
 
 	actual fun create(width: Int, height: Int): NativeImage {
-		val canvas = document.createElement("canvas") as HTMLCanvasElement
+		// val canvas = document.createElement("canvas") as HTMLCanvasElement
+		val canvas: HTMLCanvasElement = document.createElement("canvas").asDynamic()
 		canvas.width = width
 		canvas.height = height
 		return CanvasNativeImage(canvas)
@@ -73,12 +75,14 @@ actual object NativeImageFormatProvider {
 		}
 
 		suspend fun loadImage(jsUrl: String): HTMLCanvasElement = korioSuspendCoroutine { c ->
-			val img = document.createElement("image") as HTMLImageElement
+			// Doesn't work with Kotlin.JS
+			//val img = document.createElement("image") as HTMLImageElement
+			val img: HTMLImageElement = js("(new Image())")
 			img.onload = {
-				val canvas = document.createElement("canvas") as HTMLCanvasElement
+				val canvas: HTMLCanvasElement = document.createElement("canvas").asDynamic()
 				canvas.width = img.width
 				canvas.height = img.height
-				val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+				val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
 				ctx.drawImage(img, 0.0, 0.0)
 				c.resume(canvas)
 			}
@@ -98,7 +102,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
-	val ctx = canvas.getContext("2d") as CanvasRenderingContext2D
+	val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
 
 	fun Context2d.Paint.toJsStr(): Any? {
 		return when (this) {
