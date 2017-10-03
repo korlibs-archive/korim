@@ -61,7 +61,8 @@ suspend fun VfsFile.readBitmapInfo(formats: ImageFormats = defaultImageFormats):
 
 suspend fun VfsFile.readBitmapOptimized(): Bitmap {
 	try {
-		return this.readSpecial<NativeImage>()
+		//return this.readSpecial<NativeImage>() // @TODO: Kotlin.JS BUG!
+		return this.readSpecial(NativeImage::class)
 	} catch (t: Throwable) {
 		t.printStackTrace()
 		return this.readBitmap()
