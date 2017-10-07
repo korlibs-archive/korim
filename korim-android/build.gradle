@@ -2,13 +2,8 @@ apply plugin: 'kotlin-platform-jvm'
 
 dependencies {
 	implement project(":korim-common")
-	compile libraries.kotlin_stdlib_jvm
-	testCompile libraries.kotlin_test_jvm
+
 	compile "com.soywiz:korio-android:$korVersion"
 	compile "com.soywiz:korma-android:$korVersion"
 	compile "com.google.android:android:4.1.1.4"
-}
-
-kotlin {
-	experimental { coroutines 'enable' }
 }

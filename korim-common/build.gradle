@@ -1,12 +1,6 @@
 apply plugin: 'kotlin-platform-common'
 
 dependencies {
-	compile libraries.kotlin_stdlib_common
-	testCompile libraries.kotlin_test_common
 	compile "com.soywiz:korio-common:$korVersion"
 	compile "com.soywiz:korma-common:$korVersion"
-}
-
-kotlin {
-	experimental { coroutines 'enable' }
 }

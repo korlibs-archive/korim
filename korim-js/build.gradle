@@ -2,18 +2,9 @@ apply plugin: 'kotlin-platform-js'
 
 dependencies {
 	implement project(":korim-common")
-	compile libraries.kotlin_stdlib_js
+
 	compile "com.soywiz:korio-js:$korVersion"
 	compile "com.soywiz:korma-js:$korVersion"
+
 	testCompile libraries.kotlin_test_js
-}
-
-compileKotlin2Js {
-	kotlinOptions.moduleKind = "umd"
-	//kotlinOptions.sourceMap = true //
-	kotlinOptions.sourceMap = false // No sourcemaps!
-}
-
-kotlin {
-	experimental { coroutines 'enable' }
 }
