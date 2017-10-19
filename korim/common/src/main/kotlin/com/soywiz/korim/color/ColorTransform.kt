@@ -1,6 +1,6 @@
 package com.soywiz.korim.color
 
-import com.soywiz.korio.lang.Transient
+import com.soywiz.korio.Transient
 import com.soywiz.korio.util.clamp
 import com.soywiz.korma.interpolation.Interpolable
 import com.soywiz.korma.interpolation.MutableInterpolable

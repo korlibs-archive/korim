@@ -1,7 +1,7 @@
 package com.soywiz.korim.color
 
+import com.soywiz.korio.JvmField
 import com.soywiz.korio.error.invalidOp
-import com.soywiz.korio.lang.JvmField
 import com.soywiz.korio.util.substr
 
 object Colors {

@@ -2,8 +2,8 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.YUVA
-import com.soywiz.korio.lang.EOFException
-import com.soywiz.korio.lang.IOException
+import com.soywiz.korio.EOFException
+import com.soywiz.korio.IOException
 import com.soywiz.korio.stream.SyncInputStream
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.openSync

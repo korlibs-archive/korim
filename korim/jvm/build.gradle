@@ -1,7 +1,7 @@
 apply plugin: 'kotlin-platform-jvm'
 
 dependencies {
-	implement project(":korim-common")
+	expectedBy project(":korim-common")
 	testImplementation project(":korim-common")
 
 	compile "com.soywiz:korio:$korVersion"
