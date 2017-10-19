@@ -1,6 +1,6 @@
 package com.soywiz.korim.color
 
-import com.soywiz.korio.lang.JvmStatic
+import com.soywiz.korio.JvmStatic
 import com.soywiz.korio.lang.format
 import com.soywiz.korio.util.clamp
 

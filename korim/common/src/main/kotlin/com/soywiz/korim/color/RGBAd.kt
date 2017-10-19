@@ -1,6 +1,6 @@
 package com.soywiz.korim.color
 
-import com.soywiz.korio.lang.JvmField
+import com.soywiz.korio.JvmField
 
 class RGBAd(
 	@JvmField var r: Double,

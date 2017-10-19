@@ -219,7 +219,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 						"width" to "${bitmap.width}",
 						"height" to "${bitmap.height}"
 					),
-					listOf()
+					listOf<Xml>()
 				)
 			))
 			return "url(#def$id)"
