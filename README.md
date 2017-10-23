@@ -1,11 +1,11 @@
 ## Korim: Kotlin cORoutines IMaging utilities depending on Korio for JVM, Kotlin-JS, Android, Jtransc+Node.JS and Jtransc+Browser
 
-[![Build Status](https://travis-ci.org/soywiz/korim.svg?branch=master)](https://travis-ci.org/soywiz/korim)
-[![Maven Version](https://img.shields.io/github/tag/soywiz/korim.svg?style=flat&label=maven)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22korim%22)
+[![Build Status](https://travis-ci.org/korlibs/korim.svg?branch=master)](https://travis-ci.org/korlibs/korim)
+[![Maven Version](https://img.shields.io/github/tag/korlibs/korim.svg?style=flat&label=maven)](http://search.maven.org/#search%7Cga%7C1%7Ca%3A%22korim%22)
 
-![](https://raw.githubusercontent.com/soywiz/kor/master/logos/128/korim.png)
+![](https://raw.githubusercontent.com/korlibs/kor/master/logos/128/korim.png)
 
-[All KOR libraries](https://github.com/soywiz/kor)
+[All KOR libraries](https://github.com/korlibs/kor)
 
 Use with gradle:
 
