@@ -10,6 +10,7 @@ class ImageFormatsTest {
 
 	@kotlin.test.Test
 	fun png8() = syncTest {
+		//println("ResourcesVfs.absolutePath:" + ResourcesVfs.absolutePath)
 		val bitmap = ResourcesVfs["kotlin8.png"].readBitmapNoNative(formats)
 		assertEquals("Bitmap8(190, 190, palette=32)", bitmap.toString())
 	}
@@ -17,6 +18,8 @@ class ImageFormatsTest {
 	@kotlin.test.Test
 	fun png24() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative(formats)
+		//JailedLocalVfs("c:/temp/")["lol.png"].writeBitmap(bitmap, formats)
+		//ResourcesVfs["kotlin8.png"].writeBitmap()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
