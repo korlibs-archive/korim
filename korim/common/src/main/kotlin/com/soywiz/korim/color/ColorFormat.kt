@@ -1,7 +1,8 @@
 package com.soywiz.korim.color
 
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korio.lang.JvmStatic
+import com.soywiz.korio.JvmStatic
+import com.soywiz.korio.Language
 import com.soywiz.korio.util.*
 import kotlin.math.min
 
@@ -55,6 +56,14 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
 		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
 	)
+
+	fun demo(@Language("html") html: String) {
+
+	}
+
+	fun test() {
+		demo("<html></html>")
+	}
 
 	companion object {
 		@JvmStatic
