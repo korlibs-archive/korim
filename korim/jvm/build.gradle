@@ -1,5 +1,10 @@
 apply plugin: 'kotlin-platform-jvm'
 
+sourceSets {
+	main.resources.srcDirs += [ '../common/src/main/resources' ]
+	test.resources.srcDirs += [ '../common/src/test/resources' ]
+}
+
 dependencies {
 	expectedBy project(":korim-common")
 	testImplementation project(":korim-common")

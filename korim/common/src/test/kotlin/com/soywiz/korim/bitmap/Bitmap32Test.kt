@@ -2,25 +2,24 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.Colors
 import com.soywiz.korio.async.syncTest
-import org.junit.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class Bitmap32Test {
-	@Test
+	@kotlin.test.Test
 	fun name() {
 		val c = Bitmap32(1, 1)
 		c[0, 0] = Colors.WHITE
 		assertEquals(Colors.WHITE, c[0, 0])
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun constructGen() {
 		val c = Bitmap32(1, 1) { _, _ -> Colors.BLUE }
 		assertTrue(c.all { it == Colors.BLUE })
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun fill() {
 		val c = Bitmap32(16, 16)
 		c.fill(Colors.RED)

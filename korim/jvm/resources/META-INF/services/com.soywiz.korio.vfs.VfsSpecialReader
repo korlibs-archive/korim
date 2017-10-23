@@ -1,3 +1,0 @@
-com.soywiz.korim.awt.AwtImageSpecialReader # <target=java>
-com.soywiz.korim.html.HtmlImageSpecialReader # <target=js>
-com.soywiz.korim.haxelime.HaxeLimeImageVfsSpecialReader # <target=haxe>

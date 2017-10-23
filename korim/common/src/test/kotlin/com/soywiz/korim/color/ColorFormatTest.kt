@@ -3,14 +3,13 @@ package com.soywiz.korim.color
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.util.splitInChunks
 import com.soywiz.korio.util.toHexString
-import org.junit.Test
 import kotlin.test.assertEquals
 
 class ColorFormatTest {
 	fun bmp() = Bitmap32(3, 1, intArrayOf(Colors.RED, Colors.GREEN, Colors.BLUE))
 	fun ByteArray.toHexChunks(size: Int) = this.toHexString().splitInChunks(size).joinToString("-").toLowerCase()
 
-	@Test
+	@kotlin.test.Test
 	fun name() {
 		assertEquals("0000ff-00ff00-ff0000", RGB.encode(bmp().data, littleEndian = false).toHexChunks(6))
 		assertEquals("ff0000ff-ff00ff00-ffff0000", RGBA.encode(bmp().data, littleEndian = false).toHexChunks(8))
@@ -23,7 +22,7 @@ class ColorFormatTest {
 		assertEquals("fc00-83e0-801f", BGRA_5551.encode(bmp().data, littleEndian = false).toHexChunks(4))
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun rgb565() {
 		assertEquals("001f-07e0-f800", RGB_565.encode(bmp().data, littleEndian = false).toHexChunks(4))
 		assertEquals("f800-07e0-001f", BGR_565.encode(bmp().data, littleEndian = false).toHexChunks(4))

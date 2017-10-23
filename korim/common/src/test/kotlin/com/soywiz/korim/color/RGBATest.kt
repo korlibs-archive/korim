@@ -1,10 +1,9 @@
 package com.soywiz.korim.color
 
-import org.junit.Test
 import kotlin.test.assertEquals
 
 class RGBATest {
-	@Test
+	@kotlin.test.Test
 	fun premultiply() {
 		assertEquals("#7f7f7f7f", RGBA.toHexString(RGBA.premultiply(RGBA.packFast(0xFF, 0xFF, 0xFF, 0x7F))))
 		assertEquals("#7f7f7f7f", RGBA.toHexString(RGBA.premultiplyFast(RGBA.packFast(0xFF, 0xFF, 0xFF, 0x7F))))
@@ -14,7 +13,7 @@ class RGBATest {
 		assertEquals("#001f3f7f", RGBA.toHexString(RGBA.premultiplyFast(RGBA.packFast(0x00, 0x3F, 0x7F, 0x7F))))
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun depremultiply() {
 		assertEquals("#007fffff", RGBA.toHexString(RGBA.depremultiplyAccurate(Colors["#007fffff"])))
 		assertEquals("#007fffff", RGBA.toHexString(RGBA.depremultiplyFast(Colors["#007fffff"])))
@@ -42,7 +41,7 @@ class RGBATest {
 		assertEquals("#00000000", RGBA.toHexString(RGBA.depremultiplyFastest(Colors["#007fff00"])))
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun name2() {
 		assertEquals("#123456ff", RGBA.toHexString(Colors["#123456"]))
 		assertEquals("#12345678", RGBA.toHexString(Colors["#12345678"]))

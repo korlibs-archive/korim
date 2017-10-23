@@ -1,3 +1,0 @@
-com.soywiz.korim.awt.AwtNativeImageFormatProvider # <target=java>
-com.soywiz.korim.html.BrowserNativeImageFormatProvider # <target=js>
-com.soywiz.korim.haxelime.HaxeLimeImageNativeFormatProvider # <target=haxe>

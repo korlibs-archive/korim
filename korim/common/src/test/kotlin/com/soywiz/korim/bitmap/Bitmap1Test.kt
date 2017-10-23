@@ -2,11 +2,10 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.korio.util.splitInChunks
 import com.soywiz.korio.util.toHexString
-import org.junit.Test
 import kotlin.test.assertEquals
 
 class Bitmap1Test {
-	@Test
+	@kotlin.test.Test
 	fun name() {
 		val bmp = Bitmap1(4, 4)
 		assertEquals(

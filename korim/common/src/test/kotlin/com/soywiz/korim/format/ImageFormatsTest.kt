@@ -3,25 +3,24 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.ResourcesVfs
-import org.junit.Test
 import kotlin.test.assertEquals
 
 class ImageFormatsTest {
 	val formats = ImageFormats().registerStandard().register(SVG).register(ICO)
 
-	@Test
+	@kotlin.test.Test
 	fun png8() = syncTest {
 		val bitmap = ResourcesVfs["kotlin8.png"].readBitmapNoNative(formats)
 		assertEquals("Bitmap8(190, 190, palette=32)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun png24() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative(formats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun png32Encoder() = syncTest {
 		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative(formats)
 		val data = PNG.encode(bitmap)
@@ -31,7 +30,7 @@ class ImageFormatsTest {
 		assertEquals(true, Bitmap32.matches(bitmap, bitmap2))
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun png32EncoderPremultiplied() = syncTest {
 		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative(formats).toBMP32()
 		val bitmap = bitmapOriginal.premultiplied()
@@ -45,31 +44,31 @@ class ImageFormatsTest {
 		assertEquals(true, Bitmap32.matches(bitmapOriginal, bitmap2))
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun png32() = syncTest {
 		val bitmap = ResourcesVfs["kotlin32.png"].readBitmapNoNative(formats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun tga() = syncTest {
 		val bitmap = ResourcesVfs["kotlin.tga"].readBitmapNoNative(formats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun jpeg() = syncTest {
 		val bitmap = ResourcesVfs["kotlin.jpg"].readBitmapNoNative(formats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun jpeg2() = syncTest {
 		val bitmap = ResourcesVfs["img1.jpg"].readBitmapNoNative(formats)
 		assertEquals("Bitmap32(460, 460)", bitmap.toString())
 	}
 
-	@Test
+	@kotlin.test.Test
 	fun ico() = syncTest {
 		val bitmaps = ResourcesVfs["icon.ico"].readBitmapListNoNative(formats)
 		assertEquals(
