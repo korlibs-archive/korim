@@ -12,6 +12,27 @@ import com.soywiz.korio.vfs.VfsFile
 class ImageFormats : ImageFormat("") {
 	private val formats = linkedSetOf<ImageFormat>()
 
+	fun clear() = this.apply { formats.clear() }
+	fun backup(): List<ImageFormat> = formats.toList()
+	fun restore(formats: List<ImageFormat>) {
+		this.formats.clear()
+		this.formats += formats
+	}
+
+	inline fun <T> saveRestore(callback: () -> T): T {
+		val formats = backup()
+		try {
+			return callback()
+		} finally {
+			restore(formats)
+		}
+	}
+
+	inline fun <T> temporalFormats(formats: Iterable<ImageFormat>, callback: () -> T): T = saveRestore {
+		clear().register(formats)
+		callback()
+	}
+
 	fun register(vararg format: ImageFormat): ImageFormats = this.apply { formats += format }
 	fun register(format: ImageFormat): ImageFormats = this.apply { formats += format }
 	fun register(format: Iterable<ImageFormat>): ImageFormats = this.apply { formats += format }
@@ -34,13 +55,11 @@ class ImageFormats : ImageFormat("") {
 	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
 		val ext = PathInfo(props.filename).extensionLC
 		//println("filename: $filename")
-		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext'")
+		val format = formats.firstOrNull { ext in it.extensions } ?: throw UnsupportedOperationException("Don't know how to generate file for extension '$ext' (supported extensions ${formats.flatMap { it.extensions }}) (props $props)")
 		format.writeImage(image, s, props)
 	}
 }
 
-suspend fun Bitmap.writeTo(file: VfsFile, props: ImageEncodingProps = ImageEncodingProps(), formats: ImageFormats = defaultImageFormats) {
-	file.writeBytes(formats.encode(this, props.copy(filename = file.basename)))
-}
+suspend fun Bitmap.writeTo(file: VfsFile, props: ImageEncodingProps = ImageEncodingProps(), formats: ImageFormat = defaultImageFormats) = file.writeBytes(formats.encode(this, props.copy(filename = file.basename)))
 
 val defaultImageFormats = ImageFormats()

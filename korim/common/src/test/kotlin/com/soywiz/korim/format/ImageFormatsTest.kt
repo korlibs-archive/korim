@@ -2,30 +2,44 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.syncTest
+import com.soywiz.korio.vfs.LocalVfs
 import com.soywiz.korio.vfs.ResourcesVfs
 import kotlin.test.assertEquals
 
 class ImageFormatsTest {
-	val formats = ImageFormats().registerStandard().register(SVG).register(ICO)
+	fun imageTest(callback: suspend () -> Unit) = syncTest {
+		defaultImageFormats.temporalFormats(StandardImageFormats + SVG + ICO) {
+			callback()
+		}
+	}
+
+	//@kotlin.test.Test
+	//fun demo1() = imageTest {
+	//  val tempVfs = LocalVfs("c:/temp/")
+	//	tempVfs["1.png"].readBitmap().writeTo(tempVfs["1.out.png"])
+	//	Bitmap32(32, 32, premult = true) { x, y -> if ((x + y) % 2 == 0) Colors.RED else Colors.BLUE }.writeTo(tempVfs["red.png"])
+	//	//println("ResourcesVfs.absolutePath:" + ResourcesVfs.absolutePath)
+	//}
+
 
 	@kotlin.test.Test
-	fun png8() = syncTest {
+	fun png8() = imageTest {
 		//println("ResourcesVfs.absolutePath:" + ResourcesVfs.absolutePath)
-		val bitmap = ResourcesVfs["kotlin8.png"].readBitmapNoNative(formats)
+		val bitmap = ResourcesVfs["kotlin8.png"].readBitmapNoNative()
 		assertEquals("Bitmap8(190, 190, palette=32)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun png24() = syncTest {
-		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative(formats)
+	fun png24() = imageTest {
+		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
 		//JailedLocalVfs("c:/temp/")["lol.png"].writeBitmap(bitmap, formats)
 		//ResourcesVfs["kotlin8.png"].writeBitmap()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun png32Encoder() = syncTest {
-		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative(formats)
+	fun png32Encoder() = imageTest {
+		val bitmap = ResourcesVfs["kotlin24.png"].readBitmapNoNative()
 		val data = PNG.encode(bitmap)
 		val bitmap2 = PNG.decode(data)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
@@ -34,8 +48,8 @@ class ImageFormatsTest {
 	}
 
 	@kotlin.test.Test
-	fun png32EncoderPremultiplied() = syncTest {
-		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative(formats).toBMP32()
+	fun png32EncoderPremultiplied() = imageTest {
+		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative().toBMP32()
 		val bitmap = bitmapOriginal.premultiplied()
 		//showImageAndWait(bitmap)
 		val data = PNG.encode(bitmap)
@@ -48,32 +62,32 @@ class ImageFormatsTest {
 	}
 
 	@kotlin.test.Test
-	fun png32() = syncTest {
-		val bitmap = ResourcesVfs["kotlin32.png"].readBitmapNoNative(formats)
+	fun png32() = imageTest {
+		val bitmap = ResourcesVfs["kotlin32.png"].readBitmapNoNative()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun tga() = syncTest {
-		val bitmap = ResourcesVfs["kotlin.tga"].readBitmapNoNative(formats)
+	fun tga() = imageTest {
+		val bitmap = ResourcesVfs["kotlin.tga"].readBitmapNoNative()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun jpeg() = syncTest {
-		val bitmap = ResourcesVfs["kotlin.jpg"].readBitmapNoNative(formats)
+	fun jpeg() = imageTest {
+		val bitmap = ResourcesVfs["kotlin.jpg"].readBitmapNoNative()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun jpeg2() = syncTest {
-		val bitmap = ResourcesVfs["img1.jpg"].readBitmapNoNative(formats)
+	fun jpeg2() = imageTest {
+		val bitmap = ResourcesVfs["img1.jpg"].readBitmapNoNative()
 		assertEquals("Bitmap32(460, 460)", bitmap.toString())
 	}
 
 	@kotlin.test.Test
-	fun ico() = syncTest {
-		val bitmaps = ResourcesVfs["icon.ico"].readBitmapListNoNative(formats)
+	fun ico() = imageTest {
+		val bitmaps = ResourcesVfs["icon.ico"].readBitmapListNoNative()
 		assertEquals(
 			"[Bitmap32(256, 256), Bitmap32(128, 128), Bitmap32(96, 96), Bitmap32(72, 72), Bitmap32(64, 64), Bitmap32(48, 48), Bitmap32(32, 32), Bitmap32(24, 24), Bitmap32(16, 16)]",
 			bitmaps.toString()
@@ -82,7 +96,7 @@ class ImageFormatsTest {
 
 	//@Test
 	////@Ignore
-	//fun huge() = syncTest {
+	//fun huge() = imageTest {
 	//	//Thread.sleep(10000)
 	//	val bitmap = Bitmap32(8196, 8196)
 	//	//val bitmap = Bitmap32(32, 32)

@@ -255,6 +255,7 @@ object PNG : ImageFormat("png") {
 		val stride = header.stride
 
 		SyncCompression.inflateTo(pngdata.toByteArray(), datab)
+		//println(datab.toList())
 
 		val data = datab.openSync()
 
@@ -281,7 +282,9 @@ object PNG : ImageFormat("png") {
 				val out = Bitmap32(width, height)
 				for (y in 0 until height) {
 					val filter = data.readU8()
-					data.read(currentRow.data, 0, stride)
+					//println("filter: $filter")
+					data.readExact(currentRow.data, 0, stride)
+					//println("row: ${currentRow.data.toList()}")
 					applyFilter(filter, lastRow, currentRow, header.bytes)
 					when (header.bytes) {
 						3 -> RGB.decode(currentRow.data, 0, row, 0, width)
