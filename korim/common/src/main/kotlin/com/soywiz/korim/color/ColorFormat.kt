@@ -119,6 +119,10 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		return Bitmap32(width, height, decode(data, dataOffset, width * height, littleEndian))
 	}
 
+	open fun decodeToBitmap32(bmp: Bitmap32, data: ByteArray, dataOffset: Int = 0, littleEndian: Boolean = true): Bitmap32 {
+		return bmp.apply { decode(data, dataOffset, this.data, 0, bmp.area) }
+	}
+
 	open fun encode(colors: IntArray, colorsOffset: Int, out: ByteArray, outOffset: Int, size: Int, littleEndian: Boolean = true): Unit {
 		var io = colorsOffset
 		var oo = outOffset
