@@ -83,9 +83,9 @@ object TGA : ImageFormat("tga") {
 				val data = ByteArray(bitmap.area * 4)
 				var m = 0
 				for (c in bitmap.data) {
-					data[m++] = RGBA.getR(c).toByte()
-					data[m++] = RGBA.getG(c).toByte()
 					data[m++] = RGBA.getB(c).toByte()
+					data[m++] = RGBA.getG(c).toByte()
+					data[m++] = RGBA.getR(c).toByte()
 					data[m++] = RGBA.getA(c).toByte()
 				}
 				s.write8(0) // idLength
@@ -99,7 +99,8 @@ object TGA : ImageFormat("tga") {
 				s.write16_le(bitmap.width) // width
 				s.write16_le(bitmap.height) // height
 				s.write8(32) // pixelDepth
-				s.write8(8) // imageDescriptor
+				s.write8(1 shl 5) // imageDescriptor
+				//s.write8(0 shl 5) // imageDescriptor
 				s.writeBytes(data)
 			}
 		}
