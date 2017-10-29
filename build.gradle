@@ -1,6 +1,8 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 buildscript {
+	ext.korioVersion = '0.15.0'
+	ext.kormaVersion = '0.14.1'
 	ext.kotlinVersion = '1.2.0-beta-88'
 	ext.compilerVersion = ext.kotlinVersion
 	ext.librariesVersion = ext.kotlinVersion
@@ -23,7 +25,7 @@ configurations {
 
 allprojects {
 	group 'com.soywiz'
-	version korVersion
+	version "0.15.1"
 
 	apply plugin: 'java'
 	apply plugin: 'maven'

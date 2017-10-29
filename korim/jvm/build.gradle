@@ -9,6 +9,6 @@ dependencies {
 	expectedBy project(":korim-common")
 	testImplementation project(":korim-common")
 
-	compile "com.soywiz:korio:$korVersion"
-	compile "com.soywiz:korma:$korVersion"
+	compile "com.soywiz:korio:$korioVersion"
+	compile "com.soywiz:korma:$kormaVersion"
 }
