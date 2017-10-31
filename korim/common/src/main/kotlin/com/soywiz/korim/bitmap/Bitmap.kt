@@ -17,6 +17,7 @@ abstract class Bitmap(
 	fun index(x: Int, y: Int) = y * width + x
 	override val size: Size get() = Size(width, height)
 
+	open fun set32(x: Int, y: Int, v: Int): Unit = TODO()
 	open fun get32(x: Int, y: Int): Int = 0
 	open operator fun set(x: Int, y: Int, color: Int): Unit = Unit
 	open operator fun get(x: Int, y: Int) = 0
@@ -33,7 +34,14 @@ abstract class Bitmap(
 		for (y in 0 until height / 2) swapRows(y, height - y - 1)
 	}
 
-	abstract fun swapRows(y0: Int, y1: Int)
+	open fun swapRows(y0: Int, y1: Int) {
+		for (x in 0 until width) {
+			val c0 = get(x, y0)
+			val c1 = get(x, y1)
+			set(x, y0, c1)
+			set(x, y1, c0)
+		}
+	}
 
 	open fun getContext2d(antialiasing: Boolean = true): Context2d = throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
 

@@ -2,7 +2,6 @@ package com.soywiz.korim.color
 
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.JvmStatic
-import com.soywiz.korio.Language
 import com.soywiz.korio.util.*
 import kotlin.math.min
 
@@ -51,19 +50,13 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 
 	fun toRGBA(v: Int) = RGBA.packFast(getR(v), getG(v), getB(v), getA(v))
 
-	fun packRGBA(v: Int): Int = pack(RGBA.getR(v), RGBA.getG(v), RGBA.getB(v), RGBA.getA(v))
+	fun packRGBA(rgba: Int): Int = pack(RGBA.getR(rgba), RGBA.getG(rgba), RGBA.getB(rgba), RGBA.getA(rgba))
+
+	fun unpackToRGBA(packed: Int): Int = RGBA.packFast(getR(packed), getG(packed), getB(packed), getA(packed))
 
 	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
 		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
 	)
-
-	fun demo(@Language("html") html: String) {
-
-	}
-
-	fun test() {
-		demo("<html></html>")
-	}
 
 	companion object {
 		@JvmStatic
