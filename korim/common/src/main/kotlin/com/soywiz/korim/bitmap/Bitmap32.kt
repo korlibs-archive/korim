@@ -40,7 +40,7 @@ class Bitmap32(
 	override operator fun set(x: Int, y: Int, color: Int) = run { data[index(x, y)] = color }
 	override operator fun get(x: Int, y: Int): Int = data[index(x, y)]
 	override fun get32(x: Int, y: Int): Int = get(x, y)
-	override fun set32(x: Int, y: Int, v: Int): Int = set(x, y, v)
+	override fun set32(x: Int, y: Int, v: Int): Unit = set(x, y, v)
 
 	fun setRow(y: Int, row: IntArray) {
 		row.copyTo(0, data, index(0, y), width)
