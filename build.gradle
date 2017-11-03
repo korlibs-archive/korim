@@ -1,9 +1,9 @@
 import org.apache.tools.ant.taskdefs.condition.Os
 
 buildscript {
-	ext.korioVersion = '0.15.0'
-	ext.kormaVersion = '0.14.1'
-	ext.kotlinVersion = '1.2.0-beta-88'
+	ext.korioVersion = '0.16.0'
+	ext.kormaVersion = '0.16.0'
+	ext.kotlinVersion = '1.2.0-rc-39'
 	ext.compilerVersion = ext.kotlinVersion
 	ext.librariesVersion = ext.kotlinVersion
 	ext.eapChannel = 'http://dl.bintray.com/kotlin/kotlin-eap-1.2'
@@ -26,6 +26,12 @@ configurations {
 allprojects {
 	group 'com.soywiz'
 	version "0.15.2-SNAPSHOT"
+
+	if (project == rootProject) {
+		new File(rootProject.rootDir, "korim/common/src/main/kotlin/com/soywiz/korim/KorimVersion.kt").write(
+				"package com.soywiz.korim\n\nval KORIM_VERSION = \"$version\""
+		)
+	}
 
 	apply plugin: 'java'
 	apply plugin: 'maven'
