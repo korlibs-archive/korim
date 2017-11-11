@@ -1,5 +1,7 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kmem.arraycopy
+import com.soywiz.kmem.fill
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.YUVA
 import com.soywiz.korio.EOFException
@@ -8,8 +10,6 @@ import com.soywiz.korio.stream.SyncInputStream
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.openSync
 import com.soywiz.korio.stream.readAll
-import com.soywiz.korio.typedarray.copyRangeTo
-import com.soywiz.korio.typedarray.fill
 import kotlin.math.max
 import kotlin.math.min
 
@@ -266,7 +266,7 @@ object JPEG : ImageFormat("jpg", "jpeg") {
 					continue
 				}
 				val copy = if (avail > l) l else avail
-				inputBuffer.copyRangeTo(inputBufferPos, buf, o, copy)
+				arraycopy(inputBuffer, inputBufferPos, buf, o, copy)
 				o += copy
 				l -= copy
 				inputBufferPos += copy

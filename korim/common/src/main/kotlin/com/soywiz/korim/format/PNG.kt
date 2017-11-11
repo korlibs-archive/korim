@@ -1,16 +1,15 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmap8
 import com.soywiz.korim.color.RGB
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korio.compression.SyncCompression
-import com.soywiz.korio.ds.ByteArrayBuilder
+import com.soywiz.korio.KorioNative.SyncCompression
 import com.soywiz.korio.lang.toByteArray
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.typedarray.copyRangeTo
-import com.soywiz.korio.util.*
+import com.soywiz.korio.util.convertRangeClamped
 import com.soywiz.korma.buffer.copyTo
 import kotlin.math.abs
 import kotlin.math.ceil
@@ -104,7 +103,7 @@ object PNG : ImageFormat("png") {
 					out.write8(pos, if (last) 1 else 0)
 					out.write16_le(pos + 1, size)
 					out.write16_le(pos + 3, size.inv())
-					data.copyRangeTo(upos, out, pos + 5, size)
+					arraycopy(data, upos, out, pos + 5, size)
 					pos += 5 + size
 					upos += size
 				}
@@ -159,7 +158,7 @@ object PNG : ImageFormat("png") {
 				for (y in 0 until height) {
 					out.write8(pos++, 0)
 					val index = bitmap.index(0, y)
-					bitmap.data.copyRangeTo(index, out, pos, width)
+					arraycopy(bitmap.data, index, out, pos, width)
 					pos += width
 				}
 				writeChunk("IDAT", compress(out))

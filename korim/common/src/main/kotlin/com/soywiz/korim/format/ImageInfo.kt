@@ -1,6 +1,6 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korio.util.Extra
+import com.soywiz.kds.Extra
 import com.soywiz.korma.geom.Size
 
 class ImageInfo : Extra by Extra.Mixin() {

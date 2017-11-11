@@ -1,14 +1,24 @@
 package com.soywiz.korim.vector.format
 
+import com.soywiz.kds.ListReader
+import com.soywiz.kds.ext.mapWhile
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
-import com.soywiz.korio.util.*
+import com.soywiz.korio.util.StrReader
+import com.soywiz.korio.util.isDigit
+import com.soywiz.korio.util.isNumeric
+import com.soywiz.korio.util.substr
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.Rectangle
+import kotlin.collections.List
+import kotlin.collections.arrayListOf
+import kotlin.collections.hashMapOf
+import kotlin.collections.plusAssign
+import kotlin.collections.set
 
 class SVG(val root: Xml) : Context2d.SizedDrawable {
 	//constructor(@Language("xml") str: String) : this(Xml(str))

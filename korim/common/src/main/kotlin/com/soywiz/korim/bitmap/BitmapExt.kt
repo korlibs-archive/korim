@@ -19,3 +19,7 @@ fun Bitmap.matchContents(that: Bitmap): Boolean {
 	}
 	return true
 }
+
+fun Bitmap32.setAlpha(value: Int) {
+	for (n in 0 until this.data.size) this.data[n] = (this.data[n] and 0x00FFFFFF) or (value shl 24)
+}

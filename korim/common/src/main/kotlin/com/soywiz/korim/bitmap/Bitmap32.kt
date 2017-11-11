@@ -1,10 +1,10 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.kmem.fill
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korio.typedarray.fill
 import com.soywiz.korma.buffer.copyTo
 import kotlin.math.abs
 import kotlin.math.max

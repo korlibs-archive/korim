@@ -1,5 +1,6 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.kds.Extra
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.util.clamp
@@ -11,7 +12,7 @@ abstract class Bitmap(
 	val height: Int,
 	val bpp: Int,
 	var premult: Boolean
-) : Sizeable {
+) : Sizeable, Extra by Extra.Mixin() {
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x

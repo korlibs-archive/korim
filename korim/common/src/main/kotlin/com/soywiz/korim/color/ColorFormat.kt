@@ -1,8 +1,11 @@
 package com.soywiz.korim.color
 
+import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.JvmStatic
-import com.soywiz.korio.util.*
+import com.soywiz.korio.util.extractScaledFF
+import com.soywiz.korio.util.extractScaledFFDefault
+import com.soywiz.korio.util.insertScaledFF
 import kotlin.math.min
 
 interface ColorFormatBase {

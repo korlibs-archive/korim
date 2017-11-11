@@ -1,10 +1,10 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kds.LinkedList
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.mipmap
 import com.soywiz.korim.color.Colors
-import com.soywiz.korio.ds.LinkedList
 import com.soywiz.korio.util.redirectField
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2

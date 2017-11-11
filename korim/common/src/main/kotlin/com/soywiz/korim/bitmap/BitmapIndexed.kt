@@ -1,8 +1,8 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.kmem.UByteArray
+import com.soywiz.kmem.arraycopy
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korio.typedarray.copyRangeTo
-import com.soywiz.korio.util.UByteArray
 import com.soywiz.korio.util.insert
 import kotlin.math.max
 
@@ -34,11 +34,11 @@ abstract class BitmapIndexed(
 	fun index_m(x: Int, y: Int) = index(x, y) % n8_dbpp
 
 	fun setRow(y: Int, row: UByteArray) {
-		row.data.copyRangeTo(0, data, index(0, y), stride)
+		arraycopy(row.data, 0, data, index(0, y), stride)
 	}
 
 	fun setRow(y: Int, row: ByteArray) {
-		row.copyRangeTo(0, data, index(0, y), stride)
+		arraycopy(row, 0, data, index(0, y), stride)
 	}
 
 	fun setWhitescalePalette() = this.apply {
@@ -52,9 +52,9 @@ abstract class BitmapIndexed(
 	override fun swapRows(y0: Int, y1: Int) {
 		val s0 = index_d(0, y0)
 		val s1 = index_d(0, y1)
-		data.copyRangeTo(s0, temp, 0, stride)
-		data.copyRangeTo(s1, data, s0, stride)
-		temp.copyRangeTo(0, data, s1, stride)
+		arraycopy(data, s0, temp, 0, stride)
+		arraycopy(data, s1, data, s0, stride)
+		arraycopy(temp, 0, data, s1, stride)
 	}
 
 	fun toLines(palette: String): List<String> {

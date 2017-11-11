@@ -1,8 +1,8 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kds.Extra
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.Extra
 
 object DDS : ImageFormat("dds") {
 	var ImageInfo.fourcc by Extra.Property { "    " }
