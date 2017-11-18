@@ -39,7 +39,7 @@ String executeShell(String cmd) {
 
 allprojects {
 	group 'com.soywiz'
-	version "0.17.4-SNAPSHOT"
+	version "0.17.4"
 
 	if (project == rootProject) {
 		new File(rootProject.rootDir, "korim/common/src/main/kotlin/com/soywiz/korim/KorimVersion.kt").write(
