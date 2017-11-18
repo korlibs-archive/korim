@@ -366,7 +366,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			//println("$k <-- $v")
 			when (k) {
 				"fill" -> applyFill(c, v, bounds)
-				else -> invalidOp("Unsupported style $k in css")
+				else -> logger.warn { "Unsupported style $k in css" }
 			}
 		}
 	}
@@ -454,6 +454,8 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 		val styles: MutableMap<String, String> = hashMapOf()
 	) {
 		companion object {
+			val logger = Logger("SVG")
+
 			fun tokenize(str: String): List<String> {
 				val sr = StrReader(str)
 				val out = arrayListOf<String>()
@@ -486,12 +488,17 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				val style = SvgStyle()
 				while (tr.hasMore) {
 					val id = tr.readId()
+					if (tr.eof) {
+						logger.error { "EOF. Parsing (ID='$id'): '$str', $tokens" }
+						break
+					}
 					tr.readColon()
 					val rexpr = arrayListOf<String>()
 					while (tr.hasMore && tr.peek() != ";") {
 						rexpr += tr.readExpression()
 					}
 					style.styles[id.toLowerCase()] = rexpr.joinToString("")
+					if (tr.hasMore) tr.expect(";")
 					//println("$id --> $rexpr")
 				}
 				return style

@@ -1,5 +1,6 @@
 package com.soywiz.korim.awt
 
+import com.soywiz.klogger.Logger
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.ensureNative
@@ -79,6 +80,8 @@ fun BufferedImage.createGraphics(antialiasing: Boolean): Graphics2D = this.creat
 //}
 
 class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true) : Context2d.Renderer() {
+	val logger = Logger("AwtContext2dRender")
+
 	//val nativeImage = AwtNativeImage(awtImage)
 	override val width: Int get() = awtImage.width
 	override val height: Int get() = awtImage.height
@@ -175,14 +178,14 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
-	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
-	//	this.toAwtUnsafe(transform)
-	//} catch (e: Throwable) {
-	//	println("Context2d.Paint.toAwt: $e")
-	//	Color.PINK
-	//}
+	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
+		this.toAwtUnsafe(transform)
+	} catch (e: Throwable) {
+		logger.error { "Context2d.Paint.toAwt: $e" }
+		Color.PINK
+	}
 
-	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
+	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
 
 	fun Matrix2d.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
 
