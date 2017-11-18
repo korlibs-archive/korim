@@ -9,5 +9,6 @@ dependencies {
 	expectedBy project(":korim-common")
 
 	compile "com.soywiz:korio-js:$korioVersion"
+	compile "com.soywiz:klogger-js:$kloggerVersion"
 	compile "com.soywiz:korma-js:$kormaVersion"
 }

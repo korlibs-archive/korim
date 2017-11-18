@@ -10,5 +10,6 @@ dependencies {
 	testImplementation project(":korim-common")
 
 	compile "com.soywiz:korio:$korioVersion"
+	compile "com.soywiz:klogger:$kloggerVersion"
 	compile "com.soywiz:korma:$kormaVersion"
 }

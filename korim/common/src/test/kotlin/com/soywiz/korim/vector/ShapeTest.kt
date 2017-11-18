@@ -25,4 +25,6 @@ class ShapeTest {
 			shape.toSvg().outerXml
 		)
 	}
+
+
 }

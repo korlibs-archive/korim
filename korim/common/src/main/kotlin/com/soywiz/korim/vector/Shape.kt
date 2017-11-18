@@ -61,7 +61,7 @@ private fun Matrix2d.toSvg() = this.run {
 
 }
 
-fun VectorPath.toSvgPathString(): String {
+fun VectorPath.toSvgPathString(separator: String = " "): String {
 	val parts = arrayListOf<String>()
 
 	fun Double.fixX() = this.niceStr

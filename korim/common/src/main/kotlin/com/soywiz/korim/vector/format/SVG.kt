@@ -2,35 +2,45 @@ package com.soywiz.korim.vector.format
 
 import com.soywiz.kds.ListReader
 import com.soywiz.kds.ext.mapWhile
+import com.soywiz.klogger.Logger
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korim.vector.toSvgPathString
+import com.soywiz.korio.error.invalidOp
+import com.soywiz.korio.lang.printStackTrace
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
-import com.soywiz.korio.util.StrReader
-import com.soywiz.korio.util.isDigit
-import com.soywiz.korio.util.isNumeric
-import com.soywiz.korio.util.substr
+import com.soywiz.korio.util.*
 import com.soywiz.korma.Matrix2d
+import com.soywiz.korma.geom.Point2d
 import com.soywiz.korma.geom.Rectangle
-import kotlin.collections.List
-import kotlin.collections.arrayListOf
-import kotlin.collections.hashMapOf
-import kotlin.collections.plusAssign
+import com.soywiz.korma.geom.VectorPath
 import kotlin.collections.set
 
 class SVG(val root: Xml) : Context2d.SizedDrawable {
 	//constructor(@Language("xml") str: String) : this(Xml(str))
 	constructor(str: String) : this(Xml(str))
 
+	val logger = Logger("SVG")
+
 	val x = root.int("x", 0)
 	val y = root.int("y", 0)
 
-	override val width = root.int("width", 128)
-	override val height = root.int("height", 128)
+	val dwidth = root.double("width", 128.0)
+	val dheight = root.double("height", 128.0)
+	val viewBox = root.getString("viewBox") ?: "0 0 $dwidth $dheight"
+	val viewBoxNumbers = viewBox.split(' ').map { it.trim().toDoubleOrNull() ?: 0.0 }
+	val viewBoxRectangle = Rectangle(
+		viewBoxNumbers.getOrElse(0) { 0.0 },
+		viewBoxNumbers.getOrElse(1) { 0.0 },
+		viewBoxNumbers.getOrElse(2) { dwidth },
+		viewBoxNumbers.getOrElse(3) { dheight }
+	)
 
-	val viewBox = root.getString("viewBox") ?: "0 0 $width $height"
+	override val width get() = viewBoxRectangle.width.toInt()
+	override val height get() = viewBoxRectangle.height.toInt()
 
 	class Style {
 		val props = hashMapOf<String, Any?>()
@@ -87,6 +97,10 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 					g.addColorStop(offset, color)
 				}
 				//println("Gradient: $g")
+				def.getString("gradientTransform")?.let {
+					g.transform.premultiply(parseTransform(it))
+				}
+
 				defs[id] = g
 			}
 			"style" -> {
@@ -222,31 +236,60 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			}
 			"path" -> {
 				val d = xml.str("d")
-				val dr = StrReader(d)
-				fun StrReader.readNumber() = skipSpaces().readWhile { it.isDigit() || it == '-' || it == '.' }.toDouble()
+				val tokens = tokenizePath(d)
+				val tl = ListReader(tokens)
 				val path = GraphicsPath()
-				while (!dr.eof) {
-					dr.skipSpaces()
-					val cmd = dr.read()
+				//val path = GraphicsPath(winding = VectorPath.Winding.EVEN_ODD)
+				//val path = GraphicsPath(winding = VectorPath.Winding.NON_ZERO)
+
+				fun dumpTokens() = run { for ((n, token) in tokens.withIndex()) logger.warn { "- $n: $token" } }
+				fun isNextNumber(): Boolean = if (tl.hasMore) tl.peek() is PathTokenNumber else false
+				fun readNumber(): Double {
+					while (tl.hasMore) {
+						val token = tl.read()
+						if (token is PathTokenNumber) return token.value
+						logger.warn { "Invalid path (expected number but found $token) at ${tl.position - 1}" }
+						dumpTokens()
+					}
+					return 0.0
+				}
+
+				fun readNextTokenCmd(): Char? {
+					while (tl.hasMore) {
+						val token = tl.read()
+						if (token is PathTokenCmd) return token.id
+						logger.warn { "Invalid path (expected command but found $token) at ${tl.position - 1}" }
+						dumpTokens()
+					}
+					return null
+				}
+
+				while (tl.hasMore) {
+					val cmd = readNextTokenCmd() ?: break
 					when (cmd) {
-						'M' -> path.moveTo(dr.readNumber(), dr.readNumber())
-						'm' -> path.rMoveTo(dr.readNumber(), dr.readNumber())
-						'L' -> path.lineTo(dr.readNumber(), dr.readNumber())
-						'l' -> path.rLineTo(dr.readNumber(), dr.readNumber())
-						'Q' -> path.quadTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
-						'q' -> path.rQuadTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
-						'C' -> path.cubicTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
-						'c' -> path.rCubicTo(dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber(), dr.readNumber())
-						'H' -> path.moveToH(dr.readNumber())
-						'h' -> path.rMoveToH(dr.readNumber())
-						'V' -> path.moveToV(dr.readNumber())
-						'v' -> path.rMoveToV(dr.readNumber())
+						'M' -> while (isNextNumber()) path.moveTo(readNumber(), readNumber())
+						'm' -> while (isNextNumber()) path.rMoveTo(readNumber(), readNumber())
+						'L' -> while (isNextNumber()) path.lineTo(readNumber(), readNumber())
+						'l' -> while (isNextNumber()) path.rLineTo(readNumber(), readNumber())
+						'Q' -> while (isNextNumber()) path.quadTo(readNumber(), readNumber(), readNumber(), readNumber())
+						'q' -> while (isNextNumber()) path.rQuadTo(readNumber(), readNumber(), readNumber(), readNumber())
+						'C' -> while (isNextNumber()) path.cubicTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
+						'c' -> while (isNextNumber()) path.rCubicTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
+						'H' -> while (isNextNumber()) path.moveToH(readNumber())
+						'h' -> while (isNextNumber()) path.rMoveToH(readNumber())
+						'V' -> while (isNextNumber()) path.moveToV(readNumber())
+						'v' -> while (isNextNumber()) path.rMoveToV(readNumber())
 						'Z' -> path.close()
 						'z' -> path.close()
-						else -> TODO("Unsupported $cmd")
+						else -> TODO("Unsupported command '$cmd' : Parsed: '${path.toSvgPathString()}', Original: '$d'")
 					}
 				}
+				logger.trace { "Parsed SVG Path: '${path.toSvgPathString()}'" }
+				logger.trace { "Original SVG Path: '$d'" }
+				logger.warn { "Points: ${path.getPoints()}" }
+				println("Points: ${path.getPoints().map { "(${it.x}, ${it.y})" }.joinToString("")}")
 				path.getBounds(bounds)
+				path.getBounds()
 				beginPath()
 				c.path(path)
 			}
@@ -258,14 +301,18 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 		if (xml.hasAttribute("stroke")) {
 			strokeStyle = parseFillStroke(c, xml.str("stroke"), bounds)
 		}
-		if (xml.hasAttribute("fill")) {
-			fillStyle = parseFillStroke(c, xml.str("fill"), bounds)
-		}
+		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
 		if (xml.hasAttribute("font-size")) {
 			font = font.copy(size = xml.double("font-size"))
 		}
 		if (xml.hasAttribute("font-family")) {
 			font = font.copy(name = xml.str("font-family"))
+		}
+		if (xml.hasAttribute("style")) {
+			applyStyle(c, SvgStyle.parse(xml.str("style")), bounds)
+		}
+		if (xml.hasAttribute("transform")) {
+			applyTransform(state, parseTransform(xml.str("transform")))
 		}
 		if (xml.hasAttribute("text-anchor")) {
 			horizontalAlign = when (xml.str("text-anchor").toLowerCase()) {
@@ -287,4 +334,170 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 
 		c.fillStroke()
 	}
+
+	fun applyFill(c: Context2d, str: String, bounds: Rectangle) {
+		c.fillStyle = parseFillStroke(c, str, bounds)
+	}
+
+	private fun applyTransform(state: Context2d.State, transform: Matrix2d) {
+		//println("Apply transform $transform to $state")
+		state.transform.premultiply(transform)
+	}
+
+	private fun applyStyle(c: Context2d, style: SvgStyle, bounds: Rectangle) {
+		//println("Apply style $style to $c")
+		for ((k, v) in style.styles) {
+			//println("$k <-- $v")
+			when (k) {
+				"fill" -> applyFill(c, v, bounds)
+				else -> invalidOp("Unsupported style $k in css")
+			}
+		}
+	}
+
+	fun parseTransform(str: String): Matrix2d {
+		val tokens = SvgStyle.tokenize(str)
+		val tr = ListReader(tokens)
+		val out = Matrix2d()
+		//println("Not implemented: parseTransform: $str: $tokens")
+		while (tr.hasMore) {
+			val id = tr.read().toLowerCase()
+			val args = arrayListOf<String>()
+			if (tr.peek() == "(") {
+				tr.read()
+				while (true) {
+					if (tr.peek() == ")") {
+						tr.read()
+						break
+					}
+					if (tr.peek() == ",") {
+						tr.read()
+						continue
+					}
+					args += tr.read()
+				}
+			}
+			val doubleArgs = args.map { it.toDoubleOrNull() ?: 0.0 }
+			fun double(index: Int) = doubleArgs.getOrElse(index) { 0.0 }
+			when (id) {
+				"translate" -> out.pretranslate(double(0), double(1))
+				"scale" -> out.prescale(double(0), double(1))
+				"matrix" -> out.premultiply(double(0), double(1), double(2), double(3), double(4), double(5))
+				else -> invalidOp("Unsupported transform $id : $args : $doubleArgs ($str)")
+			}
+			//println("ID: $id, args=$args")
+		}
+		return out
+	}
+
+	companion object {
+		fun tokenizePath(str: String): List<PathToken> {
+			val sr = StrReader(str)
+			fun StrReader.skipSeparators() {
+				skipWhile { it == ',' || it == ' ' || it == '\t' || it == '\n' || it == '\r' }
+			}
+
+			fun StrReader.readNumber(): Double {
+				skipSeparators()
+				var first = true
+				val str = readWhile {
+					if (first) {
+						first = false
+						it.isDigit() || it == '-' || it == '+'
+					} else {
+						it.isDigit() || it == '.'
+					}
+				}
+				return if (str.isEmpty()) 0.0 else try {
+					str.toDouble()
+				} catch (e: Throwable) {
+					e.printStackTrace()
+					0.0
+				}
+			}
+
+			val out = arrayListOf<PathToken>()
+			while (sr.hasMore) {
+				sr.skipSeparators()
+				val c = sr.peekChar()
+				if (c in '0'..'9' || c == '-' || c == '+') {
+					out += PathTokenNumber(sr.readNumber())
+				} else {
+					out += PathTokenCmd(sr.readChar())
+				}
+			}
+			return out
+		}
+	}
+
+	interface PathToken
+	data class PathTokenNumber(val value: Double) : PathToken
+	data class PathTokenCmd(val id: Char) : PathToken
+
+	data class SvgStyle(
+		val styles: MutableMap<String, String> = hashMapOf()
+	) {
+		companion object {
+			fun tokenize(str: String): List<String> {
+				val sr = StrReader(str)
+				val out = arrayListOf<String>()
+				while (sr.hasMore) {
+					while (true) {
+						sr.skipSpaces()
+						val id = sr.readWhile { it.isLetterOrUnderscore() || it.isNumeric || it == '-' || it == '#' }
+						if (id.isNotEmpty()) {
+							out += id
+						} else {
+							break
+						}
+					}
+					if (sr.eof) break
+					sr.skipSpaces()
+					val symbol = sr.read()
+					out += "$symbol"
+				}
+				return out
+			}
+
+			fun ListReader<String>.readId() = this.read()
+			fun ListReader<String>.readColon() = expect(":")
+			fun ListReader<String>.readExpression() = this.read()
+
+			fun parse(str: String): SvgStyle {
+				val tokens = tokenize(str)
+				val tr = ListReader(tokens)
+				//println("Style: $str : $tokens")
+				val style = SvgStyle()
+				while (tr.hasMore) {
+					val id = tr.readId()
+					tr.readColon()
+					val rexpr = arrayListOf<String>()
+					while (tr.hasMore && tr.peek() != ";") {
+						rexpr += tr.readExpression()
+					}
+					style.styles[id.toLowerCase()] = rexpr.joinToString("")
+					//println("$id --> $rexpr")
+				}
+				return style
+			}
+		}
+	}
+}
+
+fun <T> ListReader<T>.expect(value: T): T {
+	val v = read()
+	if (v != value) invalidOp("Expecting '$value' but found '$v'")
+	return v
+}
+
+fun VectorPath.getPoints(): List<Point2d> {
+	val points = arrayListOf<Point2d>()
+	this.visitCmds(
+		moveTo = { x, y -> points += Point2d(x, y) },
+		lineTo = { x, y -> points += Point2d(x, y) },
+		quadTo = {x1, y1, x2, y2 -> points += Point2d(x2, y2) },
+		cubicTo = { x1, y1, x2, y2, x3, y3 -> points += Point2d(x3, y3) },
+		close = { }
+	)
+	return points
 }
