@@ -8,7 +8,7 @@ install:
   - nvm use 8
   - node --version
   - npm -g install mocha
-  - npm -g install node-canvas
+  - npm -g install canvas
   - which node
   - which mocha
 
