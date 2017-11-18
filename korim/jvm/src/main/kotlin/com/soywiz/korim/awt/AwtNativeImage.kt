@@ -87,18 +87,55 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	val hints = createRenderingHints(antialiasing)
 
-	fun GraphicsPath.toJava2dPath(): java.awt.geom.Path2D.Double? {
-		if (this.isEmpty()) return null
+	fun GraphicsPath.toJava2dPaths(): List<java.awt.geom.Path2D.Double> {
+		if (this.isEmpty()) return listOf()
 		val winding = if (winding == VectorPath.Winding.EVEN_ODD) java.awt.geom.GeneralPath.WIND_EVEN_ODD else java.awt.geom.GeneralPath.WIND_NON_ZERO
-		val polyline = java.awt.geom.Path2D.Double(winding)
+		//val winding = java.awt.geom.GeneralPath.WIND_NON_ZERO
+		//val winding = java.awt.geom.GeneralPath.WIND_EVEN_ODD
+		val polylines = arrayListOf<java.awt.geom.Path2D.Double>()
+		var parts = 0
+		var polyline = java.awt.geom.Path2D.Double(winding)
+		//kotlin.io.println("---")
+
+		fun flush() {
+			if (parts > 0) {
+				polylines += polyline
+				polyline = java.awt.geom.Path2D.Double(winding)
+			}
+			parts = 0
+		}
+
 		this.visitCmds(
-			moveTo = { x, y -> polyline.moveTo(x, y) },
-			lineTo = { x, y -> polyline.lineTo(x, y) },
-			quadTo = { cx, cy, ax, ay -> polyline.quadTo(cx, cy, ax, ay) },
-			cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> polyline.curveTo(cx1, cy1, cx2, cy2, ax, ay) },
-			close = { polyline.closePath() }
+			moveTo = { x, y ->
+				//flush()
+				polyline.moveTo(x, y)
+				//kotlin.io.println("moveTo: $x, $y")
+			},
+			lineTo = { x, y ->
+				polyline.lineTo(x, y)
+				//kotlin.io.println("lineTo: $x, $y")
+				parts++
+			},
+			quadTo = { cx, cy, ax, ay ->
+				polyline.quadTo(cx, cy, ax, ay)
+				parts++
+			},
+			cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
+				polyline.curveTo(cx1, cy1, cx2, cy2, ax, ay)
+				parts++
+			},
+			close = {
+				polyline.closePath()
+				//kotlin.io.println("closePath")
+				parts++
+			}
 		)
-		return polyline
+		flush()
+		return polylines
+	}
+
+	fun GraphicsPath.toJava2dPath(): java.awt.geom.Path2D.Double? {
+		return toJava2dPaths().firstOrNull()
 	}
 
 	//override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
@@ -138,12 +175,14 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
-	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
-		this.toAwtUnsafe(transform)
-	} catch (e: Throwable) {
-		println("Context2d.Paint.toAwt: $e")
-		Color.RED
-	}
+	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
+	//	this.toAwtUnsafe(transform)
+	//} catch (e: Throwable) {
+	//	println("Context2d.Paint.toAwt: $e")
+	//	Color.PINK
+	//}
+
+	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
 
 	fun Matrix2d.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
 
@@ -164,10 +203,10 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 					val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(it) }).distinctBy { it.first }
 					val stops = pairs.map { it.first }.toFloatArray()
 					val colors = pairs.map { it.second }.toTypedArray()
-					val defaultColor = colors.firstOrNull() ?: Color.RED
+					val defaultColor = colors.firstOrNull() ?: Color.PINK
 
-					when (this) {
-						is Context2d.LinearGradient -> {
+					when (this.kind) {
+						Context2d.Gradient.Kind.LINEAR -> {
 							val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
 							if (valid) {
 								java.awt.LinearGradientPaint(
@@ -183,7 +222,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 								defaultColor
 							}
 						}
-						is Context2d.RadialGradient -> {
+						Context2d.Gradient.Kind.RADIAL -> {
 							val valid = (pairs.size >= 2)
 							if (valid) {
 								java.awt.RadialGradientPaint(
@@ -200,8 +239,8 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 								defaultColor
 							}
 						}
-						else -> TODO()
 					}
+
 				}
 				is Context2d.BitmapPaint -> {
 					object : java.awt.TexturePaint(
@@ -277,12 +316,14 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 		applyState(state, fill)
 
-		val awtPath = state.path.toJava2dPath()
-		g.setRenderingHints(hints)
-		if (fill) {
-			g.fill(awtPath)
-		} else {
-			g.draw(awtPath)
+		val awtPaths = state.path.toJava2dPaths()
+		for (awtPath in awtPaths) {
+			g.setRenderingHints(hints)
+			if (fill) {
+				g.fill(awtPath)
+			} else {
+				g.draw(awtPath)
+			}
 		}
 	}
 

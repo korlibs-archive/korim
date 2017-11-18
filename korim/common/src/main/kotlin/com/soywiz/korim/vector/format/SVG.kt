@@ -12,6 +12,7 @@ import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.lang.printStackTrace
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
+import com.soywiz.korio.serialization.xml.isComment
 import com.soywiz.korio.util.*
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.Point2d
@@ -84,14 +85,27 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				val x1 = def.double("x2", 1.0)
 				val y1 = def.double("y2", 1.0)
 				val stops = parseStops(def)
+				val href = def.strNull("xlink:href")
+
 				val g: Context2d.Gradient = if (type == "lineargradient") {
 					//println("Linear: ($x0,$y0)-($x1-$y1)")
-					Context2d.LinearGradient(x0, y0, x1, y1)
+					Context2d.Gradient(Context2d.Gradient.Kind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
 				} else {
 					val r0 = def.double("r0", 0.0)
 					val r1 = def.double("r1", 0.0)
-					Context2d.RadialGradient(x0, y0, r0, x1, y1, r1)
+					Context2d.Gradient(Context2d.Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
 				}
+
+				def.strNull("xlink:href")?.let {
+					val id = it.trim('#')
+					val original = defs[id] as? Context2d.Gradient?
+					//println("href: $it --> $original")
+					original?.let {
+						g.stops.add(original.stops)
+						g.colors.add(original.colors)
+					}
+				}
+
 				for ((offset, color) in stops) {
 					//println(" - $offset: $color")
 					g.addColorStop(offset, color)
@@ -114,7 +128,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 	}
 
 	fun parseDefs() {
-		for (def in root["defs"].allChildren) parseDef(def)
+		for (def in root["defs"].allChildren.filter { !it.isComment }) parseDef(def)
 	}
 
 	init {
@@ -238,9 +252,6 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				val d = xml.str("d")
 				val tokens = tokenizePath(d)
 				val tl = ListReader(tokens)
-				val path = GraphicsPath()
-				//val path = GraphicsPath(winding = VectorPath.Winding.EVEN_ODD)
-				//val path = GraphicsPath(winding = VectorPath.Winding.NON_ZERO)
 
 				fun dumpTokens() = run { for ((n, token) in tokens.withIndex()) logger.warn { "- $n: $token" } }
 				fun isNextNumber(): Boolean = if (tl.hasMore) tl.peek() is PathTokenNumber else false
@@ -264,34 +275,39 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 					return null
 				}
 
+				//dumpTokens()
+
+				beginPath()
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
 					when (cmd) {
-						'M' -> while (isNextNumber()) path.moveTo(readNumber(), readNumber())
-						'm' -> while (isNextNumber()) path.rMoveTo(readNumber(), readNumber())
-						'L' -> while (isNextNumber()) path.lineTo(readNumber(), readNumber())
-						'l' -> while (isNextNumber()) path.rLineTo(readNumber(), readNumber())
-						'Q' -> while (isNextNumber()) path.quadTo(readNumber(), readNumber(), readNumber(), readNumber())
-						'q' -> while (isNextNumber()) path.rQuadTo(readNumber(), readNumber(), readNumber(), readNumber())
-						'C' -> while (isNextNumber()) path.cubicTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
-						'c' -> while (isNextNumber()) path.rCubicTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
-						'H' -> while (isNextNumber()) path.moveToH(readNumber())
-						'h' -> while (isNextNumber()) path.rMoveToH(readNumber())
-						'V' -> while (isNextNumber()) path.moveToV(readNumber())
-						'v' -> while (isNextNumber()) path.rMoveToV(readNumber())
-						'Z' -> path.close()
-						'z' -> path.close()
-						else -> TODO("Unsupported command '$cmd' : Parsed: '${path.toSvgPathString()}', Original: '$d'")
+						'M' -> {
+							moveTo(readNumber(), readNumber())
+							while (isNextNumber()) lineTo(readNumber(), readNumber())
+						}
+						'm' -> {
+							rMoveTo(readNumber(), readNumber())
+							while (isNextNumber()) rLineTo(readNumber(), readNumber())
+						}
+						'L' -> while (isNextNumber()) lineTo(readNumber(), readNumber())
+						'l' -> while (isNextNumber()) rLineTo(readNumber(), readNumber())
+						'H' -> while (isNextNumber()) lineToH(readNumber())
+						'h' -> while (isNextNumber()) rLineToH(readNumber())
+						'V' -> while (isNextNumber()) lineToV(readNumber())
+						'v' -> while (isNextNumber()) rLineToV(readNumber())
+						'Q' -> while (isNextNumber()) quadraticCurveTo(readNumber(), readNumber(), readNumber(), readNumber())
+						'q' -> while (isNextNumber()) rQuadraticCurveTo(readNumber(), readNumber(), readNumber(), readNumber())
+						'C' -> while (isNextNumber()) bezierCurveTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
+						'c' -> while (isNextNumber()) rBezierCurveTo(readNumber(), readNumber(), readNumber(), readNumber(), readNumber(), readNumber())
+						'Z' -> closePath()
+						'z' -> closePath()
+						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
 				}
-				logger.trace { "Parsed SVG Path: '${path.toSvgPathString()}'" }
+				logger.trace { "Parsed SVG Path: '${state.path.toSvgPathString()}'" }
 				logger.trace { "Original SVG Path: '$d'" }
-				logger.warn { "Points: ${path.getPoints()}" }
-				println("Points: ${path.getPoints().map { "(${it.x}, ${it.y})" }.joinToString("")}")
-				path.getBounds(bounds)
-				path.getBounds()
-				beginPath()
-				c.path(path)
+				logger.trace { "Points: ${state.path.getPoints()}" }
+				getBounds(bounds)
 			}
 		}
 
@@ -495,7 +511,7 @@ fun VectorPath.getPoints(): List<Point2d> {
 	this.visitCmds(
 		moveTo = { x, y -> points += Point2d(x, y) },
 		lineTo = { x, y -> points += Point2d(x, y) },
-		quadTo = {x1, y1, x2, y2 -> points += Point2d(x2, y2) },
+		quadTo = { x1, y1, x2, y2 -> points += Point2d(x2, y2) },
 		cubicTo = { x1, y1, x2, y2, x3, y3 -> points += Point2d(x3, y3) },
 		close = { }
 	)

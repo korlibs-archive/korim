@@ -13,7 +13,6 @@ import org.w3c.dom.url.URL
 import org.w3c.files.Blob
 import org.w3c.files.BlobPropertyBag
 import kotlin.browser.document
-import kotlin.dom.createElement
 import kotlin.math.ceil
 
 class CanvasNativeImage(val canvas: HTMLCanvasElement) : NativeImage(canvas.width.toInt(), canvas.height.toInt(), canvas, false) {
@@ -108,23 +107,27 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d
 		return when (this) {
 			is Context2d.None -> "none"
 			is Context2d.Color -> NamedColors.toHtmlString(this.color)
-			is Context2d.LinearGradient -> {
-				val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
-				for (n in 0 until this.stops.size) {
-					val stop = this.stops[n]
-					val color = this.colors[n]
-					grad.addColorStop(stop, NamedColors.toHtmlString(color))
+			is Context2d.Gradient -> {
+				when (kind) {
+					Context2d.Gradient.Kind.LINEAR -> {
+						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
+						for (n in 0 until this.stops.size) {
+							val stop = this.stops[n]
+							val color = this.colors[n]
+							grad.addColorStop(stop, NamedColors.toHtmlString(color))
+						}
+						grad
+					}
+					Context2d.Gradient.Kind.RADIAL -> {
+						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
+						for (n in 0 until this.stops.size) {
+							val stop = this.stops[n]
+							val color = this.colors[n]
+							grad.addColorStop(stop, NamedColors.toHtmlString(color))
+						}
+						grad
+					}
 				}
-				grad
-			}
-			is Context2d.RadialGradient -> {
-				val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
-				for (n in 0 until this.stops.size) {
-					val stop = this.stops[n]
-					val color = this.colors[n]
-					grad.addColorStop(stop, NamedColors.toHtmlString(color))
-				}
-				grad
 			}
 			is Context2d.BitmapPaint -> {
 				ctx.createPattern(this.bitmap.toHtmlNative().canvas, if (this.repeat) "repeat" else "no-repeat")

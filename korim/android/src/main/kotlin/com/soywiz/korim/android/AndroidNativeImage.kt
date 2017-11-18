@@ -73,12 +73,21 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 				out.color = BGRA.packRGBA(c.color)
 				out.shader = null
 			}
-			is Context2d.LinearGradient -> {
-				out.shader = LinearGradient(
-					c.x0.toFloat(), c.y0.toFloat(),
-					c.x1.toFloat(), c.y1.toFloat(),
-					c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
-				)
+			is Context2d.Gradient -> {
+				when (c.kind) {
+					Context2d.Gradient.Kind.LINEAR ->
+						out.shader = LinearGradient(
+							c.x0.toFloat(), c.y0.toFloat(),
+							c.x1.toFloat(), c.y1.toFloat(),
+							c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
+						)
+					Context2d.Gradient.Kind.RADIAL ->
+						out.shader = RadialGradient(
+							c.x1.toFloat(), c.y1.toFloat(), c.r1.toFloat(),
+							c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
+						)
+				}
+
 			}
 		}
 	}

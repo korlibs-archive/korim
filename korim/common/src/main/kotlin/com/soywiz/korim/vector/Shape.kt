@@ -4,6 +4,7 @@ import com.soywiz.korim.bitmap.toUri
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.util.niceStr
+import com.soywiz.korio.util.substr
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.geom.BoundsBuilder
 import com.soywiz.korma.geom.Rectangle
@@ -58,14 +59,23 @@ private fun Matrix2d.toSvg() = this.run {
 		Matrix2d.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
 		else -> "matrix(${a.niceStr}, ${b.niceStr}, ${c.niceStr}, ${d.niceStr}, ${tx.niceStr}, ${ty.niceStr})"
 	}
-
 }
 
-fun VectorPath.toSvgPathString(separator: String = " "): String {
+// @TODO: Move to korio or korma
+fun Double.toString(dplaces: Int): String {
+	val res = this.toString()
+	val parts = res.split('.', limit = 2)
+	val integral = parts.getOrElse(0) { "0" }
+	val decimal = parts.getOrElse(1) { "1" }
+	if (dplaces == 0) return integral
+	return integral + "." + (decimal + "0".repeat(dplaces)).substr(0, dplaces)
+}
+
+fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1): String {
 	val parts = arrayListOf<String>()
 
-	fun Double.fixX() = this.niceStr
-	fun Double.fixY() = this.niceStr
+	fun Double.fixX() = this.toString(decimalPlaces)
+	fun Double.fixY() = this.toString(decimalPlaces)
 
 	this.visitCmds(
 		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },
@@ -174,28 +184,32 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			}
 
 			when (this) {
-				is Context2d.LinearGradient -> {
-					svg.defs += Xml.Tag("linearGradient",
-						mapOf(
-							"id" to "def$id",
-							"x1" to "$x0", "y1" to "$y0",
-							"x2" to "$x1", "y2" to "$y1",
-							"gradientTransform" to transform.toSvg()
-						),
-						stops
-					)
-				}
-				is Context2d.RadialGradient -> {
-					svg.defs += Xml.Tag("radialGradient",
-						mapOf(
-							"id" to "def$id",
-							"cx" to "$x0", "cy" to "$y0",
-							"fx" to "$x1", "fy" to "$y1",
-							"r" to "$r1",
-							"gradientTransform" to transform.toSvg()
-						),
-						stops
-					)
+				is Context2d.Gradient -> {
+					when (this.kind) {
+						Context2d.Gradient.Kind.LINEAR -> {
+							svg.defs += Xml.Tag("linearGradient",
+								mapOf(
+									"id" to "def$id",
+									"x1" to "$x0", "y1" to "$y0",
+									"x2" to "$x1", "y2" to "$y1",
+									"gradientTransform" to transform.toSvg()
+								),
+								stops
+							)
+						}
+						Context2d.Gradient.Kind.RADIAL -> {
+							svg.defs += Xml.Tag("radialGradient",
+								mapOf(
+									"id" to "def$id",
+									"cx" to "$x0", "cy" to "$y0",
+									"fx" to "$x1", "fy" to "$y1",
+									"r" to "$r1",
+									"gradientTransform" to transform.toSvg()
+								),
+								stops
+							)
+						}
+					}
 				}
 			}
 			return "url(#def$id)"

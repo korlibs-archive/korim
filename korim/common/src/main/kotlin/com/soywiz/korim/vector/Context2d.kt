@@ -155,10 +155,24 @@ class Context2d(val renderer: Renderer) {
 	fun strokeDot(x: Double, y: Double) = run { beginPath(); moveTo(x, y); lineTo(x, y); stroke() }
 	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, r: Double) = run { state.path.arcTo(x1, y1, x2, y2, r) }
 	fun circle(x: Double, y: Double, radius: Double) = arc(x, y, radius, 0.0, PI * 2.0)
+	fun rMoveTo(x: Double, y: Double) = run { state.path.rMoveTo(x, y) }
 	fun moveTo(x: Double, y: Double) = run { state.path.moveTo(x, y) }
+	fun moveToH(x: Double) = run { state.path.moveToH(x) }
+	fun moveToV(y: Double) = run { state.path.moveToV(y) }
+	fun rMoveToH(x: Double) = run { state.path.rMoveToH(x) }
+	fun rMoveToV(y: Double) = run { state.path.rMoveToV(y) }
+
+	fun lineToH(x: Double) = run { state.path.lineToH(x) }
+	fun lineToV(y: Double) = run { state.path.lineToV(y) }
+	fun rLineToH(x: Double) = run { state.path.rLineToH(x) }
+	fun rLineToV(y: Double) = run { state.path.rLineToV(y) }
+
 	fun lineTo(x: Double, y: Double) = run { state.path.lineTo(x, y) }
+	fun rLineTo(x: Double, y: Double) = run { state.path.rLineTo(x, y) }
 	fun quadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) = run { state.path.quadTo(cx, cy, ax, ay) }
+	fun rQuadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) = run { state.path.rQuadTo(cx, cy, ax, ay) }
 	fun bezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) = run { state.path.cubicTo(cx1, cy1, cx2, cy2, x, y) }
+	fun rBezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) = run { state.path.rCubicTo(cx1, cy1, cx2, cy2, x, y) }
 	fun rect(x: Double, y: Double, width: Double, height: Double) = run { state.path.rect(x, y, width, height) }
 	fun roundRect(x: Double, y: Double, w: Double, h: Double, rx: Double, ry: Double = rx) = run { this.beginPath(); state.path.roundRect(x, y, w, h, rx, ry); this.closePath() }
 
@@ -169,6 +183,8 @@ class Context2d(val renderer: Renderer) {
 
 	fun fillRect(x: Double, y: Double, width: Double, height: Double) = run { beginPath(); rect(x, y, width, height); fill() }
 	fun beginPath() = run { state.path = GraphicsPath() }
+
+	fun getBounds(out: Rectangle = Rectangle()) = state.path.getBounds(out)
 
 	fun closePath() = run { state.path.close() }
 	fun stroke() = run { if (state.strokeStyle != None) renderer.render(state, fill = false) }
@@ -219,8 +235,8 @@ class Context2d(val renderer: Renderer) {
 		}
 	}
 
-	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = LinearGradient(x0, y0, x1, y1)
-	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) = RadialGradient(x0, y0, r0, x1, y1, r1)
+	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) = Gradient(Gradient.Kind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
+	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) = Gradient(Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
 	fun createColor(color: Int) = Color(color)
 	fun createPattern(bitmap: Bitmap, repeat: Boolean = false, smooth: Boolean = true, transform: Matrix2d = Matrix2d()) = BitmapPaint(bitmap, transform, repeat, smooth)
 
@@ -260,17 +276,29 @@ class Context2d(val renderer: Renderer) {
 		val transform: Matrix2d
 	}
 
-	abstract class Gradient(
+	data class Gradient(
+		val kind: Kind,
 		val x0: Double,
 		val y0: Double,
+		val r0: Double,
 		val x1: Double,
 		val y1: Double,
+		val r1: Double,
 		val stops: DoubleArrayList = DoubleArrayList(),
 		val colors: IntArrayList = IntArrayList(),
-		val cycle: CycleMethod,
-		override val transform: Matrix2d,
-		val interpolationMethod: InterpolationMethod
+		val cycle: CycleMethod = CycleMethod.NO_CYCLE,
+		override val transform: Matrix2d = Matrix2d(),
+		val interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL,
+		val units: Units = Units.OBJECT_BOUNDING_BOX
 	) : TransformedPaint {
+		enum class Kind {
+			LINEAR, RADIAL
+		}
+
+		enum class Units {
+			USER_SPACE_ON_USE, OBJECT_BOUNDING_BOX
+		}
+
 		enum class InterpolationMethod {
 			LINEAR, NORMAL
 		}
@@ -283,24 +311,8 @@ class Context2d(val renderer: Renderer) {
 			return this
 		}
 
-		abstract fun applyMatrix(m: Matrix2d): Gradient
-	}
-
-	class LinearGradient(x0: Double, y0: Double, x1: Double, y1: Double, stops: DoubleArrayList = DoubleArrayList(), colors: IntArrayList = IntArrayList(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
-		override fun applyMatrix(m: Matrix2d): Gradient = LinearGradient(
-			m.transformX(x0, y0),
-			m.transformY(x0, y0),
-			m.transformX(x1, y1),
-			m.transformY(x1, y1),
-			DoubleArrayList(stops),
-			IntArrayList(colors)
-		)
-
-		override fun toString(): String = "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
-	}
-
-	class RadialGradient(x0: Double, y0: Double, val r0: Double, x1: Double, y1: Double, val r1: Double, stops: DoubleArrayList = DoubleArrayList(), colors: IntArrayList = IntArrayList(), cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix2d = Matrix2d(), interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL) : Gradient(x0, y0, x1, y1, stops, colors, cycle, transform, interpolationMethod) {
-		override fun applyMatrix(m: Matrix2d): Gradient = RadialGradient(
+		fun applyMatrix(m: Matrix2d): Gradient = Gradient(
+			kind,
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
 			r0,
@@ -308,15 +320,20 @@ class Context2d(val renderer: Renderer) {
 			m.transformY(x1, y1),
 			r1,
 			DoubleArrayList(stops),
-			IntArrayList(colors)
+			IntArrayList(colors),
+			cycle,
+			Matrix2d(),
+			interpolationMethod,
+			units
 		)
 
-		override fun toString(): String = "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
+		override fun toString(): String = when (kind) {
+			Kind.LINEAR -> "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
+			Kind.RADIAL -> "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
+		}
 	}
 
-	class BitmapPaint(val bitmap: Bitmap, override val transform: Matrix2d, val repeat: Boolean = false, val smooth: Boolean = true) : TransformedPaint {
-
-	}
+	class BitmapPaint(val bitmap: Bitmap, override val transform: Matrix2d, val repeat: Boolean = false, val smooth: Boolean = true) : TransformedPaint
 
 	interface Drawable {
 		fun draw(c: Context2d)
