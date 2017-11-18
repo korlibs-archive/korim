@@ -63,7 +63,7 @@ class ImageFormatsNativeTest {
 	@Test
 	fun svg() = syncTest {
 		val bi = ResourcesVfs["logo.svg"].readBitmapInfo(formats)!!
-		assertEquals(Size(128, 128), bi.size)
+		assertEquals(Size(60, 60), bi.size)
 		val bitmap = ResourcesVfs["logo.svg"].readBitmap(formats = formats)
 		//showImageAndWait(bitmap)
 		//File("c:/temp/logosvg.png").toVfs().writeBitmap(bitmap.toBMP32())
