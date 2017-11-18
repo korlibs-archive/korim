@@ -133,8 +133,8 @@ allprojects {
 						File fileOut = new File(compileTestKotlin2Js.outputFile + ".fix.js")
 						def timeout = 2000
 						fileOut.text = file.text.replaceAll(
-								/(?m)(?s)test\('(.*?)', false, function \(\) \{\s*(.*?);\s*\}\);/,
-								'test("$1", false, function() { this.timeout(' + timeout + '); global.testPromise = null; var res = $2 || (global.testPromise); return (res instanceof Promise) ? res : undefined; });'
+								/(?m)(?s)test\('(.*?)', (false|true), function \(\) \{\s*(.*?);\s*\}\);/,
+								'test("$1", $2, function() { this.timeout(' + timeout + '); global.testPromise = null; var res = $3 || (global.testPromise); return (res instanceof Promise) ? res : undefined; });'
 						)
 					}
 				}
@@ -159,6 +159,7 @@ allprojects {
 						pb.directory(new File("$buildDir/node_modules"))
 						def p = pb.start()
 						p.in.eachLine { println(it) }
+						p.err.eachLine { System.err.println(it) }
 						if (p.waitFor() != 0) {
 							throw new GradleException('error occurred running ' + cmd)
 						}

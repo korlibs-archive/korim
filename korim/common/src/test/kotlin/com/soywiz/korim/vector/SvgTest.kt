@@ -12,8 +12,9 @@ class SvgTest {
 		//@Ignore
 	fun name() = syncTest {
 		val logo = SVG(SAMPLE_LOGO)
-		//showImageAndWait(logo)
-		logo.render().toBmp32().writeTo(LocalVfs("c:/temp/logo.png"), formats = PNG)
+		val img = logo.render().toBmp32()
+
+		//img.writeTo(LocalVfs("c:/temp/logo.png"), formats = PNG)
 	}
 
 	val SAMPLE_LOGO = """

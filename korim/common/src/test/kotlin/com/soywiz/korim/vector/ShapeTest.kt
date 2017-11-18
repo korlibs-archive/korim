@@ -3,11 +3,13 @@ package com.soywiz.korim.vector
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.Colors
 import com.soywiz.korma.Matrix2d
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
 class ShapeTest {
 	//@kotlin.test.Test
 	@org.junit.Test
+	@Ignore
 	fun name() {
 		val shape = FillShape(
 			path = GraphicsPath().apply {
