@@ -1,5 +1,6 @@
 package com.soywiz.korim.color
 
+import com.soywiz.korio.lang.format
 import com.soywiz.korio.util.substr
 
 object NamedColors {
@@ -45,4 +46,5 @@ object NamedColors {
 	}
 
 	fun toHtmlString(color: Int) = "RGBA(" + RGBA.getR(color) + "," + RGBA.getG(color) + "," + RGBA.getB(color) + "," + RGBA.getAf(color) + ")"
+	fun toHtmlStringSimple(color: Int) = "#%02x%02x%02x".format(RGBA.getR(color), RGBA.getG(color), RGBA.getB(color))
 }

@@ -5,12 +5,11 @@ import com.soywiz.korim.format.writeTo
 import com.soywiz.korim.vector.format.SVG
 import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.LocalVfs
-import org.junit.Ignore
 import org.junit.Test
 
 class SvgTest {
 	@Test
-	@Ignore
+		//@Ignore
 	fun name() = syncTest {
 		val logo = SVG(SAMPLE_LOGO)
 		//showImageAndWait(logo)

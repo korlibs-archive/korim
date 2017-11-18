@@ -62,20 +62,25 @@ private fun Matrix2d.toSvg() = this.run {
 }
 
 // @TODO: Move to korio or korma
-fun Double.toString(dplaces: Int): String {
+fun Double.toString(dplaces: Int, skipTrailingZeros: Boolean = false): String {
 	val res = this.toString()
 	val parts = res.split('.', limit = 2)
 	val integral = parts.getOrElse(0) { "0" }
 	val decimal = parts.getOrElse(1) { "1" }
 	if (dplaces == 0) return integral
-	return integral + "." + (decimal + "0".repeat(dplaces)).substr(0, dplaces)
+	var out = integral + "." + (decimal + "0".repeat(dplaces)).substr(0, dplaces)
+	if (skipTrailingZeros) {
+		while (out.endsWith('0')) out = out.substring(0, out.length - 1)
+		if (out.endsWith('.')) out = out.substring(0, out.length - 1)
+	}
+	return out
 }
 
 fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1): String {
 	val parts = arrayListOf<String>()
 
-	fun Double.fixX() = this.toString(decimalPlaces)
-	fun Double.fixY() = this.toString(decimalPlaces)
+	fun Double.fixX() = this.toString(decimalPlaces, skipTrailingZeros = true)
+	fun Double.fixY() = this.toString(decimalPlaces, skipTrailingZeros = true)
 
 	this.visitCmds(
 		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },
@@ -116,9 +121,7 @@ fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
 	bb.getBounds(out)
 }
 
-fun Shape.toSvg(scale: Double = 1.0): Xml {
-	return SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
-}
+fun Shape.toSvg(scale: Double = 1.0): Xml = SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
 
 interface StyledShape : Shape {
 	val path: GraphicsPath

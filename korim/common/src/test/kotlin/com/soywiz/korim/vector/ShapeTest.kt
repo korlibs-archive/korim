@@ -6,7 +6,8 @@ import com.soywiz.korma.Matrix2d
 import kotlin.test.assertEquals
 
 class ShapeTest {
-	@kotlin.test.Test
+	//@kotlin.test.Test
+	@org.junit.Test
 	fun name() {
 		val shape = FillShape(
 			path = GraphicsPath().apply {

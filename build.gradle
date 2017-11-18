@@ -24,6 +24,19 @@ configurations {
 	provided
 }
 
+String executeShell(String cmd) {
+	def out = new StringBuilder()
+	def err = new StringBuilder()
+	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+		"cmd /c $cmd".execute().waitForProcessOutput(out, err)
+	} else {
+		cmd.execute().waitForProcessOutput(out, err)
+	}
+	//println("out: $out")
+	//println("err: $err")
+	return out.toString()
+}
+
 allprojects {
 	group 'com.soywiz'
 	version "0.17.4-SNAPSHOT"
@@ -140,7 +153,9 @@ allprojects {
 						}
 
 						ProcessBuilder pb = new ProcessBuilder(cmd as String[])
+						def globalNodeModules = executeShell("npm config get prefix").trim()
 						pb.environment().putAll(System.getenv())
+						pb.environment().put("NODE_PATH", [".", "${globalNodeModules}/node_modules"].join(File.pathSeparator))
 						pb.directory(new File("$buildDir/node_modules"))
 						def p = pb.start()
 						p.in.eachLine { println(it) }

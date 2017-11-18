@@ -7,6 +7,7 @@ import com.soywiz.korim.bitmap.ensureNative
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
+import com.soywiz.korio.util.OS
 import com.soywiz.korma.Matrix2d
 import org.w3c.dom.*
 import org.w3c.dom.url.URL
@@ -33,11 +34,7 @@ actual object NativeImageFormatProvider {
 	}
 
 	actual fun create(width: Int, height: Int): NativeImage {
-		// val canvas = document.createElement("canvas") as HTMLCanvasElement
-		val canvas: HTMLCanvasElement = document.createElement("canvas").asDynamic()
-		canvas.width = width
-		canvas.height = height
-		return CanvasNativeImage(canvas)
+		return CanvasNativeImage(HtmlCanvas.createCanvas(width, height))
 	}
 
 	actual fun copy(bmp: Bitmap): NativeImage {
@@ -76,19 +73,27 @@ actual object NativeImageFormatProvider {
 		suspend fun loadImage(jsUrl: String): HTMLCanvasElement = korioSuspendCoroutine { c ->
 			// Doesn't work with Kotlin.JS
 			//val img = document.createElement("image") as HTMLImageElement
-			val img: HTMLImageElement = js("(new Image())")
-			img.onload = {
-				val canvas: HTMLCanvasElement = document.createElement("canvas").asDynamic()
-				canvas.width = img.width
-				canvas.height = img.height
-				val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
-				ctx.drawImage(img, 0.0, 0.0)
-				c.resume(canvas)
+			if (OS.isNodejs) {
+				js("(require('canvas'))").loadImage(jsUrl).then({ v ->
+					c.resume(v)
+				}, { v ->
+					c.resumeWithException(v)
+				})
+				Unit
+			} else {
+				val img = document.createElement("image").unsafeCast<HTMLImageElement>()
+				img.onload = {
+					val canvas: HTMLCanvasElement = HtmlCanvas.createCanvas(img.width, img.height)
+					val ctx: CanvasRenderingContext2D = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
+					ctx.drawImage(img, 0.0, 0.0)
+					c.resume(canvas)
+				}
+				img.onerror = { _, _, _, _, _ ->
+					c.resumeWithException(RuntimeException("error loading image"))
+				}
+				img.src = jsUrl
+				Unit
 			}
-			img.onerror = { _, _, _, _, _ ->
-				c.resumeWithException(RuntimeException("error loading image"))
-			}
-			img.src = jsUrl
 		}
 
 		fun imgData(canvas: HTMLCanvasElement, out: IntArray): Unit {
@@ -101,12 +106,12 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
-	val ctx: CanvasRenderingContext2D = canvas.getContext("2d").asDynamic()
+	val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
 
 	fun Context2d.Paint.toJsStr(): Any? {
 		return when (this) {
 			is Context2d.None -> "none"
-			is Context2d.Color -> NamedColors.toHtmlString(this.color)
+			is Context2d.Color -> NamedColors.toHtmlStringSimple(this.color)
 			is Context2d.Gradient -> {
 				when (kind) {
 					Context2d.Gradient.Kind.LINEAR -> {
@@ -114,7 +119,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
 							val color = this.colors[n]
-							grad.addColorStop(stop, NamedColors.toHtmlString(color))
+							grad.addColorStop(stop, NamedColors.toHtmlStringSimple(color))
 						}
 						grad
 					}
@@ -123,7 +128,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
 							val color = this.colors[n]
-							grad.addColorStop(stop, NamedColors.toHtmlString(color))
+							grad.addColorStop(stop, NamedColors.toHtmlStringSimple(color))
 						}
 						grad
 					}
