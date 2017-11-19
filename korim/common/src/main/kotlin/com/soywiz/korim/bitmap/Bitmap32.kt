@@ -363,5 +363,17 @@ class Bitmap32(
 	}
 
 	override fun iterator(): Iterator<Int> = data.iterator()
+
+	fun setRowChunk(x: Int, y: Int, data: IntArray, width: Int, increment: Int) {
+		if (increment == 1) {
+			arraycopy(data, 0, this.data, index(x, y), width)
+		} else {
+			var m = index(x, y)
+			for (n in 0 until width) {
+				this.data[m] = data[n]
+				m += increment
+			}
+		}
+	}
 }
 

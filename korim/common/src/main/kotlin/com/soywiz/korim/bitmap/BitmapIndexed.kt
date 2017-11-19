@@ -60,4 +60,16 @@ abstract class BitmapIndexed(
 	fun toLines(palette: String): List<String> {
 		return (0 until height).map { y -> (0 until height).map { x -> palette[this[x, y]] }.joinToString("") }
 	}
+
+	fun setRowChunk(x: Int, y: Int, data: ByteArray, width: Int, increment: Int) {
+		if (increment == 1) {
+			arraycopy(data, 0, this.data, index(x, y), width / n8_dbpp)
+		} else {
+			var m = index(x, y)
+			for (n in 0 until width / n8_dbpp) {
+				this.data[m] = data[n]
+				m += increment
+			}
+		}
+	}
 }

@@ -12,6 +12,7 @@ import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.convertRangeClamped
 import kotlin.math.abs
 import kotlin.math.ceil
+import kotlin.math.log2
 import kotlin.math.max
 
 object PNG : ImageFormat("png") {
@@ -22,7 +23,9 @@ object PNG : ImageFormat("png") {
 		val startingRow: Int, val startingCol: Int,
 		val rowIncrement: Int, val colIncrement: Int,
 		val blockHeight: Int, val blockWidth: Int
-	)
+	) {
+		val colIncrementShift = log2(colIncrement.toDouble()).toInt()
+	}
 
 	val InterlacedPasses = listOf(
 		InterlacedPass(0, 0, 8, 8, 8, 8),
@@ -32,6 +35,10 @@ object PNG : ImageFormat("png") {
 		InterlacedPass(2, 0, 4, 2, 2, 2),
 		InterlacedPass(0, 1, 2, 2, 2, 1),
 		InterlacedPass(1, 0, 2, 1, 1, 1)
+	)
+
+	val NormalPasses = listOf(
+		InterlacedPass(0, 0, 1, 1, 1, 1)
 	)
 
 	enum class Colorspace(val id: Int) {
@@ -274,82 +281,58 @@ object PNG : ImageFormat("png") {
 		val data = datab.openSync()
 		val context = DecodingContext(header)
 
-		when (header.bytes) {
-			1 -> {
-				val palette = (0 until paletteCount).map { RGBA(rgbPalette[it * 3 + 0], rgbPalette[it * 3 + 1], rgbPalette[it * 3 + 2], aPalette[it]) }.toIntArray()
-				val out = Bitmap8(width, height, palette = palette)
-				for (y in 0 until height) {
-					val filter = data.readU8()
-					data.read(context.currentRow.data, 0, stride)
-					applyFilter(filter, context.lastRow, context.currentRow, header.bytes)
-					out.setRow(y, context.currentRow.data)
-					val temp = context.currentRow
-					context.currentRow = context.lastRow
-					context.lastRow = temp
-				}
-				return out
-			}
-			else -> {
-				val out = Bitmap32(width, height)
+		val bmp = when {
+			header.bytes == 1 -> Bitmap8(width, height, palette = (0 until paletteCount).map { RGBA(rgbPalette[it * 3 + 0], rgbPalette[it * 3 + 1], rgbPalette[it * 3 + 2], aPalette[it]) }.toIntArray())
+			else -> Bitmap32(width, height)
+		}
+		val bmp8 = bmp as? Bitmap8?
+		val bmp32 = bmp as? Bitmap32?
+		val passes = when (header.interlacemethod) {
+			1 -> InterlacedPasses
+			else -> NormalPasses
+		}
 
-				if (header.interlacemethod == 1) {
-					for (pass in InterlacedPasses) {
-						for (row in pass.startingRow until height step pass.rowIncrement) {
-							val col = pass.startingCol
-							val colIncrement = pass.colIncrement
-							val bytesInThisRow = (width * header.bytes) / colIncrement
-							val filter = data.readU8()
-							data.readExact(context.currentRow.data, 0, bytesInThisRow)
-							processRow(filter, context, bytesInThisRow)
-							setRowInterlated(context, out, row, col, colIncrement, header.bytes, bytesInThisRow / header.bytes)
+		for (pass in passes) {
+			for (row in pass.startingRow until height step pass.rowIncrement) {
+				val col = pass.startingCol
+				val colIncrement = pass.colIncrement
+				val pixelsInThisRow = width ushr pass.colIncrementShift
+				val bytesInThisRow = (pixelsInThisRow * header.bytes)
+				val filter = data.readU8()
+				data.readExact(context.currentRow.data, 0, bytesInThisRow)
+				when {
+					bmp8 != null -> {
+						applyFilter(filter, context.lastRow, context.currentRow, header.bytes)
+						bmp8.setRowChunk(col, row, context.currentRow.data, width, colIncrement)
+						context.swapRows()
+					}
+					bmp32 != null -> {
+						applyFilter(filter, context.lastRow, context.currentRow, context.header.bytes, bytesInThisRow)
+						when (context.header.bytes) {
+							3 -> RGB.decode(context.currentRow.data, 0, context.row, 0, pixelsInThisRow)
+							4 -> RGBA.decode(context.currentRow.data, 0, context.row, 0, pixelsInThisRow)
+							else -> TODO("Bytes: ${context.header.bytes}")
 						}
-					}
-					return out
-				} else {
-					for (y in 0 until height) {
-						val filter = data.readU8()
-						//println("filter: $filter")
-						data.readExact(context.currentRow.data, 0, stride)
-						processRow(filter, context)
-						out.setRow(y, context.row)
+						bmp32.setRowChunk(col, row, context.row, width, colIncrement)
+						context.swapRows()
 					}
 				}
-
-				return out
 			}
 		}
-	}
 
-	fun setRowInterlated(context: DecodingContext, out: Bitmap32, row: Int, colStart: Int, increment: Int, nbytes: Int, width: Int) {
-		if (increment == 1) {
-			out.setRow(row, context.row)
-		} else {
-			var m = colStart
-
-			for (n in 0 until width) {
-				out[m, row] = context.row[n]
-				m += increment
-			}
-		}
+		return bmp
 	}
 
 	class DecodingContext(val header: Header) {
 		var lastRow = UByteArray(header.stride)
 		var currentRow = UByteArray(header.stride)
 		val row = IntArray(header.width)
-	}
 
-	private fun processRow(filter: Int, context: DecodingContext, size: Int = context.currentRow.size) {
-		//println("row: ${currentRow.data.toList()}")
-		applyFilter(filter, context.lastRow, context.currentRow, context.header.bytes, size)
-		when (context.header.bytes) {
-			3 -> RGB.decode(context.currentRow.data, 0, context.row, 0, size / 3)
-			4 -> RGBA.decode(context.currentRow.data, 0, context.row, 0, size / 4)
-			else -> TODO("Bytes: ${context.header.bytes}")
+		fun swapRows() {
+			val temp = currentRow
+			currentRow = lastRow
+			lastRow = temp
 		}
-		val temp = context.currentRow
-		context.currentRow = context.lastRow
-		context.lastRow = temp
 	}
 
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
