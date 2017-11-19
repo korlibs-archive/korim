@@ -273,13 +273,13 @@ object PNG : ImageFormat("png") {
 		val height = header.height
 
 		val datab = ByteArray((1 + width) * height * header.bytes)
-		val stride = header.stride
 
 		SyncCompression.inflateTo(pngdata.toByteArray(), datab)
-		//println(datab.toList())
 
 		val data = datab.openSync()
 		val context = DecodingContext(header)
+		val bpp = context.header.bytes
+		val row32 = context.row32
 
 		val bmp = when {
 			header.bytes == 1 -> Bitmap8(width, height, palette = (0 until paletteCount).map { RGBA(rgbPalette[it * 3 + 0], rgbPalette[it * 3 + 1], rgbPalette[it * 3 + 2], aPalette[it]) }.toIntArray())
@@ -299,24 +299,25 @@ object PNG : ImageFormat("png") {
 				val pixelsInThisRow = width ushr pass.colIncrementShift
 				val bytesInThisRow = (pixelsInThisRow * header.bytes)
 				val filter = data.readU8()
-				data.readExact(context.currentRow.data, 0, bytesInThisRow)
+				val currentRow = context.currentRow
+				val lastRow = context.lastRow
+				data.readExact(currentRow.data, 0, bytesInThisRow)
 				when {
 					bmp8 != null -> {
-						applyFilter(filter, context.lastRow, context.currentRow, header.bytes)
-						bmp8.setRowChunk(col, row, context.currentRow.data, width, colIncrement)
-						context.swapRows()
+						applyFilter(filter, lastRow, currentRow, header.bytes)
+						bmp8.setRowChunk(col, row, currentRow.data, width, colIncrement)
 					}
 					bmp32 != null -> {
-						applyFilter(filter, context.lastRow, context.currentRow, context.header.bytes, bytesInThisRow)
-						when (context.header.bytes) {
-							3 -> RGB.decode(context.currentRow.data, 0, context.row, 0, pixelsInThisRow)
-							4 -> RGBA.decode(context.currentRow.data, 0, context.row, 0, pixelsInThisRow)
-							else -> TODO("Bytes: ${context.header.bytes}")
+						applyFilter(filter, lastRow, currentRow, bpp, bytesInThisRow)
+						when (bpp) {
+							3 -> RGB.decode(currentRow.data, 0, row32, 0, pixelsInThisRow)
+							4 -> RGBA.decode(currentRow.data, 0, row32, 0, pixelsInThisRow)
+							else -> TODO("Bytes: $bpp")
 						}
-						bmp32.setRowChunk(col, row, context.row, width, colIncrement)
-						context.swapRows()
+						bmp32.setRowChunk(col, row, row32, width, colIncrement)
 					}
 				}
+				context.swapRows()
 			}
 		}
 
@@ -326,7 +327,7 @@ object PNG : ImageFormat("png") {
 	class DecodingContext(val header: Header) {
 		var lastRow = UByteArray(header.stride)
 		var currentRow = UByteArray(header.stride)
-		val row = IntArray(header.width)
+		val row32 = IntArray(header.width)
 
 		fun swapRows() {
 			val temp = currentRow
@@ -335,9 +336,8 @@ object PNG : ImageFormat("png") {
 		}
 	}
 
-	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
-		return ImageData(listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap)))
-	}
+	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData =
+		ImageData(listOf(ImageFrame(readCommon(s, readHeader = false) as Bitmap)))
 
 	fun paethPredictor(a: Int, b: Int, c: Int): Int {
 		val p = a + b - c
