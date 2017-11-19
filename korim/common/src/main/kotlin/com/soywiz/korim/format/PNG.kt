@@ -19,6 +19,14 @@ object PNG : ImageFormat("png") {
 	const val MAGIC1 = 0x89504E47.toInt()
 	const val MAGIC2 = 0x0D0A1A0A.toInt()
 
+	val Starting_Row = intArrayOf(-1, 0, 0, 4, 0, 2, 0, 1)
+	val Starting_Col = intArrayOf(-1, 0, 4, 0, 2, 0, 1, 0)
+	val Row_Increment = intArrayOf(-1, 8, 8, 8, 4, 4, 2, 2)
+	val Col_Increment = intArrayOf(-1, 8, 8, 4, 4, 2, 2, 1)
+	val Block_Height = intArrayOf(-1, 8, 8, 4, 4, 2, 2, 1)
+	val Block_Width = intArrayOf(-1, 8, 4, 4, 2, 2, 1, 1)
+
+
 	enum class Colorspace(val id: Int) {
 		GRAYSCALE(0),
 		RGB(2),
@@ -257,9 +265,7 @@ object PNG : ImageFormat("png") {
 		//println(datab.toList())
 
 		val data = datab.openSync()
-
-		var lastRow = UByteArray(stride)
-		var currentRow = UByteArray(stride)
+		val context = DecodingContext(header)
 
 		when (header.bytes) {
 			1 -> {
@@ -267,38 +273,73 @@ object PNG : ImageFormat("png") {
 				val out = Bitmap8(width, height, palette = palette)
 				for (y in 0 until height) {
 					val filter = data.readU8()
-					data.read(currentRow.data, 0, stride)
-					applyFilter(filter, lastRow, currentRow, header.bytes)
-					out.setRow(y, currentRow.data)
-					val temp = currentRow
-					currentRow = lastRow
-					lastRow = temp
+					data.read(context.currentRow.data, 0, stride)
+					applyFilter(filter, context.lastRow, context.currentRow, header.bytes)
+					out.setRow(y, context.currentRow.data)
+					val temp = context.currentRow
+					context.currentRow = context.lastRow
+					context.lastRow = temp
 				}
 				return out
 			}
 			else -> {
-				val row = IntArray(width)
 				val out = Bitmap32(width, height)
-				for (y in 0 until height) {
-					val filter = data.readU8()
-					//println("filter: $filter")
-					data.readExact(currentRow.data, 0, stride)
-					//println("row: ${currentRow.data.toList()}")
-					applyFilter(filter, lastRow, currentRow, header.bytes)
-					when (header.bytes) {
-						3 -> RGB.decode(currentRow.data, 0, row, 0, width)
-						4 -> RGBA.decode(currentRow.data, 0, row, 0, width)
-						else -> TODO("Bytes: ${header.bytes}")
+
+				if (header.interlacemethod == 1) {
+					for (pass in 1 .. 7) {
+						var row = Starting_Row[pass]
+						while (row < height) {
+							val col = Starting_Col[pass]
+							val colIncrement = Col_Increment[pass]
+							val bytesInThisRow = (width * header.bytes) / colIncrement
+							val filter = data.readU8()
+							data.readExact(context.currentRow.data, 0, bytesInThisRow)
+							processRow(filter, context, bytesInThisRow)
+							setRowInterlated(context, out, row, col, colIncrement, header.bytes, bytesInThisRow / header.bytes)
+							row += Row_Increment[pass]
+						}
 					}
-					out.setRow(y, row)
-					val temp = currentRow
-					currentRow = lastRow
-					lastRow = temp
+					return out
+				} else {
+					for (y in 0 until height) {
+						val filter = data.readU8()
+						//println("filter: $filter")
+						data.readExact(context.currentRow.data, 0, stride)
+						processRow(filter, context)
+						out.setRow(y, context.row)
+					}
 				}
 
 				return out
 			}
 		}
+	}
+
+	fun setRowInterlated(context: DecodingContext, out: Bitmap32, row: Int, colStart: Int, increment: Int, nbytes: Int, width: Int) {
+		if (increment == 1) {
+			out.setRow(row, context.row)
+		} else {
+			for (n in 0 until width) out[colStart + n * increment, row] = context.row[n]
+		}
+	}
+
+	class DecodingContext(val header: Header) {
+		var lastRow = UByteArray(header.stride)
+		var currentRow = UByteArray(header.stride)
+		val row = IntArray(header.width)
+	}
+
+	private fun processRow(filter: Int, context: DecodingContext, size: Int = context.currentRow.size) {
+		//println("row: ${currentRow.data.toList()}")
+		applyFilter(filter, context.lastRow, context.currentRow, context.header.bytes, size)
+		when (context.header.bytes) {
+			3 -> RGB.decode(context.currentRow.data, 0,context. row, 0, size / 3)
+			4 -> RGBA.decode(context.currentRow.data, 0, context.row, 0, size / 4)
+			else -> TODO("Bytes: ${context.header.bytes}")
+		}
+		val temp = context.currentRow
+		context.currentRow = context.lastRow
+		context.lastRow = temp
 	}
 
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
@@ -313,18 +354,18 @@ object PNG : ImageFormat("png") {
 		return if ((pa <= pb) && (pa <= pc)) a else if (pb <= pc) b else c
 	}
 
-	fun applyFilter(filter: Int, p: UByteArray, c: UByteArray, bpp: Int) {
+	fun applyFilter(filter: Int, p: UByteArray, c: UByteArray, bpp: Int, size: Int = c.size) {
 		when (filter) {
 			0 -> Unit
-			1 -> for (n in bpp until c.size) c[n] += c[n - bpp]
-			2 -> for (n in 0 until c.size) c[n] += p[n]
+			1 -> for (n in bpp until size) c[n] += c[n - bpp]
+			2 -> for (n in 0 until size) c[n] += p[n]
 			3 -> {
 				for (n in 0 until bpp) c[n] += p[n] / 2
-				for (n in bpp until c.size) c[n] += (c[n - bpp] + p[n]) / 2
+				for (n in bpp until size) c[n] += (c[n - bpp] + p[n]) / 2
 			}
 			4 -> {
 				for (n in 0 until bpp) c[n] += p[n]
-				for (n in bpp until c.size) c[n] += paethPredictor(c[n - bpp], p[n], p[n - bpp])
+				for (n in bpp until size) c[n] += paethPredictor(c[n - bpp], p[n], p[n - bpp])
 			}
 			else -> TODO("Filter: $filter")
 		}

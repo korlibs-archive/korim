@@ -62,4 +62,5 @@ class ImageFormats : ImageFormat("") {
 
 suspend fun Bitmap.writeTo(file: VfsFile, props: ImageEncodingProps = ImageEncodingProps(), formats: ImageFormat = defaultImageFormats) = file.writeBytes(formats.encode(this, props.copy(filename = file.basename)))
 
+//val defaultImageFormats = ImageFormats().registerStandard()
 val defaultImageFormats = ImageFormats()
