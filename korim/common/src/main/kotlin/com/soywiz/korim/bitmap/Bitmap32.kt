@@ -1,5 +1,6 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.kmem.arraycopy
 import com.soywiz.kmem.fill
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
@@ -43,7 +44,7 @@ class Bitmap32(
 	override fun set32(x: Int, y: Int, v: Int): Unit = set(x, y, v)
 
 	fun setRow(y: Int, row: IntArray) {
-		row.copyTo(0, data, index(0, y), width)
+		arraycopy(row, 0, data, index(0, y), width)
 	}
 
 	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
@@ -59,7 +60,7 @@ class Bitmap32(
 				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], srcData[srcOffset + x])
 			} else {
 				// System.arraycopy
-				srcData.copyTo(srcOffset, dstData, dstOffset, width)
+				arraycopy(srcData, srcOffset, dstData, dstOffset, width)
 				//for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
 			}
 		}
@@ -122,8 +123,7 @@ class Bitmap32(
 		val out = Bitmap32(width, height)
 		for (yy in 0 until height) {
 			//for (xx in 0 until width) out[xx, y] = this[x + xx, y + yy]
-
-			this.data.copyTo(this.index(x, y + yy), out.data, out.index(0, y), width)
+			arraycopy(this.data, this.index(x, y + yy), out.data, out.index(0, y), width)
 		}
 		return out
 	}
@@ -198,7 +198,7 @@ class Bitmap32(
 			for (y in 0 until height) {
 				val srcIndex = src.index(srcX, srcY + y)
 				val dstIndex = dst.index(dstX, dstY + y)
-				src.data.copyTo(srcIndex, dst.data, dstIndex, width)
+				arraycopy(src.data, srcIndex, dst.data, dstIndex, width)
 			}
 		}
 
@@ -258,9 +258,9 @@ class Bitmap32(
 	override fun swapRows(y0: Int, y1: Int) {
 		val s0 = index(0, y0)
 		val s1 = index(0, y1)
-		data.copyTo(s0, temp, 0, width)
-		data.copyTo(s1, data, s0, width)
-		temp.copyTo(0, data, s1, width)
+		arraycopy(data, s0, temp, 0, width)
+		arraycopy(data, s1, data, s0, width)
+		arraycopy(temp, 0, data, s1, width)
 	}
 
 	fun writeDecoded(color: ColorFormat, data: ByteArray, offset: Int = 0, littleEndian: Boolean = true): Bitmap32 = this.apply {

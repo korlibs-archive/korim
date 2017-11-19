@@ -10,7 +10,6 @@ import com.soywiz.korio.KorioNative.SyncCompression
 import com.soywiz.korio.lang.toByteArray
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.convertRangeClamped
-import com.soywiz.korma.buffer.copyTo
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.max
@@ -19,13 +18,21 @@ object PNG : ImageFormat("png") {
 	const val MAGIC1 = 0x89504E47.toInt()
 	const val MAGIC2 = 0x0D0A1A0A.toInt()
 
-	val Starting_Row = intArrayOf(-1, 0, 0, 4, 0, 2, 0, 1)
-	val Starting_Col = intArrayOf(-1, 0, 4, 0, 2, 0, 1, 0)
-	val Row_Increment = intArrayOf(-1, 8, 8, 8, 4, 4, 2, 2)
-	val Col_Increment = intArrayOf(-1, 8, 8, 4, 4, 2, 2, 1)
-	val Block_Height = intArrayOf(-1, 8, 8, 4, 4, 2, 2, 1)
-	val Block_Width = intArrayOf(-1, 8, 4, 4, 2, 2, 1, 1)
+	data class InterlacedPass(
+		val startingRow: Int, val startingCol: Int,
+		val rowIncrement: Int, val colIncrement: Int,
+		val blockHeight: Int, val blockWidth: Int
+	)
 
+	val InterlacedPasses = listOf(
+		InterlacedPass(0, 0, 8, 8, 8, 8),
+		InterlacedPass(0, 4, 8, 8, 8, 4),
+		InterlacedPass(4, 0, 8, 4, 4, 4),
+		InterlacedPass(0, 2, 4, 4, 4, 2),
+		InterlacedPass(2, 0, 4, 2, 2, 2),
+		InterlacedPass(0, 1, 2, 2, 2, 1),
+		InterlacedPass(1, 0, 2, 1, 1, 1)
+	)
 
 	enum class Colorspace(val id: Int) {
 		GRAYSCALE(0),
@@ -286,17 +293,15 @@ object PNG : ImageFormat("png") {
 				val out = Bitmap32(width, height)
 
 				if (header.interlacemethod == 1) {
-					for (pass in 1 .. 7) {
-						var row = Starting_Row[pass]
-						while (row < height) {
-							val col = Starting_Col[pass]
-							val colIncrement = Col_Increment[pass]
+					for (pass in InterlacedPasses) {
+						for (row in pass.startingRow until height step pass.rowIncrement) {
+							val col = pass.startingCol
+							val colIncrement = pass.colIncrement
 							val bytesInThisRow = (width * header.bytes) / colIncrement
 							val filter = data.readU8()
 							data.readExact(context.currentRow.data, 0, bytesInThisRow)
 							processRow(filter, context, bytesInThisRow)
 							setRowInterlated(context, out, row, col, colIncrement, header.bytes, bytesInThisRow / header.bytes)
-							row += Row_Increment[pass]
 						}
 					}
 					return out
@@ -319,7 +324,12 @@ object PNG : ImageFormat("png") {
 		if (increment == 1) {
 			out.setRow(row, context.row)
 		} else {
-			for (n in 0 until width) out[colStart + n * increment, row] = context.row[n]
+			var m = colStart
+
+			for (n in 0 until width) {
+				out[m, row] = context.row[n]
+				m += increment
+			}
 		}
 	}
 
@@ -333,7 +343,7 @@ object PNG : ImageFormat("png") {
 		//println("row: ${currentRow.data.toList()}")
 		applyFilter(filter, context.lastRow, context.currentRow, context.header.bytes, size)
 		when (context.header.bytes) {
-			3 -> RGB.decode(context.currentRow.data, 0,context. row, 0, size / 3)
+			3 -> RGB.decode(context.currentRow.data, 0, context.row, 0, size / 3)
 			4 -> RGBA.decode(context.currentRow.data, 0, context.row, 0, size / 4)
 			else -> TODO("Bytes: ${context.header.bytes}")
 		}
@@ -432,7 +442,6 @@ class Adler32 {
 	}
 
 	companion object {
-
 		// largest prime smaller than 65536
 		private val BASE = 65521
 		// NMAX is the largest n such that 255n(n+1)/2 + (n+1)(BASE-1) <= 2^32-1
@@ -441,13 +450,9 @@ class Adler32 {
 		// The following logic has come from zlib.1.2.
 		internal fun combine(adler1: Long, adler2: Long, len2: Long): Long {
 			val BASEL = BASE.toLong()
-			var sum1: Long
-			var sum2: Long
-			val rem: Long  // unsigned int
-
-			rem = len2 % BASEL
-			sum1 = adler1 and 0xffffL
-			sum2 = rem * sum1
+			val rem: Long = len2 % BASEL
+			var sum1: Long = adler1 and 0xffffL
+			var sum2: Long = rem * sum1
 			sum2 %= BASEL // MOD(sum2);
 			sum1 += (adler2 and 0xffffL) + BASEL - 1
 			sum2 += (adler1 shr 16 and 0xffffL) + (adler2 shr 16 and 0xffffL) + BASEL - rem
@@ -480,13 +485,8 @@ class CRC32 {
 		v = c.inv()
 	}
 
-	fun reset() {
-		v = 0
-	}
-
-	fun reset(vv: Int) {
-		v = vv
-	}
+	fun reset() = run { v = 0 }
+	fun reset(vv: Int) = run { v = vv }
 
 	fun copy(): CRC32 {
 		val foo = CRC32()
@@ -584,7 +584,7 @@ class CRC32 {
 		val crC32Table: IntArray
 			get() {
 				val tmp = IntArray(crc_table.size)
-				crc_table.copyTo(0, tmp, 0, tmp.size)
+				arraycopy(crc_table, 0, tmp, 0, tmp.size)
 				return tmp
 			}
 	}
