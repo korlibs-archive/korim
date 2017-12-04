@@ -6,7 +6,11 @@ include(
 		'korim-android',
 )
 
-project(':korim-common').projectDir = file('korim/common')
-project(':korim').projectDir = file('korim/jvm')
-project(':korim-android').projectDir = file('korim/android')
-project(':korim-js').projectDir = file('korim/js')
+def register(String base) {
+	findProject(":$base-common")?.projectDir = file("$base/common")
+	findProject(":$base")?.projectDir = file("$base/jvm")
+	findProject(":$base-js")?.projectDir = file("$base/js")
+	findProject(":$base-android")?.projectDir = file("$base/android")
+}
+
+register('korim')

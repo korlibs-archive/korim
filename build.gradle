@@ -1,259 +1,34 @@
-import org.apache.tools.ant.taskdefs.condition.Os
-
 buildscript {
+	ext.projectVersion = '0.18.1-SNAPSHOT'
+	ext.projectName = 'korim'
+	ext.projectGroup = 'com.soywiz'
+	ext.projectDesc = 'Kotlin cORoutines IMaging utilities for JVM, Node.JS and Browser using JTransc'
+	ext.projectHost = 'github'
+	ext.projectOrg = 'korlibs'
+	ext.projectLicense = 'MIT'
+	ext.projectDevelNick = 'soywiz'
+	ext.projectDevelName = 'Carlos Ballesteros Velasco'
+	ext.projectInceptionYear = 2017
+
 	ext.korioVersion = '0.18.0'
 	ext.kormaVersion = '0.18.0'
 	ext.kloggerVersion = "0.3.0"
 	ext.kotlinVersion = '1.2.0'
 
 	repositories {
-		mavenLocal()
+		maven { url "https://plugins.gradle.org/m2/" }
 		jcenter()
+		mavenLocal()
 	}
 
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+		classpath "gradle.plugin.com.soywiz:korlibs-build-gradle-plugin:0.1.2"
 	}
 }
 
-configurations {
-	provided
-}
+apply plugin: 'com.soywiz.korlibs-build-gradle-plugin'
 
-String executeShell(String cmd) {
-	def out = new StringBuilder()
-	def err = new StringBuilder()
-	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-		"cmd /c $cmd".execute().waitForProcessOutput(out, err)
-	} else {
-		cmd.execute().waitForProcessOutput(out, err)
-	}
-	//println("out: $out")
-	//println("err: $err")
-	return out.toString()
-}
-
-allprojects {
-	group 'com.soywiz'
-	version "0.18.1-SNAPSHOT"
-
-	if (project == rootProject) {
-		new File(rootProject.rootDir, "korim/common/src/main/kotlin/com/soywiz/korim/KorimVersion.kt").write(
-				"package com.soywiz.korim\n\nval KORIM_VERSION = \"$version\""
-		)
-	}
-
-	apply plugin: 'java'
-	apply plugin: 'maven'
-	apply plugin: 'maven-publish'
-	apply plugin: 'signing'
-
-	compileJava.options.encoding = 'UTF-8'
-	compileTestJava.options.encoding = 'UTF-8'
-
-	sourceCompatibility = 1.5
-
-	repositories {
-		mavenLocal()
-		mavenCentral()
-	}
-
-	it.afterEvaluate {
-		if (it.plugins.hasPlugin("kotlin-platform-common")) {
-			dependencies {
-				compile "org.jetbrains.kotlin:kotlin-stdlib-common:$kotlinVersion"
-				testCompile "org.jetbrains.kotlin:kotlin-test-common:$kotlinVersion"
-				testCompile "org.jetbrains.kotlin:kotlin-test-annotations-common:$kotlinVersion"
-			}
-
-			kotlin {
-				experimental { coroutines 'enable' }
-			}
-		}
-		if (it.plugins.hasPlugin("kotlin-platform-jvm") || it.plugins.hasPlugin("kotlin")) {
-			dependencies {
-				compile "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
-				testCompile "org.jetbrains.kotlin:kotlin-test:$kotlinVersion"
-				testCompile "org.jetbrains.kotlin:kotlin-test-junit:$kotlinVersion"
-				testCompile "junit:junit:4.12"
-			}
-
-			kotlin {
-				experimental { coroutines 'enable' }
-			}
-
-			compileJava.options.encoding = 'UTF-8'
-			compileTestJava.options.encoding = 'UTF-8'
-
-			sourceCompatibility = 1.7
-			targetCompatibility = 1.7
-		}
-
-		// https://discuss.kotlinlang.org/t/unit-testing-in-kotlin-js/3943
-		// https://github.com/JetBrains/kotlin-examples/blob/5e883a6d67afc8b8aeb8991af6a7b6183be2213f/gradle/js-tests/mocha/build.gradle
-		if (it.plugins.hasPlugin("kotlin-platform-js") || it.plugins.hasPlugin("kotlin2js")) {
-			dependencies {
-				compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlinVersion"
-				testCompile "org.jetbrains.kotlin:kotlin-test-js:$kotlinVersion"
-			}
-
-			kotlin {
-				experimental { coroutines 'enable' }
-			}
-
-			[compileKotlin2Js, compileTestKotlin2Js]*.configure {
-				kotlinOptions.moduleKind = "umd"
-				kotlinOptions.sourceMap = true
-			}
-
-			task populateNodeModules(type: Copy, dependsOn: compileKotlin2Js) {
-				from compileKotlin2Js.destinationDir
-
-				configurations.testCompile.each {
-					from zipTree(it.absolutePath).matching { include '*.js' }
-					//from zipTree(it.absolutePath).matching { include '*' }
-				}
-
-				sourceSets.test.resources.srcDirs.each {
-					from it
-				}
-
-				into "${buildDir}/node_modules"
-			}
-
-			task fixJsForAsync(type: Task, dependsOn: [compileTestKotlin2Js, populateNodeModules]) {
-				doLast {
-					File file = new File(compileTestKotlin2Js.outputFile)
-					if (file.exists()) {
-						File fileOut = new File(compileTestKotlin2Js.outputFile + ".fix.js")
-						def timeout = 2000
-						fileOut.text = file.text.replaceAll(
-								/(?m)(?s)test\('(.*?)', (false|true), function \(\) \{\s*(.*?);\s*\}\);/,
-								'test("$1", $2, function() { this.timeout(' + timeout + '); global.testPromise = null; var res = $3 || (global.testPromise); return (res instanceof Promise) ? res : undefined; });'
-						)
-					}
-				}
-			}
-
-			task runMocha(type: Task, dependsOn: [fixJsForAsync]) {
-				doLast {
-					File fileOut = new File(compileTestKotlin2Js.outputFile + ".fix.js")
-
-					if (fileOut.exists()) {
-						String[] cmd
-						if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-							cmd = ["cmd", "/c", "mocha.cmd" as String, fileOut]
-						} else {
-							cmd = ["/bin/bash", '-c', "mocha '${fileOut}'"]
-						}
-
-						ProcessBuilder pb = new ProcessBuilder(cmd as String[])
-						def globalNodeModules = executeShell("npm config get prefix").trim()
-						pb.environment().putAll(System.getenv())
-						pb.environment().put("NODE_PATH", [".", "${globalNodeModules}/node_modules"].join(File.pathSeparator))
-						println(pb.environment())
-						pb.directory(new File("$buildDir/node_modules"))
-						def p = pb.start()
-						p.in.eachLine { println(it) }
-						p.err.eachLine { System.err.println(it) }
-						if (p.waitFor() != 0) {
-							throw new GradleException('error occurred running ' + cmd)
-						}
-					}
-				}
-			}
-
-			test.dependsOn runMocha
-		}
-	}
-
-	dependencies {
-		//compile "com.soywiz:korio-core:$korVersion"
-		//compile "com.soywiz:korma:$korVersion"
-		//compile "com.soywiz:korio-common:$korVersion"
-		//compile "com.soywiz:korma-common:$korVersion"
-		//testCompile "junit:junit:4.11"
-	}
-
-	task javadoc2(type: Javadoc) {
-		failOnError = false
-	}
-
-	task javadocJar(type: Jar, dependsOn: javadoc2) {
-		classifier = 'javadoc'
-		from 'build/docs/javadoc'
-	}
-
-	task sourcesJar(type: Jar) {
-		from sourceSets.main.allSource
-		classifier = 'sources'
-	}
-
-	artifacts {
-		archives jar
-		archives javadocJar
-		archives sourcesJar
-	}
-
-// gradle uploadArchives
-	if (project.hasProperty('sonatypeUsername')) {
-		signing {
-			sign configurations.archives
-		}
-
-		uploadArchives {
-			repositories {
-				mavenDeployer {
-					beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
-
-					repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-						authentication(userName: project.sonatypeUsername, password: project.sonatypePassword)
-					}
-
-					pom.project {
-						name "${project.name}"
-						packaging 'jar'
-						description 'Kotlin cORoutines IMaging utilities for JVM, Node.JS and Browser using JTransc'
-						url 'https://github.com/soywiz/korim/'
-						inceptionYear '2016'
-
-						scm {
-							url 'scm:git@github.com:soywiz/korim.git'
-							connection 'scm:git@github.com:soywiz/korim.git'
-							developerConnection 'scm:git@github.com:soywiz/korim.git'
-						}
-
-						licenses {
-							license {
-								name 'The Apache Software License, Version 2.0'
-								url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-								distribution 'repo'
-							}
-						}
-
-						developers {
-							developer {
-								id 'soywiz'
-								name 'Carlos Ballesteros Velasco'
-							}
-						}
-					}
-				}
-			}
-		}
-	}
-
-	publishing {
-		publications {
-			MyPublication(MavenPublication) {
-				from components.java
-				groupId project.group
-				artifactId project.name
-				version "$project.version"
-			}
-		}
-	}
-
-	task deploy(dependsOn: ['install', 'uploadArchives']) {
-	}
-}
+def verFile = new File(rootProject.rootDir, "korim/common/src/main/kotlin/com/soywiz/korim/KorimVersion.kt")
+verFile.parentFile.mkdirs()
+verFile.write("package com.soywiz.korim\n\ninternal val KORIM_VERSION = \"$projectVersion\"")
