@@ -90,4 +90,9 @@ class ImageFormats2Test {
 		//bitmap1.writeTo(LocalVfs("c:/temp/demo1.png"), formats = formats)
 		//bitmap2.writeTo(LocalVfs("c:/temp/demo2.png"), formats = formats)
 	}
+
+	@Test
+	fun pngDemo() = syncTest {
+		val bmp = root["kotlin32-extra-bytes.png"].readBitmapNoNative(formats)
+	}
 }
