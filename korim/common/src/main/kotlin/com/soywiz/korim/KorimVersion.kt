@@ -1,3 +1,3 @@
 package com.soywiz.korim
 
-internal val KORIM_VERSION = "0.18.1"
+internal val KORIM_VERSION = "0.18.2-SNAPSHOT"
