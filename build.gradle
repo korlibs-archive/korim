@@ -20,14 +20,23 @@ configurations {
 	provided
 }
 
-String executeShell(String cmd) {
+String executeShell(String cmd, File dir = null) {
 	def out = new StringBuilder()
 	def err = new StringBuilder()
+	def acmd
+
 	if (Os.isFamily(Os.FAMILY_WINDOWS)) {
-		"cmd /c $cmd".execute().waitForProcessOutput(out, err)
+		acmd = "cmd /c $cmd"
 	} else {
-		cmd.execute().waitForProcessOutput(out, err)
+		acmd = cmd
 	}
+	def res
+	if (dir != null) {
+		res = acmd.execute((String[])null, dir)
+	} else {
+		res = acmd.execute()
+	}
+	res.waitForProcessOutput(out, err)
 	//println("out: $out")
 	//println("err: $err")
 	return out.toString()
@@ -147,13 +156,15 @@ allprojects {
 							cmd = ["/bin/bash", '-c', "mocha '${fileOut}'"]
 						}
 
+						if (!(new File("$buildDir/node_modules/canvas")).exists()) {
+							executeShell("npm link canvas", buildDir)
+						}
+
 						ProcessBuilder pb = new ProcessBuilder(cmd as String[])
-						def globalNodeModules = executeShell("npm config get prefix").trim()
 						pb.environment().putAll(System.getenv())
-						pb.environment().put("NODE_PATH", [".", "${globalNodeModules}/node_modules"].join(File.pathSeparator))
 						pb.directory(new File("$buildDir/node_modules"))
 						def p = pb.start()
-						p.in.eachLine { println(it) }
+						p.in.eachLine { System.out.println(it) }
 						p.err.eachLine { System.err.println(it) }
 						if (p.waitFor() != 0) {
 							throw new GradleException('error occurred running ' + cmd)
