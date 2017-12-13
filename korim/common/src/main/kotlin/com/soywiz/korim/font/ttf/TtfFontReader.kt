@@ -45,7 +45,11 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		}
 	}
 
+	data class Fixed(val num: Int, val den: Int)
+	fun SyncStream.readFixed() = Fixed(readS16_le(), readS16_le())
+
 	val tablesByName = LinkedHashMap<String, Table>()
+	fun openTable(name: String) = tablesByName[name]?.open()
 
 	var numGlyphs = 0
 	var maxPoints = 0
@@ -62,6 +66,8 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	var maxComponentElements = 0
 	var maxComponentDepth = 0
 	var locs = IntArray(0)
+	fun getGlyphOffset(index: Int) = locs[index + 1]
+	fun getGlyphSize(index: Int) = locs[index + 2] - locs[index + 1]
 
 	var fontRev = Fixed(0, 0)
 	var unitsPerEm = 128
@@ -69,6 +75,9 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	var yMin = 0
 	var xMax = 0
 	var yMax = 0
+	var macStyle = 0
+	var lowestRecPPEM = 0
+	var fontDirectionHint = 0
 
 	var indexToLocFormat = 0
 	var glyphDataFormat = 0
@@ -80,17 +89,18 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	}
 
 	init {
-		s.slice().readHeader()
+		readHeaderTables()
 		readHead()
 		readMaxp()
 		readNames()
 		readLoca()
+		readCmap()
 		//readGlyphs()
 	}
 
 	//val tablesByName =
 
-	fun SyncStream.readHeader() {
+	fun readHeaderTables() = s.slice().apply {
 		val majorVersion = readU16_be().apply { if (this != 1) invalidOp("Not a TTF file") }
 		val minorVersion = readU16_be().apply { if (this != 0) invalidOp("Not a TTF file") }
 		val numTables = readU16_be()
@@ -110,7 +120,7 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		//for (table in tables) println(table)
 	}
 
-	fun readNames() = tablesByName["name"]?.open()?.run {
+	fun readNames() = openTable("name")?.run {
 		val format = readU16_be()
 		val count = readU16_be()
 		val stringOffset = readU16_be()
@@ -133,18 +143,14 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		}
 	}
 
-	fun getGlyphOffset(index: Int) = locs[index + 1]
-	fun getGlyphSize(index: Int) = locs[index + 2] - locs[index + 1]
-
-	fun readLoca() {
-		val s = tablesByName["loca"]?.open() ?: return
+	fun readLoca() = openTable("loca")?.run {
 		val bytesPerEntry = when (indexToLocFormat) {
 			0 -> 2
 			1 -> 4
 			else -> invalidOp
 		}
 
-		val data = s.readBytesExact(bytesPerEntry * (numGlyphs + 1))
+		val data = readBytesExact(bytesPerEntry * (numGlyphs + 1))
 		locs = IntArray(numGlyphs + 1)
 
 		FastByteArrayInputStream(data).run {
@@ -157,11 +163,7 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		println("locs: ${locs.toList()}")
 	}
 
-	data class Fixed(val num: Int, val den: Int)
-
-	fun SyncStream.readFixed() = Fixed(readS16_le(), readS16_le())
-
-	fun readHead() = tablesByName["head"]?.open()?.run {
+	fun readHead() = openTable("head")?.run {
 		readU16_be().apply { if (this != 1) invalidOp("Invalid TTF") }
 		readU16_be().apply { if (this != 0) invalidOp("Invalid TTF") }
 		fontRev = readFixed()
@@ -175,9 +177,9 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		yMin = readS16_be()
 		xMax = readS16_be()
 		yMax = readS16_be()
-		val macStyle = readU16_be()
-		val lowestRecPPEM = readU16_be()
-		val fontDirectionHint = readS16_be()
+		macStyle = readU16_be()
+		lowestRecPPEM = readU16_be()
+		fontDirectionHint = readS16_be()
 		indexToLocFormat = readS16_be() // 0=Int16, 1=Int32
 		glyphDataFormat = readS16_be()
 
@@ -187,7 +189,7 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		println("bounds: ($xMin, $yMin)-($xMax, $yMax)")
 	}
 
-	fun readMaxp() = tablesByName["maxp"]?.open()?.run {
+	fun readMaxp() = openTable("maxp")?.run {
 		val version = readFixed()
 		numGlyphs = readU16_be()
 		maxPoints = readU16_be()
@@ -205,30 +207,53 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		maxComponentDepth = readU16_be()
 	}
 
-	fun readGlyphs() {
-		val s = tablesByName["glyf"]?.open() ?: return
+	fun readHmtx() = openTable("hmtx")?.run {
+
+	}
+
+	fun readCmap() = openTable("cmap")?.run {
+		data class EncodingRecord(val platformId: Int, val encodingId: Int, val offset: Int)
+		val version = readU16_be()
+		val numTables = readU16_be()
+		val tables = (0 until numTables).map { EncodingRecord(readU16_be(), readU16_be(), readS32_be()) }
+
+		println(tables)
+	}
+
+	fun readGlyphByIndex(index: Int): Glyph? = openTable("glyf")?.run {
+		if (index in 0 until numGlyphs) {
+			val offset = getGlyphOffset(index)
+			val size = getGlyphSize(index)
+			sliceWithSize(offset, size).readGlyph()
+		} else {
+			null
+		}
+	}
+
+	fun readAllGlyphs() = (0 until numGlyphs).map { readGlyphByIndex(it) }
+
+	fun readGlyphs() = openTable("glyf")?.run {
 		println("numGlyphs: $numGlyphs")
 		for (n in 0 until numGlyphs - 1) {
 			val offset = getGlyphOffset(n)
 			val size = getGlyphSize(n)
 			//println("offset: $offset, size: $size")
-			val glyph = s.sliceWithSize(offset, size).readGlyph()
+			val glyph = sliceWithSize(offset, size).readGlyph()
 			//val gp = glyph.createGraphicsPath()
 			//showImageAndWait(gp.filled(Context2d.Color(Colors.RED)))
 			//println(glyph)
 		}
 	}
 
-	suspend fun readGlyphsSuspend() {
-		val s = tablesByName["glyf"]?.open() ?: return
+	suspend fun readGlyphsSuspend() = openTable("glyf")?.run {
 		println(this@TtfFontReader)
 		println("numGlyphs: $numGlyphs")
 		println("locs: ${locs.toList()}")
 		for (n in 0 until numGlyphs - 1) {
 			val offset = getGlyphOffset(n)
 			val size = getGlyphSize(n)
-			//println("offset: $offset, size: $size")
-			val glyph = s.sliceWithSize(offset, size).readGlyph()
+			println("offset: $offset, size: $size")
+			val glyph = sliceWithSize(offset, size).readGlyph()
 			val gp = glyph.createGraphicsPath()
 
 			var scale = 64.0 / unitsPerEm.toDouble()
@@ -241,62 +266,6 @@ class TtfFontReader private constructor(val s: SyncStream) {
 				gp.filled(Context2d.Color(Colors.RED))
 			)
 		}
-	}
-
-	fun Glyph.createGraphicsPath(): GraphicsPath {
-		val p = GraphicsPath()
-
-		for (n in 0 until contoursIndices.size - 1) {
-			val cstart = contoursIndices[n] + 1
-			val cend = contoursIndices[n + 1]
-			val csize = cend - cstart + 1
-
-			var curr: Contour = contour(cend)
-			var next: Contour = contour(cstart)
-
-			if (curr.onCurve) {
-				p.moveTo(curr.x, curr.y)
-			} else {
-				if (next.onCurve) {
-					p.moveTo(next.x, next.y)
-				} else {
-					p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
-				}
-			}
-
-			for (cpos in 0 until csize) {
-				val prev = curr
-				curr = next
-				next = contour(cstart + ((cpos + 1) % csize))
-
-				if (curr.onCurve) {
-					p.lineTo(curr.x, curr.y)
-				} else {
-					var prev2X = prev.x
-					var prev2Y = prev.y
-					var next2X = next.x
-					var next2Y = next.y
-
-					if (!prev.onCurve) {
-						prev2X = ((curr.x + prev.x) * 0.5).toInt()
-						prev2Y = ((curr.y + prev.y) * 0.5).toInt()
-						p.lineTo(prev2X, prev2Y)
-					}
-
-					if (!next.onCurve) {
-						next2X = ((curr.x + next.x) * 0.5).toInt()
-						next2Y = ((curr.y + next.y) * 0.5).toInt()
-					}
-
-					p.lineTo(prev2X, prev2Y)
-					p.quadTo(curr.x, curr.y, next2X, next2Y)
-				}
-			}
-
-			p.close()
-		}
-
-		return p
 	}
 
 	interface IGlyph
@@ -323,6 +292,62 @@ class TtfFontReader private constructor(val s: SyncStream) {
 			x = xPos[n]
 			y = yPos[n]
 			onCurve = onCurve(n)
+		}
+
+		fun createGraphicsPath(): GraphicsPath {
+			val p = GraphicsPath()
+
+			for (n in 0 until contoursIndices.size - 1) {
+				val cstart = contoursIndices[n] + 1
+				val cend = contoursIndices[n + 1]
+				val csize = cend - cstart + 1
+
+				var curr: Contour = contour(cend)
+				var next: Contour = contour(cstart)
+
+				if (curr.onCurve) {
+					p.moveTo(curr.x, curr.y)
+				} else {
+					if (next.onCurve) {
+						p.moveTo(next.x, next.y)
+					} else {
+						p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
+					}
+				}
+
+				for (cpos in 0 until csize) {
+					val prev = curr
+					curr = next
+					next = contour(cstart + ((cpos + 1) % csize))
+
+					if (curr.onCurve) {
+						p.lineTo(curr.x, curr.y)
+					} else {
+						var prev2X = prev.x
+						var prev2Y = prev.y
+						var next2X = next.x
+						var next2Y = next.y
+
+						if (!prev.onCurve) {
+							prev2X = ((curr.x + prev.x) * 0.5).toInt()
+							prev2Y = ((curr.y + prev.y) * 0.5).toInt()
+							p.lineTo(prev2X, prev2Y)
+						}
+
+						if (!next.onCurve) {
+							next2X = ((curr.x + next.x) * 0.5).toInt()
+							next2Y = ((curr.y + next.y) * 0.5).toInt()
+						}
+
+						p.lineTo(prev2X, prev2Y)
+						p.quadTo(curr.x, curr.y, next2X, next2Y)
+					}
+				}
+
+				p.close()
+			}
+
+			return p
 		}
 	}
 
@@ -365,25 +390,16 @@ class TtfFontReader private constructor(val s: SyncStream) {
 
 			for (xy in 0..1) {
 				val pos = if (xy == 0) xPos else yPos
-				val name = if (xy == 0) "x" else "y"
 				var p = 0
 				for (n in 0 until numPoints) {
 					val flag = flags[n]
 					val b1 = ((flag ushr (1 + xy)) and 1) != 0
 					val b2 = ((flag ushr (4 + xy)) and 1) != 0
 					if (b1) {
-						// UBYTE: b2 represents sign
 						val magnitude = readU8()
 						if (b2) p += magnitude else p -= magnitude
-						//println("UBYTE[$name]: $p")
-					} else {
-						// SHORT: b2==1 (use previous position), b2==0 SHORT
-						if (!b2) {
-							p += readS16_be()
-							//println("SHORT[$name]: $p")
-						} else {
-							//println("PREV[$name]: $p")
-						}
+					} else if (!b2) {
+						p += readS16_be()
 					}
 					pos[n] = p
 				}
