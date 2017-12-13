@@ -6,7 +6,9 @@ import com.soywiz.kmem.readS16_LEBE
 import com.soywiz.kmem.write16_LEBE
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
-import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korim.vector.filled
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.lang.Charset
 import com.soywiz.korio.lang.UTF8
@@ -242,71 +244,86 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	}
 
 	fun Glyph.createGraphicsPath(): GraphicsPath {
-		val g = this
-		var first = true
-		var c = 0
-		val gp = GraphicsPath()
+		val p = GraphicsPath()
 
-		var xpp = 0
-		var ypp = 0
-		var zpp = true
+		for (n in 0 until contoursIndices.size - 1) {
+			val cstart = contoursIndices[n] + 1
+			val cend = contoursIndices[n + 1]
+			val csize = cend - cstart + 1
 
-		var xp = 0
-		var yp = 0
-		var zp = true
+			var curr: Contour = contour(cend)
+			var next: Contour = contour(cstart)
 
-		for (p in 0 until g.npoints) {
-			val x = g.xPos[p]
-			val y = g.yPos[p]
-			val z = (g.flags[p] and 1) != 0
-
-			if (first) {
-				gp.moveTo(x, y)
-				first = false
-				xpp = x
-				ypp = y
-				zpp = true
-				xp = x
-				yp = y
-				zp = true
+			if (curr.onCurve) {
+				p.moveTo(curr.x, curr.y)
 			} else {
-				if (z) {
-					if (zp) {
-						gp.lineTo(x, y)
-					} else if (zpp) {
-						gp.quadTo(xp, yp, x, y)
-					} else {
-						gp.cubicTo(xpp, ypp, xp, yp, x, y)
-					}
+				if (next.onCurve) {
+					p.moveTo(next.x, next.y)
+				} else {
+					p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
 				}
 			}
-			if (p == g.endPtsOfContours[c].toInt()) {
-				first = true
-				c++
-			} else {
-				xpp = xp
-				ypp = yp
-				zpp = zp
 
-				xp = x
-				yp = y
-				zp = z
+			for (cpos in 0 until csize) {
+				val prev = curr
+				curr = next
+				next = contour(cstart + ((cpos + 1) % csize))
+
+				if (curr.onCurve) {
+					p.lineTo(curr.x, curr.y)
+				} else {
+					var prev2X = prev.x
+					var prev2Y = prev.y
+					var next2X = next.x
+					var next2Y = next.y
+
+					if (!prev.onCurve) {
+						prev2X = ((curr.x + prev.x) * 0.5).toInt()
+						prev2Y = ((curr.y + prev.y) * 0.5).toInt()
+						p.lineTo(prev2X, prev2Y)
+					}
+
+					if (!next.onCurve) {
+						next2X = ((curr.x + next.x) * 0.5).toInt()
+						next2Y = ((curr.y + next.y) * 0.5).toInt()
+					}
+
+					p.lineTo(prev2X, prev2Y)
+					p.quadTo(curr.x, curr.y, next2X, next2Y)
+				}
 			}
+
+			p.close()
 		}
-		return gp
+
+		return p
 	}
 
 	interface IGlyph
 
+	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
+		fun copyFrom(that: Contour) {
+			this.x = that.x
+			this.y = that.y
+			this.onCurve = that.onCurve
+		}
+	}
+
 	data class Glyph(
 		val xMin: Int, val yMin: Int,
 		val xMax: Int, val yMax: Int,
-		val endPtsOfContours: ShortArray,
+		val contoursIndices: IntArray,
 		val flags: IntArray,
 		val xPos: IntArray,
 		val yPos: IntArray
 	) : IGlyph {
 		val npoints: Int get() = xPos.size
+		fun onCurve(n: Int) = (flags[n] and 1) != 0
+		fun contour(n: Int, out: Contour = Contour()) = out.apply {
+			x = xPos[n]
+			y = yPos[n]
+			onCurve = onCurve(n)
+		}
 	}
 
 	fun SyncStream.readGlyph(): Glyph {
@@ -319,10 +336,12 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		if (ncontours < 0) {
 			TODO("readCompositeGlyph")
 		} else {
-			val endPtsOfContours = readShortArray_be(ncontours)
+			val contoursIndices = IntArray(ncontours + 1)
+			contoursIndices[0] = -1
+			for (n in 1..ncontours) contoursIndices[n] = readU16_be()
 			val instructionLength = readU16_be()
 			val instructions = readBytesExact(instructionLength)
-			val numPoints = endPtsOfContours.lastOrNull()?.toInt()?.plus(1) ?: 0
+			val numPoints = contoursIndices.lastOrNull()?.toInt()?.plus(1) ?: 0
 			val flags = IntArrayList()
 
 			var npos = 0
@@ -373,7 +392,7 @@ class TtfFontReader private constructor(val s: SyncStream) {
 			//println("$ncontours, $xMin, $yMax, $xMax, $yMax, ${endPtsOfContours.toList()}, $numPoints, ${flags.toList()}")
 			//println(xPos.toList())
 			//println(yPos.toList())
-			return Glyph(xMin, yMin, xMax, yMax, endPtsOfContours, flags.data.copyOf(flags.size), xPos, yPos)
+			return Glyph(xMin, yMin, xMax, yMax, contoursIndices, flags.data.copyOf(flags.size), xPos, yPos)
 		}
 	}
 }
