@@ -23,7 +23,11 @@ Ad BitmapChannel
 
 Korim provides utilities for reading and writing some image formats without any kind of additional dependency.
 
-PNG, JPG, TGA, BMP, ICO, PSD and DDS (DXT1, DXT2, DXT3, DXT4 and DXT5).
+PNG, JPG, TGA, BMP, ICO, PSD(WIP) and DDS (DXT1, DXT2, DXT3, DXT4 and DXT5).
+
+### Native Image Formats
+
+Korim also allows to use native image readers from your device for maximum performance for standard image formats.
 
 ### Color Formats
 
@@ -31,20 +35,21 @@ Korim provides color formats to convert easily and fast and to perform, mixing, 
 
 ### Vectorial Image Formats
 
-Korim supports loading, rasterizing and drawing vector SVG files.
+Korim supports loading, rasterizing and drawing vectorial SVG files.
 
 ### Native vectorial rendering
 
-It provides a single interface for vector rendering.
-So you can use a single interface and leverage JavaScript Canvas,
-AWT's Graphics2D and Android Canvas.
-It allows converting shapes into SVG.
-Also allows to draw shapes with fills in contact without artifacts in a portable way.
+It provides a single interface for vector rendering so you can use a single interface
+and leverage JavaScript Canvas, AWT's Graphics2D, Android Canvas or any other rasterizer exposed by korim implementations.
+It also allows to convert shapes into SVG.
+Includes a feature to draw shapes with fills in contact without artifacts in a portable way by multisampling.
+Useful for offline rasterizers.
 
 ### AWT Utilities
 
 Korim provides AWT utilities to convert bitmaps into AWT BufferedImages, and to display them.
 These are just extensions so not referenced from the main code.
+And if you use native image loading, you can display those images as fast as possible without any conversion at all.
 
 ### Native Fonts
 
@@ -53,7 +58,7 @@ actually including any font, using device fonts.
 
 ### TTF Reading and rendering
 
-Korim provides a pure Kotlin TTF reader, and using native vectorial rendering allows you to
+Korim provides a pure Kotlin-Common TTF reader, and using native vectorial rendering allows you to
 render glyphs, texts and to get advanced font metrics.
 
 ### Korio integration
