@@ -48,7 +48,13 @@ These are just extensions so not referenced from the main code.
 
 ### Native Fonts
 
-Korim provides native font rendering. You can rasterize glyph fonts on all targets.
+Korim provides native font rendering. You can rasterize glyph fonts on all targets without
+actually including any font, using device fonts.
+
+### TTF Reading and rendering
+
+Korim provides a pure Kotlin TTF reader, and using native vectorial rendering allows you to
+render glyphs, texts and to get advanced font metrics.
 
 ### Korio integration
 
