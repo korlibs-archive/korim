@@ -10,5 +10,6 @@ class TtfFontTest {
 	@Ignore
 	fun name() = syncTest {
 		val font = TtfFontReader(tinymce_small_ttf.openSync())
+		font.readGlyphsSuspend()
 	}
 }

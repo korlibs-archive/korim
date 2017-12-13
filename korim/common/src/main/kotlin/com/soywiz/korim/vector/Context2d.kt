@@ -12,6 +12,7 @@ import com.soywiz.korma.ds.DoubleArrayList
 import com.soywiz.korma.ds.IntArrayList
 import com.soywiz.korma.geom.Rectangle
 import kotlin.math.PI
+import kotlin.math.abs
 import kotlin.math.ceil
 
 class Context2d(val renderer: Renderer) {
@@ -363,6 +364,27 @@ fun Context2d.SizedDrawable.filled(paint: Context2d.Paint): Context2d.SizedDrawa
 			c.fillStyle = paint
 			this@filled.draw(c)
 			c.fill()
+		}
+	}
+}
+
+fun Context2d.SizedDrawable.scaled(sx: Number = 1.0, sy: Number = sx): Context2d.SizedDrawable {
+	return object : Context2d.SizedDrawable by this {
+		override val width: Int = abs(this@scaled.width.toDouble() * sx.toDouble()).toInt()
+		override val height: Int = abs(this@scaled.height.toDouble() * sy.toDouble()).toInt()
+
+		override fun draw(c: Context2d) {
+			c.scale(sx.toDouble(), sy.toDouble())
+			this@scaled.draw(c)
+		}
+	}
+}
+
+fun Context2d.SizedDrawable.translated(tx: Number = 0.0, ty: Number = tx): Context2d.SizedDrawable {
+	return object : Context2d.SizedDrawable by this {
+		override fun draw(c: Context2d) {
+			c.translate(tx.toDouble(), ty.toDouble())
+			this@translated.draw(c)
 		}
 	}
 }
