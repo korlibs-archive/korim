@@ -40,7 +40,7 @@ object JPEG : ImageFormat("jpg", "jpeg") {
 				bmp.toBMP32().extractBytes(),
 				bmp.width,
 				bmp.height
-			))
+			), qu = (props.quality * 100).toInt())
 		)
 	}
 

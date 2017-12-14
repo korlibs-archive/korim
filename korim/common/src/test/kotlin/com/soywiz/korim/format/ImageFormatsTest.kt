@@ -4,6 +4,7 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.async.syncTest
 import com.soywiz.korio.vfs.LocalVfs
 import com.soywiz.korio.vfs.ResourcesVfs
+import org.junit.Test
 import kotlin.test.assertEquals
 
 class ImageFormatsTest {
@@ -59,6 +60,14 @@ class ImageFormatsTest {
 		assertEquals("Bitmap32(190, 190)", bitmap2.toString())
 		//showImageAndWait(Bitmap32.diff(bitmap, bitmap2))
 		assertEquals(true, Bitmap32.matches(bitmapOriginal, bitmap2))
+	}
+
+	@Test
+	fun jpegEncoder() = imageTest {
+		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative().toBMP32()
+		//val bitmapOriginal = LocalVfs("/tmp/kotlin32.png").readBitmapNoNative().toBMP32()
+		val bytes = JPEG.encode(bitmapOriginal, ImageEncodingProps(quality = 0.5))
+		//bitmapOriginal.writeTo(LocalVfs("/tmp/out.jpg"))
 	}
 
 	@kotlin.test.Test
