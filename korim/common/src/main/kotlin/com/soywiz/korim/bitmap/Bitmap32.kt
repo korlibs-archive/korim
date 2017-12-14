@@ -374,5 +374,7 @@ class Bitmap32(
 			}
 		}
 	}
+
+	fun extractBytes(): ByteArray = RGBA.encode(data)
 }
 

@@ -3,13 +3,11 @@ package com.soywiz.korim.format
 import com.soywiz.kmem.arraycopy
 import com.soywiz.kmem.fill
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.color.YUVA
 import com.soywiz.korio.EOFException
 import com.soywiz.korio.IOException
-import com.soywiz.korio.stream.SyncInputStream
-import com.soywiz.korio.stream.SyncStream
-import com.soywiz.korio.stream.openSync
-import com.soywiz.korio.stream.readAll
+import com.soywiz.korio.stream.*
 import kotlin.math.max
 import kotlin.math.min
 
@@ -33,6 +31,17 @@ object JPEG : ImageFormat("jpg", "jpeg") {
 		val out = Bitmap32(decoder.imageWidth, decoder.imageHeight)
 		decoder.decodeRGB(out.data, 0, out.width, decoder.numMCURows)
 		return ImageData(listOf(ImageFrame(out)))
+	}
+
+	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
+		val bmp = image.mainBitmap
+		s.writeBytes(
+			JPEGEncoder.encode(JPEGEncoder.ImageData(
+				bmp.toBMP32().extractBytes(),
+				bmp.width,
+				bmp.height
+			))
+		)
 	}
 
 	/**
