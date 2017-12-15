@@ -609,7 +609,7 @@ class JPEGDecoder2 {
 	class FrameComponent(
 		val h: Int,
 		val v: Int,
-		val quantizationIdx: Int
+		var quantizationIdx: Int
 	) {
 		var huffmanTableDC: List<Any> = emptyList()
 		var huffmanTableAC: List<Any> = emptyList()
@@ -872,9 +872,9 @@ class JPEGDecoder2 {
 		// set each frame's components quantization table
 		for (i in 0 until frames.size) {
 			val cp = frames[i].components
-			for (j in cp.keys.toList()) {
-				cp[j]!!.quantizationTable = quantizationTables[cp[j]!!.quantizationIdx]
-				cp.remove(cp[j]!!.quantizationIdx)
+			for (c in cp.values) {
+				c.quantizationTable = quantizationTables[c.quantizationIdx]
+				c.quantizationIdx = -1
 			}
 		}
 
