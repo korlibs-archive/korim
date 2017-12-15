@@ -1,6 +1,5 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readAll
 import com.soywiz.korio.stream.writeBytes
@@ -18,19 +17,10 @@ object JPEG : ImageFormat("jpg", "jpeg") {
 	}
 
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
-		val data = JPEGDecoder.decode(s.readAll())
-		val out = RGBA.decodeToBitmap32(data.width, data.height, data.data.data)
-		return ImageData(listOf(ImageFrame(out)))
+		return ImageData(listOf(ImageFrame(JPEGDecoder.decode(s.readAll()))))
 	}
 
 	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
-		val bmp = image.mainBitmap
-		s.writeBytes(
-			JPEGEncoder.encode(JPEGEncoder.ImageData(
-				bmp.toBMP32().extractBytes(),
-				bmp.width,
-				bmp.height
-			), qu = (props.quality * 100).toInt())
-		)
+		s.writeBytes(JPEGEncoder.encode(image.mainBitmap.toBMP32(), quality = (props.quality * 100).toInt()))
 	}
 }

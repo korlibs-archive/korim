@@ -1,6 +1,8 @@
 package com.soywiz.korim.format
 
 import com.soywiz.kmem.UByteArray
+import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.util.toString
 import kotlin.math.ceil
@@ -1065,7 +1067,7 @@ class JPEGDecoder {
 	}
 
 	data class ImageInfo(val width: Int, val height: Int)
-	data class ImageData(val width: Int, val height: Int, val data: UByteArray)
+	class ImageData(val width: Int, val height: Int, val data: UByteArray)
 
 	companion object {
 		fun decodeInfo(jpegData: ByteArray): ImageInfo {
@@ -1075,7 +1077,12 @@ class JPEGDecoder {
 			return JPEGDecoder.ImageInfo(decoder.width, decoder.height)
 		}
 
-		fun decode(jpegData: ByteArray): ImageData {
+		fun decode(jpegData: ByteArray): Bitmap32 {
+			val data = decodeToData(jpegData)
+			return RGBA.decodeToBitmap32(data.width, data.height, data.data.data)
+		}
+
+		private fun decodeToData(jpegData: ByteArray): ImageData {
 			val arr = UByteArray(jpegData)
 			val decoder = JPEGDecoder()
 			decoder.parse(arr)

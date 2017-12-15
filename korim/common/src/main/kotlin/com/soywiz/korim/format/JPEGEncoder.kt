@@ -1,5 +1,6 @@
 package com.soywiz.korim.format
 
+import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.stream.ByteArrayBuilderSmall
 import kotlin.math.floor
 
@@ -481,7 +482,13 @@ class JPEGEncoder(quality: Int = 50) {
 	}
 
 	// image data object
-	fun encode(image: ImageData, quality: Int? = null): ByteArray {
+	fun encode(bmp: Bitmap32, quality: Int? = null): ByteArray = encode(JPEGEncoder.ImageData(
+		bmp.extractBytes(),
+		bmp.width,
+		bmp.height
+	), quality)
+
+	private fun encode(image: ImageData, quality: Int? = null): ByteArray {
 		//var time_start = Klock.currentTimeMillis()
 
 		if (quality != null) setQuality(quality)
@@ -604,7 +611,7 @@ class JPEGEncoder(quality: Int = 50) {
 		setQuality(quality)
 	}
 
-	class ImageData(val data: ByteArray, val width: Int, val height: Int)
+	private class ImageData(val data: ByteArray, val width: Int, val height: Int)
 
 	companion object {
 		private val ZIG_ZAG = intArrayOf(
@@ -699,8 +706,8 @@ class JPEGEncoder(quality: Int = 50) {
 			1.0f, 0.785694958f, 0.541196100f, 0.275899379f
 		)
 
-		fun encode(imgData: ImageData, qu: Int = 50): ByteArray {
-			return JPEGEncoder(qu).encode(imgData, qu)
+		fun encode(bmp: Bitmap32, quality: Int = 50): ByteArray {
+			return JPEGEncoder(quality).encode(bmp)
 		}
 	}
 }
