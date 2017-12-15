@@ -31,7 +31,7 @@ import kotlin.math.ceil
 //   in PostScript Level 2, Technical Note #5116
 //   (partners.adobe.com/public/developer/en/ps/sdk/5116.DCT_Filter.pdf)
 
-class JPEGDecoder2 {
+class JPEGDecoder {
 	private var dctZigZag = intArrayOf(
 		0,
 		1, 8,
@@ -1070,14 +1070,14 @@ class JPEGDecoder2 {
 	companion object {
 		fun decodeInfo(jpegData: ByteArray): ImageInfo {
 			val arr = UByteArray(jpegData)
-			val decoder = JPEGDecoder2()
+			val decoder = JPEGDecoder()
 			decoder.parse(arr)
-			return JPEGDecoder2.ImageInfo(decoder.width, decoder.height)
+			return JPEGDecoder.ImageInfo(decoder.width, decoder.height)
 		}
 
 		fun decode(jpegData: ByteArray): ImageData {
 			val arr = UByteArray(jpegData)
-			val decoder = JPEGDecoder2()
+			val decoder = JPEGDecoder()
 			decoder.parse(arr)
 
 			val image = ImageData(
