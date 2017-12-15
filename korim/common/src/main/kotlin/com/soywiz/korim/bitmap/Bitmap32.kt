@@ -127,6 +127,10 @@ class Bitmap32(
 		return out
 	}
 
+	inline fun all(callback: (Int) -> Boolean): Boolean {
+		return (0 until area).any { callback(data[it]) }
+	}
+
 	inline fun forEach(callback: (n: Int, x: Int, y: Int) -> Unit) {
 		var n = 0
 		for (y in 0 until height) for (x in 0 until width) callback(n++, x, y)
