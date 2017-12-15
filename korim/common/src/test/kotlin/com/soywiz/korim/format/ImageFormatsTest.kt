@@ -67,6 +67,7 @@ class ImageFormatsTest {
 		val bitmapOriginal = ResourcesVfs["kotlin32.png"].readBitmapNoNative().toBMP32()
 		//val bitmapOriginal = LocalVfs("/tmp/kotlin32.png").readBitmapNoNative().toBMP32()
 		val bytes = JPEG.encode(bitmapOriginal, ImageEncodingProps(quality = 0.5))
+		//val bitmapOriginal = LocalVfs("/tmp/aa.jpg").readBitmapNoNative().toBMP32()
 		//bitmapOriginal.writeTo(LocalVfs("/tmp/out.jpg"))
 	}
 
