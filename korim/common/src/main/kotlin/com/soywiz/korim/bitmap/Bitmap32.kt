@@ -4,9 +4,9 @@ import com.soywiz.kmem.arraycopy
 import com.soywiz.kmem.fill
 import com.soywiz.korim.color.ColorFormat
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.color.YCbCr
 import com.soywiz.korim.vector.Bitmap32Context2d
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korma.buffer.copyTo
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -376,5 +376,24 @@ class Bitmap32(
 	}
 
 	fun extractBytes(): ByteArray = RGBA.encode(data)
-}
 
+	fun scaleNearest(sx: Int, sy: Int): Bitmap32 {
+		val out = Bitmap32(width * sx, height * sy)
+		for (y in 0 until out.height) {
+			for (x in 0 until out.width) {
+				out[x, y] = this[x / sx, y / sy]
+			}
+		}
+		return out
+	}
+
+	fun writeComponent(dstCmp: BitmapChannel, from: Bitmap32, srcCmp: BitmapChannel) {
+		val fdata = from.data
+		for (n in 0 until area) {
+			data[n] = dstCmp.insert(data[n], srcCmp.extract(fdata[n]))
+		}
+	}
+
+	fun rgbaToYCbCr(): Bitmap32 = Bitmap32(width, height).apply { for (n in 0 until area) this.data[n] = YCbCr.rgbaToYCbCr(this@Bitmap32.data[n]) }
+	fun yCbCrToRgba(): Bitmap32 = Bitmap32(width, height).apply { for (n in 0 until area) this.data[n] = YCbCr.yCbCrToRgba(this@Bitmap32.data[n]) }
+}

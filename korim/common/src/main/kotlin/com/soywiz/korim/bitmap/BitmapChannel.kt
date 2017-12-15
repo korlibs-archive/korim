@@ -20,3 +20,11 @@ val BitmapChannel.Companion.Y get() = BitmapChannel.RED
 val BitmapChannel.Companion.Cb get() = BitmapChannel.GREEN
 val BitmapChannel.Companion.Cr get() = BitmapChannel.BLUE
 val BitmapChannel.Companion.A get() = BitmapChannel.ALPHA
+
+fun BitmapChannel.toStringYCbCr() = when (this.index) {
+	0 -> "Y"
+	1 -> "Cb"
+	2 -> "Cr"
+	3 -> "A"
+	else -> com.soywiz.korio.error.invalidOp
+}
