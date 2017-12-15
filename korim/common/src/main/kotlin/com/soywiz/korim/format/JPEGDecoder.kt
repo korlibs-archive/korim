@@ -271,7 +271,7 @@ class JPEGDecoder {
 			@Suppress("UnnecessaryVariable")
 			val e = spectralEnd
 			var r = 0
-			mloop@ while (k <= e) {
+			loop@ while (k <= e) {
 				val z = dctZigZag[k]
 				val direction = if (zz[z] < 0) -1 else 1
 				when (successiveACState) {
@@ -292,7 +292,7 @@ class JPEGDecoder {
 							successiveACNextValue = receiveAndExtend(s)
 							successiveACState = if (r != 0) 2 else 3
 						}
-						continue@mloop
+						continue@loop
 					}
 					1, 2 -> { // skipping r zero items
 						if (zz[z] != 0)
@@ -629,7 +629,7 @@ class JPEGDecoder {
 		var precision: Int,
 		var scanLines: Int,
 		var samplesPerLine: Int,
-		var components: LinkedHashMap<Int, FrameComponent>,
+		var components: ArrayList<FrameComponent>,
 		var componentsOrder: ArrayList<Int>,
 		var maxH: Int = 0,
 		var maxV: Int = 0
@@ -649,7 +649,6 @@ class JPEGDecoder {
 
 		fun readDataBlock(): UByteArray {
 			val len = readUint16()
-			// @TODO: Original implementation did not copy! Probably it is not a problem. But take into account if something fails.
 			val array = UByteArray(data.data.copyOfRange(offset, offset + len - 2))
 			offset += array.size
 			return array
@@ -658,16 +657,13 @@ class JPEGDecoder {
 		fun prepareComponents(frame: Frame) {
 			var maxH = 0
 			var maxV = 0
-			var component: FrameComponent
-			for (componentId in frame.components.keys) {
-				component = frame.components[componentId]!!
+			for (component in frame.components) {
 				if (maxH < component.h) maxH = component.h
 				if (maxV < component.v) maxV = component.v
 			}
 			val mcusPerLine = mceil(frame.samplesPerLine.toFloat() / 8f / maxH.toFloat())
 			val mcusPerColumn = mceil(frame.scanLines.toFloat() / 8f / maxV.toFloat())
-			for (componentId in frame.components.keys) {
-				component = frame.components[componentId]!!
+			for (component in frame.components) {
 				val blocksPerLine = mceil(mceil(frame.samplesPerLine.toFloat() / 8f) * component.h.toFloat() / maxH.toFloat())
 				val blocksPerColumn = mceil(mceil(frame.scanLines.toFloat() / 8f) * component.v.toFloat() / maxV.toFloat())
 				val blocksPerLineForMcu = mcusPerLine * component.h
@@ -692,7 +688,7 @@ class JPEGDecoder {
 		var jfif: Jfif? = null
 		var adobe: Adobe? = null
 		//var pixels = null
-		var frame: Frame? = null
+		lateinit var frame: Frame
 		var resetInterval = 0
 		val quantizationTables = ArrayList((0 until 16).map { IntArray(0) })
 		val frames = arrayListOf<Frame>()
@@ -707,23 +703,9 @@ class JPEGDecoder {
 		while (fileMarker != 0xFFD9) { // EOI (End of image)
 			when (fileMarker) {
 				0xFF00 -> Unit
-				0xFFE0, // APP0 (Application Specific)
-				0xFFE1, // APP1
-				0xFFE2, // APP2
-				0xFFE3, // APP3
-				0xFFE4, // APP4
-				0xFFE5, // APP5
-				0xFFE6, // APP6
-				0xFFE7, // APP7
-				0xFFE8, // APP8
-				0xFFE9, // APP9
-				0xFFEA, // APP10
-				0xFFEB, // APP11
-				0xFFEC, // APP12
-				0xFFED, // APP13
-				0xFFEE, // APP14
-				0xFFEF, // APP15
-				0xFFFE -> { // COM (Comment)
+			// APP0-15 (Application Specific), COM (Comment)
+				0xFFE0, 0xFFE1, 0xFFE2, 0xFFE3, 0xFFE4, 0xFFE5, 0xFFE6, 0xFFE7, 0xFFE8,
+				0xFFE9, 0xFFEA, 0xFFEB, 0xFFEC, 0xFFED, 0xFFEE, 0xFFEF, 0xFFFE -> {
 					val appData = readDataBlock()
 
 					if (fileMarker == 0xFFE0) {
@@ -760,24 +742,16 @@ class JPEGDecoder {
 					while (offset < quantizationTablesEnd) {
 						val quantizationTableSpec = data[offset++]
 						val tableData = IntArray(64)
-						when {
-							(quantizationTableSpec shr 4) == 0 -> // 8 bit values
-								for (j in 0 until 64) {
-									tableData[dctZigZag[j]] = data[offset++]
-								}
-							(quantizationTableSpec shr 4) == 1 -> //16 bit
-								for (j in 0 until 64) {
-									tableData[dctZigZag[j]] = readUint16()
-								}
+						when (quantizationTableSpec shr 4) {
+							0 -> for (j in 0 until 64) tableData[dctZigZag[j]] = data[offset++] // 8 bit values
+							1 -> for (j in 0 until 64) tableData[dctZigZag[j]] = readUint16() //16 bit
 							else -> invalidOp("DQT: invalid table spec")
 						}
 						quantizationTables[quantizationTableSpec and 15] = tableData
 					}
 				}
-
-				0xFFC0, // SOF0 (Start of Frame, Baseline DCT)
-				0xFFC1, // SOF1 (Start of Frame, Extended DCT)
-				0xFFC2 -> { // SOF2 (Start of Frame, Progressive DCT)
+				0xFFC0, 0xFFC1, 0xFFC2 -> {
+					// SOF0 (Start of Frame, Baseline DCT), SOF1 (Start of Frame, Extended DCT), SOF2 (Start of Frame, Progressive DCT)
 					readUint16() // skip data length
 					frame = Frame(
 						extended = (fileMarker == 0xFFC1),
@@ -785,7 +759,7 @@ class JPEGDecoder {
 						precision = data[offset++],
 						scanLines = readUint16(),
 						samplesPerLine = readUint16(),
-						components = LinkedHashMap(),
+						components = ArrayList(),
 						componentsOrder = arrayListOf()
 					)
 					val componentsCount = data[offset++]
@@ -798,6 +772,7 @@ class JPEGDecoder {
 						val v = data[offset + 1] and 15
 						val qId = data[offset + 2]
 						frame.componentsOrder.add(componentId)
+						while (frame.components.size <= componentId) frame.components.add(FrameComponent(0, 0, 0))
 						frame.components[componentId] = FrameComponent(h = h, v = v, quantizationIdx = qId)
 						offset += 3
 					}
@@ -840,7 +815,7 @@ class JPEGDecoder {
 					val components = arrayListOf<FrameComponent>()
 					var component: FrameComponent
 					for (i in 0 until selectorsCount) {
-						component = frame!!.components[data[offset++]]!!
+						component = frame.components[data[offset++]]
 						val tableSpec = data[offset++]
 						component.huffmanTableDC = huffmanTablesDC[tableSpec shr 4]
 						component.huffmanTableAC = huffmanTablesAC[tableSpec and 15]
@@ -849,10 +824,13 @@ class JPEGDecoder {
 					val spectralStart = data[offset++]
 					val spectralEnd = data[offset++]
 					val successiveApproximation = data[offset++]
-					val processed = decodeScan(data, offset,
-						frame!!, components, resetInterval,
+					val processed = decodeScan(
+						data, offset,
+						frame, components, resetInterval,
 						spectralStart, spectralEnd,
-						successiveApproximation shr 4, successiveApproximation and 15)
+						successiveApproximation shr 4,
+						successiveApproximation and 15
+					)
 					offset += processed
 				}
 				else -> {
@@ -868,26 +846,25 @@ class JPEGDecoder {
 			}
 			fileMarker = readUint16()
 		}
-		if (frames.size != 1)
-			invalidOp("only single frame JPEGs supported")
+
+		if (frames.size != 1) invalidOp("only single frame JPEGs supported")
 
 		// set each frame's components quantization table
 		for (i in 0 until frames.size) {
 			val cp = frames[i].components
-			for (c in cp.values) {
+			for (c in cp) {
 				c.quantizationTable = quantizationTables[c.quantizationIdx]
 				c.quantizationIdx = -1
 			}
 		}
 
-		frame!!
 		this.width = frame.samplesPerLine
 		this.height = frame.scanLines
 		this.jfif = jfif
 		this.adobe = adobe
 		this.components = arrayListOf()
 		for (i in 0 until frame.componentsOrder.size) {
-			val component = frame.components[frame.componentsOrder[i]]!!
+			val component = frame.components[frame.componentsOrder[i]]
 			this.components.add(Component(
 				lines = buildComponentData(frame, component),
 				scaleX = component.h.toFloat() / frame.maxH.toFloat(),
@@ -943,27 +920,22 @@ class JPEGDecoder {
 					val component1Line = component1.lines[((y * component1.scaleY * scaleY).toInt())]
 					val component2Line = component2.lines[((y * component2.scaleY * scaleY).toInt())]
 					val component3Line = component3.lines[((y * component3.scaleY * scaleY).toInt())]
-					for (x in 0 until width) {
-						val r: Int
-						val g: Int
-						val b: Int
-						if (!colorTransform) {
-							r = component1Line[((x * component1.scaleX * scaleX).toInt())]
-							g = component2Line[((x * component2.scaleX * scaleX).toInt())]
-							b = component3Line[((x * component3.scaleX * scaleX).toInt())]
-						} else {
+
+					if (!colorTransform) {
+						for (x in 0 until width) {
+							data[offset++] = component1Line[((x * component1.scaleX * scaleX).toInt())]
+							data[offset++] = component2Line[((x * component2.scaleX * scaleX).toInt())]
+							data[offset++] = component3Line[((x * component3.scaleX * scaleX).toInt())]
+						}
+					} else {
+						for (x in 0 until width) {
 							val yy = component1Line[((x * component1.scaleX * scaleX).toInt())]
 							val cb = component2Line[((x * component2.scaleX * scaleX).toInt())]
 							val cr = component3Line[((x * component3.scaleX * scaleX).toInt())]
-
-							r = clampTo8bit((yy + 1.402f * (cr - 128f)).toInt())
-							g = clampTo8bit((yy - 0.3441363f * (cb - 128f) - 0.71413636f * (cr - 128f)).toInt())
-							b = clampTo8bit((yy + 1.772f * (cb - 128f)).toInt())
+							data[offset++] = clampTo8bit((yy + 1.402f * (cr - 128f)).toInt())
+							data[offset++] = clampTo8bit((yy - 0.3441363f * (cb - 128f) - 0.71413636f * (cr - 128f)).toInt())
+							data[offset++] = clampTo8bit((yy + 1.772f * (cb - 128f)).toInt())
 						}
-
-						data[offset++] = r
-						data[offset++] = g
-						data[offset++] = b
 					}
 				}
 			}
@@ -1037,12 +1009,9 @@ class JPEGDecoder {
 			}
 			3 -> {
 				for (n in 0 until width * height) {
-					val r = data[i++]
-					val g = data[i++]
-					val b = data[i++]
-					imageDataArray[j++] = r
-					imageDataArray[j++] = g
-					imageDataArray[j++] = b
+					imageDataArray[j++] = data[i++]
+					imageDataArray[j++] = data[i++]
+					imageDataArray[j++] = data[i++]
 					imageDataArray[j++] = 255
 				}
 			}
@@ -1052,13 +1021,10 @@ class JPEGDecoder {
 					val m = data[i++]
 					val y = data[i++]
 					val k = data[i++]
-					val r = 255 - clampTo8bit(c * (1 - k / 255) + k)
-					val g = 255 - clampTo8bit(m * (1 - k / 255) + k)
-					val b = 255 - clampTo8bit(y * (1 - k / 255) + k)
 
-					imageDataArray[j++] = r
-					imageDataArray[j++] = g
-					imageDataArray[j++] = b
+					imageDataArray[j++] = 255 - clampTo8bit(c * (1 - k / 255) + k)
+					imageDataArray[j++] = 255 - clampTo8bit(m * (1 - k / 255) + k)
+					imageDataArray[j++] = 255 - clampTo8bit(y * (1 - k / 255) + k)
 					imageDataArray[j++] = 255
 				}
 			}
