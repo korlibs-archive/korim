@@ -128,6 +128,11 @@ class Context2d(val renderer: Renderer) {
 
 	fun save() = run { stack.addLast(state.clone()) }
 	fun restore() = run { state = stack.removeLast() }
+
+	inline fun scale(sx: Number, sy: Number = sx) = scale(sx.toDouble(), sy.toDouble())
+	inline fun translate(tx: Number, ty: Number) = translate(tx.toDouble(), ty.toDouble())
+	inline fun rotate(angle: Number) = rotate(angle.toDouble())
+
 	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
 	fun rotate(angle: Double) = run { state.transform.prerotate(angle) }
 	fun translate(tx: Double, ty: Double) = run { state.transform.pretranslate(tx, ty) }

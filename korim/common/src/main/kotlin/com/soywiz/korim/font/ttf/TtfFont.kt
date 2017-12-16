@@ -333,10 +333,10 @@ class TtfFont private constructor(val s: SyncStream) {
 	fun getCharIndexFromCodePoint(codePoint: Int): Int? = characterMaps[codePoint]
 	fun getCharIndexFromChar(char: Char): Int? = characterMaps[char.toInt()]
 
-	fun getGlyphByCodePoint(codePoint: Int): Glyph? = characterMaps[codePoint]?.let { getGlyphByIndex(it) }
-	fun getGlyphByChar(char: Char): Glyph? = getGlyphByCodePoint(char.toInt())
+	fun getGlyphByCodePoint(codePoint: Int): IGlyph? = characterMaps[codePoint]?.let { getGlyphByIndex(it) }
+	fun getGlyphByChar(char: Char): IGlyph? = getGlyphByCodePoint(char.toInt())
 
-	fun getGlyphByIndex(index: Int): Glyph? = openTable("glyf")?.run {
+	fun getGlyphByIndex(index: Int): IGlyph? = openTable("glyf")?.run {
 		val start = locs.getOrNull(index)?.toUnsigned() ?: 0
 		val end = locs.getOrNull(index + 1)?.toUnsigned() ?: start
 		val size = end - start
@@ -349,7 +349,14 @@ class TtfFont private constructor(val s: SyncStream) {
 
 	fun getAllGlyphs() = (0 until numGlyphs).map { getGlyphByIndex(it) }.filterNotNull()
 
-	interface IGlyph
+	interface IGlyph {
+		val xMin: Int
+		val yMin: Int
+		val xMax: Int
+		val yMax: Int
+		val advanceWidth: Int
+		fun fill(c: Context2d, size: Double, origin: Origin, color: Int)
+	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
 		fun copyFrom(that: Contour) {
@@ -377,14 +384,43 @@ class TtfFont private constructor(val s: SyncStream) {
 		}
 	}
 
+	data class GlyphReference(
+		val glyph: IGlyph,
+		val x: Int, val y: Int,
+		val scaleX: Float,
+		val scale01: Float,
+		val scale10: Float,
+		val scaleY: Float
+	)
+
+	inner class CompositeGlyph(
+		override val xMin: Int, override val yMin: Int,
+		override val xMax: Int, override val yMax: Int,
+		val refs: List<GlyphReference>,
+		override val advanceWidth: Int
+	) : IGlyph {
+		override fun fill(c: Context2d, size: Double, origin: Origin, color: Int) {
+			val scale = size / unitsPerEm.toDouble()
+			c.keep {
+				for (ref in refs) {
+					c.keep {
+						c.translate((ref.x - xMin) * scale, (-ref.y - yMin) * scale)
+						c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
+						ref.glyph.fill(c, size, origin, color)
+					}
+				}
+			}
+		}
+	}
+
 	inner class Glyph(
-		val xMin: Int, val yMin: Int,
-		val xMax: Int, val yMax: Int,
+		override val xMin: Int, override val yMin: Int,
+		override val xMax: Int, override val yMax: Int,
 		val contoursIndices: IntArray,
 		val flags: IntArray,
 		val xPos: IntArray,
 		val yPos: IntArray,
-		val advanceWidth: Int
+		override val advanceWidth: Int
 	) : IGlyph {
 		val npoints: Int get() = xPos.size
 		fun onCurve(n: Int) = (flags[n] and 1) != 0
@@ -394,7 +430,7 @@ class TtfFont private constructor(val s: SyncStream) {
 			onCurve = onCurve(n)
 		}
 
-		fun fill(c: Context2d, size: Double, origin: Origin, color: Int) {
+		override fun fill(c: Context2d, size: Double, origin: Origin, color: Int) {
 			val font = this@TtfFont
 			val scale = size / font.unitsPerEm.toDouble()
 			c.apply {
@@ -403,7 +439,7 @@ class TtfFont private constructor(val s: SyncStream) {
 						Origin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
 						Origin.BASELINE -> 0.0
 					}
-					translate(0.0, scale * ydist)
+					translate(0.0 * scale, (ydist - yMin) * scale)
 					scale(scale, -scale)
 					beginPath()
 					draw(createGraphicsPath())
@@ -469,7 +505,24 @@ class TtfFont private constructor(val s: SyncStream) {
 		}
 	}
 
-	fun SyncStream.readGlyph(index: Int): Glyph {
+	fun SyncStream.readF2DOT14(): Float {
+		val v = readS16_be()
+		val i = v shr 14
+		val f = v and 0x3FFF
+		return i.toFloat() + f.toFloat() / 16384f
+	}
+
+	fun SyncStream.readMix_BE(signed: Boolean, word: Boolean): Int {
+		return when {
+			!word && signed -> readS8()
+			!word && !signed -> readU8()
+			word && signed -> readS16_be()
+			word && !signed -> readU16_be()
+			else -> invalidOp
+		}
+	}
+
+	fun SyncStream.readGlyph(index: Int): IGlyph {
 		val ncontours = readS16_be()
 		val xMin = readS16_be()
 		val yMin = readS16_be()
@@ -477,7 +530,55 @@ class TtfFont private constructor(val s: SyncStream) {
 		val yMax = readS16_be()
 
 		if (ncontours < 0) {
-			TODO("readCompositeGlyph")
+			//println("WARNING: readCompositeGlyph not implemented")
+
+			val ARG_1_AND_2_ARE_WORDS = 0x0001
+			val ARGS_ARE_XY_VALUES = 0x0002
+			val ROUND_XY_TO_GRID = 0x0004
+			val WE_HAVE_A_SCALE = 0x0008
+			val MORE_COMPONENTS = 0x0020
+			val WE_HAVE_AN_X_AND_Y_SCALE = 0x0040
+			val WE_HAVE_A_TWO_BY_TWO = 0x0080
+			val WE_HAVE_INSTRUCTIONS = 0x0100
+			val USE_MY_METRICS = 0x0200
+			val OVERLAP_COMPOUND = 0x0400
+			val SCALED_COMPONENT_OFFSET = 0x0800
+			val UNSCALED_COMPONENT_OFFSET = 0x1000
+
+			val references = arrayListOf<GlyphReference>()
+
+			do {
+				val flags = readU16_be()
+				val glyphIndex = readU16_be()
+				val signed = (flags and ARGS_ARE_XY_VALUES) != 0
+				val words = (flags and ARG_1_AND_2_ARE_WORDS) != 0
+				val x = readMix_BE(signed, words)
+				val y = readMix_BE(signed, words)
+				var scaleX: Float = 1f
+				var scaleY: Float = 1f
+				var scale01: Float = 0f
+				var scale10: Float = 0f
+
+				if ((flags and WE_HAVE_A_SCALE) != 0) {
+					scaleX = readF2DOT14()
+					scaleY = scaleX
+				} else if ((flags and WE_HAVE_AN_X_AND_Y_SCALE) != 0) {
+					scaleX = readF2DOT14()
+					scaleY = readF2DOT14()
+				} else if ((flags and WE_HAVE_A_TWO_BY_TWO) != 0) {
+					scaleX = readF2DOT14()
+					scale01 = readF2DOT14()
+					scale10 = readF2DOT14()
+					scaleY = readF2DOT14()
+				}
+				//val useMyMetrics = flags hasFlag USE_MY_METRICS
+				val ref = GlyphReference(getGlyphByIndex(glyphIndex)!!, x, y, scaleX, scale01, scale10, scaleY)
+				//println("signed=$signed, words=$words, useMyMetrics=$useMyMetrics")
+				//println(ref)
+				references += ref
+			} while ((flags and MORE_COMPONENTS) != 0)
+
+			return CompositeGlyph(xMin, yMin, xMax, yMax, references, horMetrics[index].advanceWidth)
 		} else {
 			val contoursIndices = IntArray(ncontours + 1)
 			contoursIndices[0] = -1
