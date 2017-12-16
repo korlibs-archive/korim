@@ -11,7 +11,7 @@ buildscript {
 	ext.projectInceptionYear = 2017
 	ext.projectNodeModules = ['canvas']
 
-	ext.korioVersion = '0.18.4'
+	ext.korioVersion = '0.18.6'
 	ext.kormaVersion = '0.18.0'
 	ext.kloggerVersion = "0.3.0"
 	ext.kotlinVersion = '1.2.0'
@@ -24,7 +24,7 @@ buildscript {
 
 	dependencies {
 		classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
-		classpath "gradle.plugin.com.soywiz:korlibs-build-gradle-plugin:0.1.4"
+		classpath "gradle.plugin.com.soywiz:korlibs-build-gradle-plugin:0.1.5"
 		//classpath "com.soywiz:korlibs-build-gradle-plugin:0.1.4-SNAPSHOT"
 	}
 }

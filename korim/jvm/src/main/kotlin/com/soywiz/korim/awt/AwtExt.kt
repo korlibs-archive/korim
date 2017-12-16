@@ -3,7 +3,7 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korio.async.executeInWorkerSync
+import com.soywiz.korio.async.executeInWorker
 import com.soywiz.korio.coroutine.korioSuspendCoroutine
 import java.awt.BorderLayout
 import java.awt.event.WindowAdapter
@@ -15,7 +15,6 @@ import java.io.File
 import java.io.FileInputStream
 import java.io.InputStream
 import javax.imageio.ImageIO
-import javax.imageio.ImageTypeSpecifier
 import javax.swing.ImageIcon
 import javax.swing.JFrame
 import javax.swing.JLabel
@@ -113,7 +112,7 @@ fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): Buff
 }
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIOReadFormat(ByteArrayInputStream(data))
-suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorkerSync { ImageIOReadFormat(ByteArrayInputStream(data)) }
-suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorkerSync { FileInputStream(file).use { ImageIOReadFormat(it) } }
+suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage = executeInWorker { ImageIOReadFormat(ByteArrayInputStream(data)) }
+suspend fun awtReadImageInWorker(file: File): BufferedImage = executeInWorker { FileInputStream(file).use { ImageIOReadFormat(it) } }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))

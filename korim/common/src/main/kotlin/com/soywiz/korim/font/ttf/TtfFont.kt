@@ -2,19 +2,16 @@ package com.soywiz.korim.font.ttf
 
 import com.soywiz.klock.DateTime
 import com.soywiz.klock.years
-import com.soywiz.kmem.readS16_LEBE
-import com.soywiz.kmem.write16_LEBE
 import com.soywiz.korim.color.Colors
-import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import com.soywiz.korim.vector.filled
 import com.soywiz.korio.error.invalidOp
-import com.soywiz.korio.lang.Charset
+import com.soywiz.korio.lang.UTF16_BE
 import com.soywiz.korio.lang.UTF8
 import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.hex
+import com.soywiz.korio.util.toUnsigned
 import com.soywiz.korma.ds.IntArrayList
 
 // Used information from:
@@ -24,7 +21,7 @@ import com.soywiz.korma.ds.IntArrayList
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFontReader private constructor(val s: SyncStream) {
+class TtfFont private constructor(val s: SyncStream) {
 	data class Table(val id: String, val checksum: Int, val offset: Int, val length: Int) {
 		lateinit var s: SyncStream
 
@@ -46,7 +43,9 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	}
 
 	data class Fixed(val num: Int, val den: Int)
+
 	fun SyncStream.readFixed() = Fixed(readS16_le(), readS16_le())
+	data class HorMetric(val advanceWidth: Int, val lsb: Int)
 
 	val tablesByName = LinkedHashMap<String, Table>()
 	fun openTable(name: String) = tablesByName[name]?.open()
@@ -65,9 +64,22 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	var maxSizeOfInstructions = 0
 	var maxComponentElements = 0
 	var maxComponentDepth = 0
+
+	var hheaVersion = Fixed(0, 0)
+	var ascender = 0
+	var descender = 0
+	var lineGap = 0
+	var advanceWidthMax = 0
+	var minLeftSideBearing = 0
+	var minRightSideBearing = 0
+	var xMaxExtent = 0
+	var caretSlopeRise = 0
+	var caretSlopeRun = 0
+	var caretOffset = 0
+	var metricDataFormat = 0
+	var numberOfHMetrics = 0
+
 	var locs = IntArray(0)
-	fun getGlyphOffset(index: Int) = locs[index + 1]
-	fun getGlyphSize(index: Int) = locs[index + 2] - locs[index + 1]
 
 	var fontRev = Fixed(0, 0)
 	var unitsPerEm = 128
@@ -82,9 +94,12 @@ class TtfFontReader private constructor(val s: SyncStream) {
 	var indexToLocFormat = 0
 	var glyphDataFormat = 0
 
+	var horMetrics = listOf<HorMetric>()
+	val characterMaps = LinkedHashMap<Int, Int>()
+
 	companion object {
-		operator fun invoke(s: SyncStream): TtfFontReader {
-			return TtfFontReader(s)
+		operator fun invoke(s: SyncStream): TtfFont {
+			return TtfFont(s)
 		}
 	}
 
@@ -92,13 +107,12 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		readHeaderTables()
 		readHead()
 		readMaxp()
+		readHhea()
 		readNames()
 		readLoca()
 		readCmap()
-		//readGlyphs()
+		readHmtx()
 	}
-
-	//val tablesByName =
 
 	fun readHeaderTables() = s.slice().apply {
 		val majorVersion = readU16_be().apply { if (this != 1) invalidOp("Not a TTF file") }
@@ -207,66 +221,133 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		maxComponentDepth = readU16_be()
 	}
 
-	fun readHmtx() = openTable("hmtx")?.run {
+	fun readHhea() = openTable("hhea")?.run {
+		hheaVersion = readFixed()
+		ascender = readS16_be()
+		descender = readS16_be()
+		lineGap = readS16_be()
+		advanceWidthMax = readU16_be()
+		minLeftSideBearing = readS16_be()
+		minRightSideBearing = readS16_be()
+		xMaxExtent = readS16_be()
+		caretSlopeRise = readS16_be()
+		caretSlopeRun = readS16_be()
+		caretOffset = readS16_be()
+		readS16_be() // reserved
+		readS16_be() // reserved
+		readS16_be() // reserved
+		readS16_be() // reserved
+		metricDataFormat = readS16_be()
+		numberOfHMetrics = readU16_be()
+	}
 
+	fun readHmtx() = openTable("hmtx")?.run {
+		val firstMetrics = (0 until numberOfHMetrics).map { HorMetric(readU16_be(), readS16_be()) }
+		val lastAdvanceWidth = firstMetrics.last().advanceWidth
+		val compressedMetrics = (0 until (numGlyphs - numberOfHMetrics)).map { HorMetric(lastAdvanceWidth, readS16_be()) }
+		horMetrics = firstMetrics + compressedMetrics
 	}
 
 	fun readCmap() = openTable("cmap")?.run {
 		data class EncodingRecord(val platformId: Int, val encodingId: Int, val offset: Int)
+
 		val version = readU16_be()
 		val numTables = readU16_be()
 		val tables = (0 until numTables).map { EncodingRecord(readU16_be(), readU16_be(), readS32_be()) }
 
+		for (table in tables) {
+			sliceWithStart(table.offset.toLong()).run {
+				val format = readU16_be()
+				when (format) {
+					4 -> {
+						val length = readU16_be()
+						//s.readStream(length - 4).run {
+						val language = readU16_be()
+						val segCount = readU16_be() / 2
+						val searchRangeS = readU16_be()
+						val entrySelector = readU16_be()
+						val rangeShift = readU16_be()
+						val endCount = readCharArray_be(segCount)
+						readU16_be() // reserved
+						val startCount = readCharArray_be(segCount)
+						val idDelta = readShortArray_be(segCount)
+						val rangeOffsetPos = position.toInt()
+						val idRangeOffset = readCharArray_be(segCount)
+						//val glyphIdArray = readCharArray_be(idRangeOffset.max()?.toInt() ?: 0)
+
+						//println("$language")
+
+						for (n in 0 until segCount) {
+							val ec = endCount[n].toInt()
+							val sc = startCount[n].toInt()
+							val delta = idDelta[n].toInt()
+							val iro = idRangeOffset[n].toInt()
+							//println("%04X-%04X : %d : %d".format(sc, ec, delta, iro))
+							for (c in sc..ec) {
+								var index: Int = 0
+								if (iro != 0) {
+									var glyphIndexOffset = rangeOffsetPos + n * 2
+									glyphIndexOffset += iro
+									glyphIndexOffset += (c - sc) * 2
+									index = sliceWithStart(glyphIndexOffset.toLong()).readU16_be()
+									if (index != 0) {
+										index += delta
+									}
+								} else {
+									index = c + delta
+								}
+								characterMaps[c] = index and 0xFFFF
+								//println("%04X --> %d".format(c, index and 0xFFFF))
+							}
+						}
+
+						//for ((c, index) in characterMaps) println("\\u%04X -> %d".format(c.toInt(), index))
+					}
+					12 -> {
+						readU16_be() // reserved
+						val length = readS32_be()
+						val language = readS32_be()
+						val numGroups = readS32_be()
+
+						for (n in 0 until numGroups) {
+							val startCharCode = readS32_be()
+							val endCharCode = readS32_be()
+							val startGlyphId = readS32_be()
+
+							var glyphId = startGlyphId
+							for (c in startCharCode..endCharCode) {
+								characterMaps[c] = glyphId++
+							}
+						}
+					}
+					else -> { // Ignored
+
+					}
+				}
+				println("cmap.table.format: $format")
+			}
+		}
 		println(tables)
 	}
 
-	fun readGlyphByIndex(index: Int): Glyph? = openTable("glyf")?.run {
-		if (index in 0 until numGlyphs) {
-			val offset = getGlyphOffset(index)
-			val size = getGlyphSize(index)
-			sliceWithSize(offset, size).readGlyph()
+	fun getCharIndexFromCodePoint(codePoint: Int): Int? = characterMaps[codePoint]
+	fun getCharIndexFromChar(char: Char): Int? = characterMaps[char.toInt()]
+
+	fun getGlyphByCodePoint(codePoint: Int): Glyph? = characterMaps[codePoint]?.let { getGlyphByIndex(it) }
+	fun getGlyphByChar(char: Char): Glyph? = getGlyphByCodePoint(char.toInt())
+
+	fun getGlyphByIndex(index: Int): Glyph? = openTable("glyf")?.run {
+		val start = locs.getOrNull(index)?.toUnsigned() ?: 0
+		val end = locs.getOrNull(index + 1)?.toUnsigned() ?: start
+		val size = end - start
+		if (size != 0L) {
+			sliceWithStart(start).readGlyph(index)
 		} else {
-			null
+			Glyph(0, 0, 0, 0, intArrayOf(), intArrayOf(), intArrayOf(), intArrayOf(), horMetrics[index].advanceWidth)
 		}
 	}
 
-	fun readAllGlyphs() = (0 until numGlyphs).map { readGlyphByIndex(it) }
-
-	fun readGlyphs() = openTable("glyf")?.run {
-		println("numGlyphs: $numGlyphs")
-		for (n in 0 until numGlyphs - 1) {
-			val offset = getGlyphOffset(n)
-			val size = getGlyphSize(n)
-			//println("offset: $offset, size: $size")
-			val glyph = sliceWithSize(offset, size).readGlyph()
-			//val gp = glyph.createGraphicsPath()
-			//showImageAndWait(gp.filled(Context2d.Color(Colors.RED)))
-			//println(glyph)
-		}
-	}
-
-	suspend fun readGlyphsSuspend() = openTable("glyf")?.run {
-		println(this@TtfFontReader)
-		println("numGlyphs: $numGlyphs")
-		println("locs: ${locs.toList()}")
-		for (n in 0 until numGlyphs - 1) {
-			val offset = getGlyphOffset(n)
-			val size = getGlyphSize(n)
-			println("offset: $offset, size: $size")
-			val glyph = sliceWithSize(offset, size).readGlyph()
-			val gp = glyph.createGraphicsPath()
-
-			var scale = 64.0 / unitsPerEm.toDouble()
-			var width = xMax - xMin
-			var height = yMax - yMin
-
-			println(glyph)
-			showImageAndWait(
-				//gp.scaled(scale, -scale).translated(-xMin, -yMin - height).filled(Context2d.Color(Colors.RED))
-				gp.filled(Context2d.Color(Colors.RED))
-			)
-		}
-	}
+	fun getAllGlyphs() = (0 until numGlyphs).map { getGlyphByIndex(it) }.filterNotNull()
 
 	interface IGlyph
 
@@ -278,13 +359,32 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		}
 	}
 
-	data class Glyph(
+	enum class Origin {
+		TOP, BASELINE
+	}
+
+	fun fillText(c: Context2d, text: String, size: Double = 16.0, x: Double = 0.0, y: Double = 0.0, color: Int = Colors.WHITE, origin: Origin = Origin.BASELINE) = c.run {
+		val font = this@TtfFont
+		val scale = size / unitsPerEm.toDouble()
+		translate(x, y)
+
+		for (char in text) {
+			val g = getGlyphByChar(char)
+			if (g != null) {
+				g.fill(this, 32.0, TtfFont.Origin.TOP, Colors.BLUE)
+				translate(scale * g.advanceWidth, 0.0)
+			}
+		}
+	}
+
+	inner class Glyph(
 		val xMin: Int, val yMin: Int,
 		val xMax: Int, val yMax: Int,
 		val contoursIndices: IntArray,
 		val flags: IntArray,
 		val xPos: IntArray,
-		val yPos: IntArray
+		val yPos: IntArray,
+		val advanceWidth: Int
 	) : IGlyph {
 		val npoints: Int get() = xPos.size
 		fun onCurve(n: Int) = (flags[n] and 1) != 0
@@ -292,6 +392,24 @@ class TtfFontReader private constructor(val s: SyncStream) {
 			x = xPos[n]
 			y = yPos[n]
 			onCurve = onCurve(n)
+		}
+
+		fun fill(c: Context2d, size: Double, origin: Origin, color: Int) {
+			val font = this@TtfFont
+			val scale = size / font.unitsPerEm.toDouble()
+			c.apply {
+				keep {
+					val ydist: Double = when (origin) {
+						Origin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
+						Origin.BASELINE -> 0.0
+					}
+					translate(0.0, scale * ydist)
+					scale(scale, -scale)
+					beginPath()
+					draw(createGraphicsPath())
+					fill(com.soywiz.korim.vector.Context2d.Color(color))
+				}
+			}
 		}
 
 		fun createGraphicsPath(): GraphicsPath {
@@ -351,7 +469,7 @@ class TtfFontReader private constructor(val s: SyncStream) {
 		}
 	}
 
-	fun SyncStream.readGlyph(): Glyph {
+	fun SyncStream.readGlyph(index: Int): Glyph {
 		val ncontours = readS16_be()
 		val xMin = readS16_be()
 		val yMin = readS16_be()
@@ -408,25 +526,11 @@ class TtfFontReader private constructor(val s: SyncStream) {
 			//println("$ncontours, $xMin, $yMax, $xMax, $yMax, ${endPtsOfContours.toList()}, $numPoints, ${flags.toList()}")
 			//println(xPos.toList())
 			//println(yPos.toList())
-			return Glyph(xMin, yMin, xMax, yMax, contoursIndices, flags.data.copyOf(flags.size), xPos, yPos)
+			return Glyph(xMin, yMin, xMax, yMax, contoursIndices, flags.data.copyOf(flags.size), xPos, yPos, horMetrics[index].advanceWidth)
 		}
 	}
 }
 
-// @TODO: Use the one from korio after korio >= 0.18.4
-class UTF16Charset(val le: Boolean) : Charset("UTF-16-" + (if (le) "LE" else "BE")) {
-	override fun decode(out: StringBuilder, src: ByteArray, start: Int, end: Int) {
-		for (n in start until end step 2) out.append(src.readS16_LEBE(n, le).toChar())
-	}
-
-	override fun encode(out: ByteArrayBuilder, src: CharSequence, start: Int, end: Int) {
-		val temp = ByteArray(2)
-		for (n in start until end) {
-			temp.write16_LEBE(0, src[n].toInt(), le)
-			out.append(temp)
-		}
-	}
+fun Context2d.fillText(font: TtfFont, text: String, size: Double = 16.0, x: Double = 0.0, y: Double = 0.0, color: Int = Colors.WHITE, origin: TtfFont.Origin = TtfFont.Origin.BASELINE) {
+	font.fillText(this, text, size, x, y, color, origin)
 }
-
-private val UTF16_LE = UTF16Charset(le = true)
-private val UTF16_BE = UTF16Charset(le = false)

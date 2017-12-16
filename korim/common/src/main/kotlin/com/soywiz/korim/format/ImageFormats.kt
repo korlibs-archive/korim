@@ -2,6 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korio.lang.ASCII
+import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.SyncStream
 import com.soywiz.korio.stream.readBytes
 import com.soywiz.korio.stream.readString
@@ -50,7 +51,7 @@ class ImageFormats : ImageFormat("") {
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		val format = formats.firstOrNull { it.check(s.slice(), props) }
 		if (format != null) return format.readImage(s.slice(), props)
-		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4, ASCII) + "(" + s.slice().readBytes(4).hexString + ")")
+		throw UnsupportedOperationException("Not suitable image format : MAGIC:" + s.slice().readString(4, ASCII) + "(" + s.slice().readBytes(4).hexString + ") (" + s.slice().readBytes(4).toString(ASCII) + ")")
 	}
 
 	override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
