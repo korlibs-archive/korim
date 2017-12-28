@@ -1,5 +1,5 @@
 buildscript {
-	ext.projectVersion = '0.18.3-SNAPSHOT'
+	ext.projectVersion = '0.18.3'
 	ext.projectName = 'korim'
 	ext.projectGroup = 'com.soywiz'
 	ext.projectDesc = 'Kotlin cORoutines IMaging utilities for Kotlin Common'
@@ -11,7 +11,7 @@ buildscript {
 	ext.projectInceptionYear = 2017
 	ext.projectNodeModules = ['canvas']
 
-	ext.korioVersion = '0.18.6'
+	ext.korioVersion = '0.18.7'
 	ext.kormaVersion = '0.18.0'
 	ext.kloggerVersion = "0.3.0"
 	ext.kotlinVersion = '1.2.10'
