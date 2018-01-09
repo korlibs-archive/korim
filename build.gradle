@@ -1,5 +1,5 @@
 buildscript {
-	ext.projectVersion = '0.19.0-SNAPSHOT'
+	ext.projectVersion = '0.19.1-SNAPSHOT'
 	ext.projectName = 'korim'
 	ext.projectGroup = 'com.soywiz'
 	ext.projectDesc = 'Kotlin cORoutines IMaging utilities for Kotlin Common'
