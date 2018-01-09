@@ -12,7 +12,7 @@ import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.hex
 import com.soywiz.korio.util.toUnsigned
-import com.soywiz.korma.ds.IntArrayList
+import com.soywiz.kds.IntArrayList
 
 // Used information from:
 // - https://www.sweetscape.com/010editor/repository/files/TTF.bt

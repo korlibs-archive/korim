@@ -8,8 +8,8 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korio.util.redirectField
 import com.soywiz.korma.Matrix2d
 import com.soywiz.korma.Vector2
-import com.soywiz.korma.ds.DoubleArrayList
-import com.soywiz.korma.ds.IntArrayList
+import com.soywiz.kds.DoubleArrayList
+import com.soywiz.kds.IntArrayList
 import com.soywiz.korma.geom.Rectangle
 import kotlin.math.PI
 import kotlin.math.abs

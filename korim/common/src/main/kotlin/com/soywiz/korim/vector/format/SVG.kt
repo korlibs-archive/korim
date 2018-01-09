@@ -1,7 +1,7 @@
 package com.soywiz.korim.vector.format
 
 import com.soywiz.kds.ListReader
-import com.soywiz.kds.ext.mapWhile
+import com.soywiz.kds.mapWhile
 import com.soywiz.klogger.Logger
 import com.soywiz.korim.color.NamedColors
 import com.soywiz.korim.color.RGBA
