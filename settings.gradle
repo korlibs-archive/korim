@@ -8,5 +8,5 @@ include(
 
 project(':korim-common').projectDir = file('korim/common')
 project(':korim').projectDir = file('korim/jvm')
-//project(':korim-android').projectDir = file('korim/android')
+project(':korim-android').projectDir = file('korim/android')
 project(':korim-js').projectDir = file('korim/js')
