@@ -1,8 +1,8 @@
 package com.soywiz.korim.color
 
+import com.soywiz.kmem.extract8
+import com.soywiz.kmem.insert8
 import com.soywiz.korio.JvmStatic
-import com.soywiz.korio.util.extract8
-import com.soywiz.korio.util.insert8
 
 // https://en.wikipedia.org/wiki/YUV
 object YUVA : ColorFormat32() {

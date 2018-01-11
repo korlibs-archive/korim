@@ -1,8 +1,7 @@
 package com.soywiz.korim.color
 
+import com.soywiz.kmem.extract8
 import com.soywiz.korio.JvmStatic
-import com.soywiz.korio.util.clamp
-import com.soywiz.korio.util.extract8
 
 // https://en.wikipedia.org/wiki/YCbCr
 object YCbCr : ColorFormat32() {
@@ -50,10 +49,10 @@ object YCbCr : ColorFormat32() {
 	}
 
 	fun yCbCrToRgba(c: Int): Int {
-		val Y  = RGBA.getR(c)
+		val Y = RGBA.getR(c)
 		val Cb = RGBA.getG(c)
 		val Cr = RGBA.getB(c)
-		val A  = RGBA.getA(c)
+		val A = RGBA.getA(c)
 
 		val R = getR(Y, Cb, Cr)
 		val G = getG(Y, Cb, Cr)

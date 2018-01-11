@@ -3,9 +3,6 @@ package com.soywiz.korim.color
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korio.JvmStatic
-import com.soywiz.korio.util.extractScaledFF
-import com.soywiz.korio.util.extractScaledFFDefault
-import com.soywiz.korio.util.insertScaledFF
 import kotlin.math.min
 
 interface ColorFormatBase {
@@ -16,10 +13,10 @@ interface ColorFormatBase {
 	fun pack(r: Int, g: Int, b: Int, a: Int): Int
 
 	class Mixin(
-		val rOffset: Int, val rSize: Int,
-		val gOffset: Int, val gSize: Int,
-		val bOffset: Int, val bSize: Int,
-		val aOffset: Int, val aSize: Int
+			val rOffset: Int, val rSize: Int,
+			val gOffset: Int, val gSize: Int,
+			val bOffset: Int, val bSize: Int,
+			val aOffset: Int, val aSize: Int
 	) : ColorFormatBase {
 		override fun getR(v: Int): Int = v.extractScaledFF(rOffset, rSize)
 		override fun getG(v: Int): Int = v.extractScaledFF(gOffset, gSize)
@@ -27,10 +24,10 @@ interface ColorFormatBase {
 		override fun getA(v: Int): Int = v.extractScaledFFDefault(aOffset, aSize, default = 0xFF)
 		override fun pack(r: Int, g: Int, b: Int, a: Int): Int {
 			return 0
-				.insertScaledFF(r, rOffset, rSize)
-				.insertScaledFF(g, gOffset, gSize)
-				.insertScaledFF(b, bOffset, bSize)
-				.insertScaledFF(a, aOffset, aSize)
+					.insertScaledFF(r, rOffset, rSize)
+					.insertScaledFF(g, gOffset, gSize)
+					.insertScaledFF(b, bOffset, bSize)
+					.insertScaledFF(a, aOffset, aSize)
 		}
 	}
 }
@@ -58,7 +55,7 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	fun unpackToRGBA(packed: Int): Int = RGBA.packFast(getR(packed), getG(packed), getB(packed), getA(packed))
 
 	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
-		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
+			this.getR(color), this.getG(color), this.getB(color), this.getA(color)
 	)
 
 	companion object {

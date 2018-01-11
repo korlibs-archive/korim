@@ -2,15 +2,15 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.kmem.UByteArray
 import com.soywiz.kmem.arraycopy
+import com.soywiz.kmem.insert
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korio.util.insert
 import kotlin.math.max
 
 abstract class BitmapIndexed(
-	bpp: Int,
-	width: Int, height: Int,
-	var data: ByteArray = ByteArray(width * height / (8 / bpp)),
-	var palette: IntArray = IntArray(1 shl bpp)
+		bpp: Int,
+		width: Int, height: Int,
+		var data: ByteArray = ByteArray(width * height / (8 / bpp)),
+		var palette: IntArray = IntArray(1 shl bpp)
 ) : Bitmap(width, height, bpp, false) {
 	init {
 		if (data.size < width * height / (8 / bpp)) throw RuntimeException("Bitmap data is too short: width=$width, height=$height, data=ByteArray(${data.size}), area=${width * height}")

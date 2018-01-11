@@ -1,7 +1,9 @@
 package com.soywiz.korim.font.ttf
 
+import com.soywiz.kds.IntArrayList
 import com.soywiz.klock.DateTime
 import com.soywiz.klock.years
+import com.soywiz.kmem.toUnsigned
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
@@ -11,8 +13,6 @@ import com.soywiz.korio.lang.UTF8
 import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.hex
-import com.soywiz.korio.util.toUnsigned
-import com.soywiz.kds.IntArrayList
 
 // Used information from:
 // - https://www.sweetscape.com/010editor/repository/files/TTF.bt
@@ -385,19 +385,19 @@ class TtfFont private constructor(val s: SyncStream) {
 	}
 
 	data class GlyphReference(
-		val glyph: IGlyph,
-		val x: Int, val y: Int,
-		val scaleX: Float,
-		val scale01: Float,
-		val scale10: Float,
-		val scaleY: Float
+			val glyph: IGlyph,
+			val x: Int, val y: Int,
+			val scaleX: Float,
+			val scale01: Float,
+			val scale10: Float,
+			val scaleY: Float
 	)
 
 	inner class CompositeGlyph(
-		override val xMin: Int, override val yMin: Int,
-		override val xMax: Int, override val yMax: Int,
-		val refs: List<GlyphReference>,
-		override val advanceWidth: Int
+			override val xMin: Int, override val yMin: Int,
+			override val xMax: Int, override val yMax: Int,
+			val refs: List<GlyphReference>,
+			override val advanceWidth: Int
 	) : IGlyph {
 		override fun fill(c: Context2d, size: Double, origin: Origin, color: Int) {
 			val scale = size / unitsPerEm.toDouble()
@@ -414,13 +414,13 @@ class TtfFont private constructor(val s: SyncStream) {
 	}
 
 	inner class Glyph(
-		override val xMin: Int, override val yMin: Int,
-		override val xMax: Int, override val yMax: Int,
-		val contoursIndices: IntArray,
-		val flags: IntArray,
-		val xPos: IntArray,
-		val yPos: IntArray,
-		override val advanceWidth: Int
+			override val xMin: Int, override val yMin: Int,
+			override val xMax: Int, override val yMax: Int,
+			val contoursIndices: IntArray,
+			val flags: IntArray,
+			val xPos: IntArray,
+			val yPos: IntArray,
+			override val advanceWidth: Int
 	) : IGlyph {
 		val npoints: Int get() = xPos.size
 		fun onCurve(n: Int) = (flags[n] and 1) != 0

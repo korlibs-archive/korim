@@ -1,10 +1,10 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kmem.toUnsigned
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korio.error.invalidOp
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.toUnsigned
 
 // https://www.adobe.com/devnet-apps/photoshop/fileformatashtml/
 object PSD : ImageFormat("psd") {
