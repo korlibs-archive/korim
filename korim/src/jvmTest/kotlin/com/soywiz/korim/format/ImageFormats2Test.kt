@@ -8,7 +8,7 @@ import com.soywiz.korio.file.std.*
 import kotlin.test.*
 
 class ImageFormats2Test {
-	val formats = ImageFormats(StandardImageFormats + ICO)
+	val formats = ImageFormats(PNG, ICO)
 	//val root = ResourcesVfs
 	lateinit var root: VfsFile
 
@@ -57,20 +57,6 @@ class ImageFormats2Test {
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 		//awtShowImage(bitmap); Thread.sleep(10000L)
 		//bitmap.writeTo(LocalVfs("c:/temp/img1.jpg.png"), formats = formats)
-	}
-
-	@Test
-	fun jpeg() = imgTest {
-		val bitmap = root["kotlin.jpg"].readBitmapNoNative(formats)
-		assertEquals("Bitmap32(190, 190)", bitmap.toString())
-		//bitmap.writeTo(LocalVfs("c:/temp/img1.jpg.png"), formats = formats)
-	}
-
-	@Test
-	fun jpeg2() = imgTest {
-		val bitmap = root["img1.jpg"].readBitmapNoNative(formats)
-		assertEquals("Bitmap32(460, 460)", bitmap.toString())
-		//bitmap.writeTo(LocalVfs("c:/temp/img1.jpg.tga"), formats = formats)
 	}
 
 	@Test

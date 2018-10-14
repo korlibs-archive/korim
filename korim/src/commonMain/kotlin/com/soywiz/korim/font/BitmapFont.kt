@@ -79,7 +79,7 @@ class BitmapFont(
 	}
 }
 
-suspend fun VfsFile.readBitmapFont(imageFormats: ImageFormats = defaultImageFormats): BitmapFont {
+suspend fun VfsFile.readBitmapFont(imageFormat: ImageFormat = RegisteredImageFormats): BitmapFont {
 	val fntFile = this
 	val content = fntFile.readString().trim()
 	val textures = hashMapOf<Int, BitmapSlice<Bitmap>>()
@@ -87,11 +87,11 @@ suspend fun VfsFile.readBitmapFont(imageFormats: ImageFormats = defaultImageForm
 	when {
 		// XML
 		content.startsWith('<') -> {
-			return readBitmapFontXml(content, fntFile, textures, imageFormats)
+			return readBitmapFontXml(content, fntFile, textures, imageFormat)
 		}
 		// FNT
 		content.startsWith("info") -> {
-			return readBitmapFontTxt(content, fntFile, textures, imageFormats)
+			return readBitmapFontTxt(content, fntFile, textures, imageFormat)
 		}
 		else -> TODO("Unsupported font type starting with ${content.substr(0, 16)}")
 	}
@@ -101,7 +101,7 @@ private suspend fun readBitmapFontTxt(
 	content: String,
 	fntFile: VfsFile,
 	textures: HashMap<Int, BitmapSlice<Bitmap>>,
-	imageFormats: ImageFormats
+	imageFormat: ImageFormat = RegisteredImageFormats
 ): BitmapFont {
 	data class BmpChar(
 		val id: Int, val x: Int, val y: Int, val width: Int, val height: Int,
@@ -171,7 +171,7 @@ private suspend fun readBitmapFontXml(
 	content: String,
 	fntFile: VfsFile,
 	textures: MutableMap<Int, BitmapSlice<Bitmap>>,
-	imageFormats: ImageFormats = defaultImageFormats
+    imageFormat: ImageFormat = RegisteredImageFormats
 ): BitmapFont {
 	val xml = Xml(content)
 

@@ -20,4 +20,6 @@ rootProject.name = 'korim-root'
 
 enableFeaturePreview('GRADLE_METADATA')
 
-include ':korim', ':korim-qr'
+include ':korim'
+include ':korim-jpeg'
+include ':korim-qr'

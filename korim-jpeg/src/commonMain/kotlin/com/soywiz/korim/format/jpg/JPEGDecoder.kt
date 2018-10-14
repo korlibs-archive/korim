@@ -1,4 +1,4 @@
-package com.soywiz.korim.format
+package com.soywiz.korim.format.jpg
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*

@@ -5,7 +5,7 @@ import com.soywiz.korio.async.*
 import kotlin.test.*
 
 class DDSTest : BaseImageFormatTest() {
-	val formats = ImageFormats(StandardImageFormats + DDS)
+	val formats = ImageFormats(PNG, DDS)
 	val ResourcesVfs = root
 
 	@kotlin.test.Test
@@ -30,4 +30,14 @@ class DDSTest : BaseImageFormatTest() {
 		assertEquals(0, output.matchContentsDistinctCount(expected))
 		//output.writeTo(LocalVfs("c:/temp/dxt5.png"))
 	}
+
+    @kotlin.test.Test
+    fun dxt5_registered() = suspendTest {
+        RegisteredImageFormats.temporalRegister(DDS, PNG) {
+            val output = ResourcesVfs["dxt5.dds"].readBitmapNoNative()
+            val expected = ResourcesVfs["dxt5.png"].readBitmapNoNative()
+            assertEquals(0, output.matchContentsDistinctCount(expected))
+            //output.writeTo(LocalVfs("c:/temp/dxt5.png"))
+        }
+    }
 }

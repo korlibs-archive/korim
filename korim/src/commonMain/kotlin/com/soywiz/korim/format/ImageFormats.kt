@@ -7,7 +7,10 @@ import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
 
 class ImageFormats(formats: Iterable<ImageFormat>) : ImageFormat("") {
-	val formats = formats.toSet()
+    constructor(vararg formats: ImageFormat) : this(formats.toList())
+
+	val formats: Set<ImageFormat> = formats.flatMap { if (it is ImageFormats) it.formats.toList() else listOf(it) }.toSet()
+
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		for (format in formats) return try {
 			format.decodeHeader(s.sliceStart(), props) ?: continue
@@ -43,19 +46,12 @@ class ImageFormats(formats: Iterable<ImageFormat>) : ImageFormat("") {
 	}
 }
 
-operator fun ImageFormats.plus(format: ImageFormat) = ImageFormats(this.formats + format)
-operator fun ImageFormats.plus(format: Iterable<ImageFormat>) = ImageFormats(this.formats + format)
+operator fun ImageFormat.plus(format: ImageFormat) = ImageFormats(this, format)
+operator fun ImageFormat.plus(format: Iterable<ImageFormat>) = ImageFormats(listOf(this) + format)
 
 @Suppress("unused")
 suspend fun Bitmap.writeTo(
 	file: VfsFile,
-	formats: ImageFormat,
+	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageEncodingProps = ImageEncodingProps()
 ) = file.writeBytes(formats.encode(this, props.copy(filename = file.basename)))
-
-// @TODO: kotlin-native bug: https://github.com/JetBrains/kotlin-native/issues/1770
-//val defaultImageFormats = ImageFormats(StandardImageFormats)
-
-val defaultImageFormats get() = ImageFormats(StandardImageFormats)
-
-//val defaultImageFormats = ImageFormats()

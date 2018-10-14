@@ -37,23 +37,23 @@ suspend fun decodeImageFile(file: VfsFile): NativeImage {
 }
 
 suspend fun VfsFile.readNativeImage(): NativeImage = decodeImageFile(this)
-suspend fun VfsFile.readImageData(formats: ImageFormat, props: ImageDecodingProps = ImageDecodingProps()): ImageData =
+suspend fun VfsFile.readImageData(formats: ImageFormat = RegisteredImageFormats, props: ImageDecodingProps = ImageDecodingProps()): ImageData =
 	formats.readImage(this.readAsSyncStream(), props.copy(filename = this.basename))
 
 
 suspend fun AsyncInputStream.readNativeImage(): NativeImage = decodeImageBytes(this.readAll())
-suspend fun AsyncInputStream.readImageData(formats: ImageFormat, basename: String = "file.bin"): ImageData =
+suspend fun AsyncInputStream.readImageData(formats: ImageFormat = RegisteredImageFormats, basename: String = "file.bin"): ImageData =
 	formats.readImageInWorker(this.readAll().openSync(), ImageDecodingProps(basename))
 
 suspend fun AsyncInputStream.readImageDataProps(
-	formats: ImageFormat, props: ImageDecodingProps = ImageDecodingProps("file.bin")
+	formats: ImageFormat = RegisteredImageFormats, props: ImageDecodingProps = ImageDecodingProps("file.bin")
 ): ImageData = formats.readImageInWorker(this.readAll().openSync(), props)
 
 suspend fun AsyncInputStream.readBitmapListNoNative(formats: ImageFormat): List<Bitmap> =
 	this.readImageData(formats).frames.map { it.bitmap }
 
 suspend fun VfsFile.readBitmapInfo(
-	formats: ImageFormat,
+	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageDecodingProps = ImageDecodingProps()
 ): ImageInfo? =
 	formats.decodeHeader(this.readAsSyncStream(), props)
@@ -69,7 +69,7 @@ suspend fun AsyncInputStream.readBitmap(basename: String, formats: ImageFormat):
 }
 
 suspend fun AsyncInputStream.readBitmap(
-	formats: ImageFormat,
+	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageDecodingProps = ImageDecodingProps("file.bin")
 ): Bitmap {
 	val bytes = this.readAll()
@@ -84,7 +84,7 @@ suspend fun AsyncInputStream.readBitmap(
 suspend fun VfsFile.readBitmapInfo(formats: ImageFormat): ImageInfo? =
 	formats.decodeHeader(this.readAsSyncStream())
 
-suspend fun VfsFile.readBitmapOptimized(formats: ImageFormat = defaultImageFormats): Bitmap {
+suspend fun VfsFile.readBitmapOptimized(formats: ImageFormat = RegisteredImageFormats): Bitmap {
 	try {
 		return nativeImageFormatProvider.decode(this)
 	} catch (t: Throwable) {
@@ -94,7 +94,7 @@ suspend fun VfsFile.readBitmapOptimized(formats: ImageFormat = defaultImageForma
 }
 
 suspend fun VfsFile.readBitmap(
-	formats: ImageFormat,
+	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageDecodingProps = ImageDecodingProps()
 ): Bitmap {
 	val file = this
@@ -109,7 +109,7 @@ suspend fun VfsFile.readBitmap(
 	}
 }
 
-suspend fun VfsFile.readBitmapSlice(formats: ImageFormat = defaultImageFormats): BitmapSlice<Bitmap> = readBitmapOptimized().slice()
+suspend fun VfsFile.readBitmapSlice(formats: ImageFormat = RegisteredImageFormats): BitmapSlice<Bitmap> = readBitmapOptimized().slice()
 
 var nativeImageLoadingEnabled = true
 
@@ -124,11 +124,11 @@ suspend inline fun disableNativeImageLoading(callback: () -> Unit) {
 }
 
 suspend fun VfsFile.readBitmapNoNative(
-	formats: ImageFormat,
+	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageDecodingProps = ImageDecodingProps()
 ): Bitmap = formats.readImageInWorker(this.readAsSyncStream(), props).mainBitmap
 
-suspend fun VfsFile.readBitmapNoNative(formats: ImageFormat): Bitmap =
+suspend fun VfsFile.readBitmapNoNative(formats: ImageFormat = RegisteredImageFormats): Bitmap =
 	formats.decodeInWorker(this.read(), this.basename)
 
 suspend fun VfsFile.writeBitmap(

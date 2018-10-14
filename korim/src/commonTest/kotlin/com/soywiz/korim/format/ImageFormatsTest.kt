@@ -8,7 +8,7 @@ import com.soywiz.korio.util.*
 import kotlin.test.*
 
 class ImageFormatsTest : BaseImageFormatTest() {
-	val imageFormats = ImageFormats(StandardImageFormats + SVG + ICO + BMP)
+	val imageFormats = ImageFormats(PNG, SVG, ICO, BMP)
 
 	//@Test
 	//fun demo1() = imageTest {
@@ -68,14 +68,6 @@ class ImageFormatsTest : BaseImageFormatTest() {
 	}
 
 	@Test
-	fun jpegEncoder() = suspendTest {
-		val bitmapOriginal = root["kotlin32.png"].readBitmapNoNative(imageFormats).toBMP32()
-		val bytes = JPEG.encode(bitmapOriginal, ImageEncodingProps(quality = 0.5))
-		//val bitmapOriginal = LocalVfs("/tmp/aa.jpg").readBitmapNoNative().toBMP32()
-		//bitmapOriginal.writeTo(LocalVfs("/tmp/out.jpg"))
-	}
-
-	@Test
 	fun png32() = suspendTest {
 		val bitmap = root["kotlin32.png"].readBitmapNoNative(imageFormats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
@@ -85,18 +77,6 @@ class ImageFormatsTest : BaseImageFormatTest() {
 	fun tga() = suspendTest {
 		val bitmap = root["kotlin.tga"].readBitmapNoNative(imageFormats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
-	}
-
-	@Test
-	fun jpeg() = suspendTest {
-		val bitmap = root["kotlin.jpg"].readBitmapNoNative(imageFormats)
-		assertEquals("Bitmap32(190, 190)", bitmap.toString())
-	}
-
-	@Test
-	fun jpeg2() = suspendTest {
-		val bitmap = root["img1.jpg"].readBitmapNoNative(imageFormats)
-		assertEquals("Bitmap32(460, 460)", bitmap.toString())
 	}
 
 	@Test

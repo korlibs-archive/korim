@@ -7,7 +7,7 @@ import com.soywiz.korma.geom.*
 import kotlin.test.*
 
 class ImageFormatsNativeTest {
-	val formats = ImageFormats(StandardImageFormats + ICO + SVG)
+	val formats = ImageFormats(PNG, ICO, SVG)
 
 	@Test
 	fun png8() = suspendTest {
@@ -29,33 +29,6 @@ class ImageFormatsNativeTest {
 		val bitmap = ResourcesVfs["kotlin32.png"].readBitmap(formats = formats)
 		assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
 		//awtShowImage(bitmap); Thread.sleep(10000L)
-	}
-
-	@Test
-	fun jpeg() = suspendTest {
-		val bitmap = ResourcesVfs["kotlin.jpg"].readBitmap(formats = formats)
-		assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
-
-		val bitmapExpected = ResourcesVfs["kotlin.jpg.png"].readBitmap(formats = formats)
-		assertTrue(Bitmap32.matches(bitmapExpected, bitmap))
-
-		//val diff = Bitmap32.diff(bitmapExpected, bitmap)
-		//diff.transformColor { RGBA.pack(RGBA.getR(it) * 0xFF, RGBA.getG(it) * 0xFF, RGBA.getB(it) * 0xFF, 0xFF) }
-		//awtShowImage(diff); Thread.sleep(10000L)
-	}
-
-	@Test
-	fun jpeg2() = suspendTest {
-		val bitmap = ResourcesVfs["img1.jpg"].readBitmap(formats = formats)
-		assertEquals("AwtNativeImage(460, 460)", bitmap.toString())
-
-		val bitmapExpected = ResourcesVfs["img1.jpg.png"].readBitmap(formats = formats)
-		assertTrue(Bitmap32.matches(bitmapExpected, bitmap, threshold = 32))
-
-		//val diff = Bitmap32.diff(bitmapExpected, bitmap)
-		//diff.transformColor { RGBA.pack(RGBA.getR(it) * 4, RGBA.getG(it) * 4, RGBA.getB(it) * 4, 0xFF) }
-		//diff.transformColor { RGBA.pack(RGBA.getR(it) * 0xFF, RGBA.getG(it) * 0xFF, RGBA.getB(it) * 0xFF, 0xFF) }
-		//awtShowImage(diff); Thread.sleep(10000L)
 	}
 
 	@Test
