@@ -4,14 +4,18 @@ import com.soywiz.korio.stream.*
 import kotlinx.atomicfu.*
 
 object RegisteredImageFormats : ImageFormat() {
-    var formats = atomic(ImageFormats(PNG))
+    private var _formats = atomic(ImageFormats(PNG))
+
+    var formats: ImageFormats
+        get() = _formats.value
+        set(value) = run { _formats.value = value }
 
     fun register(vararg formats: ImageFormat) {
-        this.formats.value = ImageFormats(this.formats.value.formats + formats)
+        this.formats = ImageFormats(this.formats.formats + formats)
     }
 
     fun unregister(vararg formats: ImageFormat) {
-        this.formats.value = ImageFormats(this.formats.value.formats - formats)
+        this.formats = ImageFormats(this.formats.formats - formats)
     }
 
     inline fun <T> temporalRegister(vararg formats: ImageFormat, callback: () -> T): T {
@@ -24,9 +28,9 @@ object RegisteredImageFormats : ImageFormat() {
         }
     }
 
-    override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData = formats.value.readImage(s, props)
-    override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) = formats.value.writeImage(image, s, props)
-    override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = formats.value.decodeHeader(s, props)
-    override fun toString(): String = "RegisteredImageFormats(${formats.value})"
+    override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData = formats.readImage(s, props)
+    override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) = formats.writeImage(image, s, props)
+    override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = formats.decodeHeader(s, props)
+    override fun toString(): String = "RegisteredImageFormats($formats)"
 }
 
