@@ -1,12 +1,23 @@
-rootProject.name = 'korim-root'
-include(
-		'korim-common',
-		'korim-js',
-		'korim',
-		'korim-android',
-)
+pluginManagement {
+	resolutionStrategy {
+		eachPlugin {
+			if (requested.id.id == "kotlin-multiplatform") {
+				useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
+			}
+		}
+	}
 
-project(':korim-common').projectDir = file('korim/common')
-project(':korim').projectDir = file('korim/jvm')
-project(':korim-android').projectDir = file('korim/android')
-project(':korim-js').projectDir = file('korim/js')
+	repositories {
+		mavenLocal()
+		maven { url 'http://dl.bintray.com/kotlin/kotlin-eap' }
+		maven { url 'https://plugins.gradle.org/m2/' }
+        jcenter()
+        mavenCentral()
+	}
+}
+
+rootProject.name = 'korim-root'
+
+enableFeaturePreview('GRADLE_METADATA')
+
+include ':korim', ':korim-qr'

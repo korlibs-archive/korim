@@ -1,7 +1,0 @@
-apply plugin: 'kotlin-platform-common'
-
-dependencies {
-	compile "com.soywiz:korio-common:$korioVersion"
-	compile "com.soywiz:klogger-common:$kloggerVersion"
-	compile "com.soywiz:korma-common:$kormaVersion"
-}
