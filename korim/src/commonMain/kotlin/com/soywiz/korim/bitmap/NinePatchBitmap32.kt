@@ -145,4 +145,4 @@ class NinePatchBitmap32(val bmp: Bitmap32) {
 }
 
 fun Bitmap.asNinePatch() = NinePatchBitmap32(this.toBMP32())
-suspend fun VfsFile.readNinePatch(format: ImageFormat) = NinePatchBitmap32(readBitmap(format).toBMP32())
+suspend fun VfsFile.readNinePatch(format: ImageFormat = RegisteredImageFormats) = NinePatchBitmap32(readBitmap(format).toBMP32())

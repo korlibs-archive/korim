@@ -1,16 +1,14 @@
 package com.soywiz.korim.bitmap
 
-import com.soywiz.korim.MyResourcesVfs
-import com.soywiz.korim.format.defaultImageFormats
-import com.soywiz.korio.async.suspendTest
-import com.soywiz.korma.geom.RectangleInt
-import kotlin.test.Test
-import kotlin.test.assertEquals
+import com.soywiz.korim.*
+import com.soywiz.korio.async.*
+import com.soywiz.korma.geom.*
+import kotlin.test.*
 
 class NinePatchBitmap32Test {
     @Test
     fun name() = suspendTest {
-        val ninePatch = MyResourcesVfs["bubble-chat.9.png"].readNinePatch(defaultImageFormats)
+        val ninePatch = MyResourcesVfs["bubble-chat.9.png"].readNinePatch()
 
         assertEquals(
             listOf(false to 0..89, true to 90..156, false to 157..199),

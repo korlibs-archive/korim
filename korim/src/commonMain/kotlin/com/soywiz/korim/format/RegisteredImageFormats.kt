@@ -4,10 +4,14 @@ import com.soywiz.korio.stream.*
 import kotlinx.atomicfu.*
 
 object RegisteredImageFormats : ImageFormat() {
-    var formats = atomic(ImageFormats(listOf()))
+    var formats = atomic(ImageFormats(PNG))
 
     fun register(vararg formats: ImageFormat) {
         this.formats.value = ImageFormats(this.formats.value.formats + formats)
+    }
+
+    fun unregister(vararg formats: ImageFormat) {
+        this.formats.value = ImageFormats(this.formats.value.formats - formats)
     }
 
     inline fun <T> temporalRegister(vararg formats: ImageFormat, callback: () -> T): T {
