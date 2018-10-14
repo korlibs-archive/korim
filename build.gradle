@@ -3,16 +3,20 @@ plugins {
     id 'com.moowork.node' version '1.2.0'
 }
 
-subprojects {
-    apply plugin: 'kotlin-multiplatform'
-    apply plugin: 'com.moowork.node'
-
+allprojects {
     repositories {
         mavenLocal()
         maven { url "https://dl.bintray.com/soywiz/soywiz" }
         maven { url "https://dl.bintray.com/kotlin/kotlin-eap" }
         jcenter()
+        mavenCentral()
     }
+
+}
+
+subprojects {
+    apply plugin: 'kotlin-multiplatform'
+    apply plugin: 'com.moowork.node'
 
     kotlin {
         targets {
