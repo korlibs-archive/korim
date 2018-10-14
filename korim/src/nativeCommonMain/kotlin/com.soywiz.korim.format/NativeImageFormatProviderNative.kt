@@ -13,8 +13,8 @@ import kotlin.math.*
 actual val nativeImageFormatProvider: NativeImageFormatProvider = NativeNativeImageFormatProvider
 
 object NativeNativeImageFormatProvider : NativeImageFormatProvider() {
-	override suspend fun decode(data: ByteArray): NativeImage = wrapNative(defaultImageFormats.decode(data))
-	override suspend fun decode(vfs: Vfs, path: String): NativeImage = wrapNative(defaultImageFormats.decode(vfs[path]))
+	override suspend fun decode(data: ByteArray): NativeImage = wrapNative(RegisteredImageFormats.decode(data))
+	override suspend fun decode(vfs: Vfs, path: String): NativeImage = wrapNative(RegisteredImageFormats.decode(vfs[path]))
 	private fun wrapNative(bmp: Bitmap): BitmapNativeImage {
 		val bmp32: Bitmap32 = bmp.toBMP32()
 		//bmp32.premultiplyInPlace()

@@ -1,14 +1,13 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korio.stream.*
-import kotlinx.atomicfu.*
+
+expect var RegisteredImageFormats_formats: ImageFormats
 
 object RegisteredImageFormats : ImageFormat() {
-    private var _formats = atomic(ImageFormats(PNG))
-
     var formats: ImageFormats
-        get() = _formats.value
-        set(value) = run { _formats.value = value }
+        get() = RegisteredImageFormats_formats
+        set(value) = run { RegisteredImageFormats_formats = value }
 
     fun register(vararg formats: ImageFormat) {
         this.formats = ImageFormats(this.formats.formats + formats)

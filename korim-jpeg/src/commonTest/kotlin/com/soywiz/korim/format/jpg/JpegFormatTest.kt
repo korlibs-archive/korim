@@ -5,21 +5,29 @@ import com.soywiz.korim.format.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
+import com.soywiz.korio.lang.*
+import com.soywiz.korio.util.*
 import kotlin.test.*
 
 class JpegFormatTest {
+    val MyResourcesVfs = when {
+        OS.isJs -> localCurrentDirVfs["src/commonTest/resources"]
+        OS.isNative -> localCurrentDirVfs["../../../../../../src/commonTest/resources"]
+        else -> ResourcesVfs
+    }
+
     val formats = ImageFormats(JPEG, PNG)
 
     lateinit var root: VfsFile
 
-    fun imgTest(callback: suspend () -> Unit) = suspendTest {
-        for (path in listOf(applicationVfs["src/test/resources"], ResourcesVfs)) {
+    //inline fun imgTest(crossinline callback: suspend () -> Unit) = suspendTest { // @TODO: Generation bug
+    inline fun imgTest(noinline callback: suspend () -> Unit) = suspendTest {
+        for (path in listOf(applicationVfs["src/test/resources"], MyResourcesVfs)) {
             root = path
             if (root["kotlin8.png"].exists()) break
         }
         callback()
     }
-
 
     @Test
     fun jpeg() = imgTest {
@@ -36,11 +44,13 @@ class JpegFormatTest {
     }
 
     @Test
-    fun jpegNative() = suspendTest {
-        val bitmap = ResourcesVfs["kotlin.jpg"].readBitmap(formats = formats)
-        assertEquals("AwtNativeImage(190, 190)", bitmap.toString())
+    @Ignore
+    fun jpegNative() = imgTest {
+        val bitmap = MyResourcesVfs["kotlin.jpg"].readBitmap(formats = formats)
+        //assertTrue(bitmap is NativeImage)
+        assertEquals("Bitmap32(190, 190)", bitmap.toBMP32().toString())
 
-        val bitmapExpected = ResourcesVfs["kotlin.jpg.png"].readBitmap(formats = formats)
+        val bitmapExpected = MyResourcesVfs["kotlin.jpg.png"].readBitmap(formats = formats)
         assertTrue(Bitmap32.matches(bitmapExpected, bitmap))
 
         //val diff = Bitmap32.diff(bitmapExpected, bitmap)
@@ -49,11 +59,13 @@ class JpegFormatTest {
     }
 
     @Test
-    fun jpeg2Native() = suspendTest {
-        val bitmap = ResourcesVfs["img1.jpg"].readBitmap(formats = formats)
-        assertEquals("AwtNativeImage(460, 460)", bitmap.toString())
+    @Ignore
+    fun jpeg2Native() = imgTest {
+        val bitmap = MyResourcesVfs["img1.jpg"].readBitmap(formats = formats)
+        //assertTrue(bitmap is NativeImage)
+        assertEquals("Bitmap32(460, 460)", bitmap.toBMP32().toString())
 
-        val bitmapExpected = ResourcesVfs["img1.jpg.png"].readBitmap(formats = formats)
+        val bitmapExpected = MyResourcesVfs["img1.jpg.png"].readBitmap(formats = formats)
         assertTrue(Bitmap32.matches(bitmapExpected, bitmap, threshold = 32))
 
         //val diff = Bitmap32.diff(bitmapExpected, bitmap)
@@ -63,7 +75,7 @@ class JpegFormatTest {
     }
 
     @Test
-    fun jpegEncoder() = suspendTest {
+    fun jpegEncoder() = imgTest {
         val bitmapOriginal = root["kotlin32.png"].readBitmapNoNative(formats).toBMP32()
         val bytes = JPEG.encode(bitmapOriginal, ImageEncodingProps(quality = 0.5))
         //val bitmapOriginal = LocalVfs("/tmp/aa.jpg").readBitmapNoNative().toBMP32()
@@ -71,13 +83,13 @@ class JpegFormatTest {
     }
 
     @Test
-    fun ajpeg() = suspendTest {
+    fun ajpeg() = imgTest {
         val bitmap = root["kotlin.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(190, 190)", bitmap.toString())
     }
 
     @Test
-    fun ajpeg2() = suspendTest {
+    fun ajpeg2() = imgTest {
         val bitmap = root["img1.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(460, 460)", bitmap.toString())
     }

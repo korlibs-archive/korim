@@ -5,8 +5,6 @@ import com.soywiz.korio.error.*
 import com.soywiz.korio.stream.*
 
 object DDS : ImageFormat("dds") {
-	var ImageInfo.fourcc by Extra.Property { "    " }
-
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readString(4) != "DDS ") return null
 		val size = s.readS32_le()
@@ -61,3 +59,5 @@ object DDS : ImageFormat("dds") {
 		)
 	}
 }
+
+private var ImageInfo.fourcc by Extra.Property { "    " }
