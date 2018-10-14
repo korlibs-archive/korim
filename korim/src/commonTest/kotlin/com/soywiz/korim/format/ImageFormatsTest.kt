@@ -8,7 +8,7 @@ import com.soywiz.korio.util.*
 import kotlin.test.*
 
 class ImageFormatsTest : BaseImageFormatTest() {
-	val imageFormats = ImageFormats(PNG, SVG, ICO, BMP)
+	val imageFormats = ImageFormats(PNG, SVG, ICO, TGA, BMP)
 
 	//@Test
 	//fun demo1() = imageTest {
