@@ -2,7 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korio.stream.*
 
-expect var RegisteredImageFormats_formats: ImageFormats
+internal expect var RegisteredImageFormats_formats: ImageFormats
 
 object RegisteredImageFormats : ImageFormat() {
     var formats: ImageFormats
