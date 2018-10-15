@@ -9,8 +9,8 @@ inline fun RGBAInt(rgba: Int): Int = rgba
 inline fun RGBAInt(r: Int, g: Int, b: Int, a: Int) = RGBA.pack(r, g, b, a)
 inline fun RGBAInt(rgb: Int, a: Int) = rgb or (a shl 24)
 
-//inline class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: class inline or slow
-data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slow! Mark class as inline once fixes are ready
+inline class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: class inline or slow
+//data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slow! Mark class as inline once fixes are ready
 	val r: Int get() = (rgba ushr 0) and 0xFF
 	val g: Int get() = (rgba ushr 8) and 0xFF
 	val b: Int get() = (rgba ushr 16) and 0xFF
@@ -49,9 +49,9 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 
 	// @TODO: Is c1 == c2 slow?
 	override operator fun compareTo(other: RGBA): Int = this.rgba.compareTo(other.rgba)
-	override fun hashCode(): Int = rgba
-	override fun equals(other: Any?): Boolean = if (other is RGBA) other.rgba == this.rgba else false
-	fun equals(other: RGBA): Boolean = other.rgba == this.rgba
+	//override fun hashCode(): Int = rgba
+	//override fun equals(other: Any?): Boolean = if (other is RGBA) other.rgba == this.rgba else false
+	//fun equals(other: RGBA): Boolean = other.rgba == this.rgba
 
 	companion object : ColorFormat32() {
 		//@JvmStatic
@@ -386,8 +386,8 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 }
 
 
-//inline class RgbaArray(val array: IntArray) : List<RGBA> { // @TODO: class inline or slow!
-class RgbaArray(val array: IntArray) : List<RGBA> {
+inline class RgbaArray(val array: IntArray) : List<RGBA> { // @TODO: class inline or slow!
+//class RgbaArray(val array: IntArray) : List<RGBA> {
 	override fun subList(fromIndex: Int, toIndex: Int): List<RGBA> = SubListGeneric(this, fromIndex, toIndex)
 	override fun contains(element: RGBA): Boolean = array.contains(element.rgba)
 	override fun containsAll(elements: Collection<RGBA>): Boolean = elements.all { contains(it) }
@@ -401,7 +401,7 @@ class RgbaArray(val array: IntArray) : List<RGBA> {
 	//constructor(size: Int) : this(IntArray(size))
 	companion object {
 		operator fun invoke(size: Int): RgbaArray = RgbaArray(IntArray(size))
-		operator fun invoke(size: Int, callback: (index: Int) -> RGBA): RgbaArray = RgbaArray(IntArray(size)).apply { for (n in 0 until size) this[n] = callback(n) }
+        //operator fun invoke(size: Int, callback: (index: Int) -> RGBA): RgbaArray = RgbaArray(IntArray(size)).apply { for (n in 0 until size) this[n] = callback(n) }
 		fun genInt(size: Int, callback: (index: Int) -> Int): RgbaArray = RgbaArray(IntArray(size)).apply { for (n in 0 until size) this.array[n] = callback(n) }
 
 		/**
@@ -409,7 +409,7 @@ class RgbaArray(val array: IntArray) : List<RGBA> {
 		 * Exception Details:
 		 * Location:
 		 */
-		//inline operator fun invoke(size: Int, callback: (index: Int) -> RGBA): RgbaArray = RgbaArray(IntArray(size)).apply { for (n in 0 until size) this[n] = callback(n) }
+		inline operator fun invoke(size: Int, callback: (index: Int) -> RGBA): RgbaArray = RgbaArray(IntArray(size)).apply { for (n in 0 until size) this[n] = callback(n) }
 	}
 
 	override val size get() = array.size
