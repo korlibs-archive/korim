@@ -20,8 +20,8 @@ class JpegFormatTest {
 
     lateinit var root: VfsFile
 
-    //inline fun imgTest(crossinline callback: suspend () -> Unit) = suspendTest { // @TODO: Generation bug
-    inline fun imgTest(noinline callback: suspend () -> Unit) = suspendTest {
+    inline fun imgTest(crossinline callback: suspend () -> Unit) = suspendTest { // @TODO: Generation bug
+    //inline fun imgTest(noinline callback: suspend () -> Unit) = suspendTest {
         for (path in listOf(applicationVfs["src/test/resources"], MyResourcesVfs)) {
             root = path
             if (root["kotlin8.png"].exists()) break
