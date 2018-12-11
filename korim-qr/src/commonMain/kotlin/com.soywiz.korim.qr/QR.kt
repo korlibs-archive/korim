@@ -92,7 +92,7 @@ open class QR(
 	)
 
 	companion object : QR() {
-		private val dateFormat = SimplerDateFormat("YYYYMMdd")
+		private val dateFormat = DateFormat("YYYYMMdd")
 
 		private fun getTypeNumber(sText: String, nCorrectLevel: QRErrorCorrectLevel): Int =
 			getTypeNumber(sText.toByteArray(UTF8).size, nCorrectLevel)
@@ -179,7 +179,7 @@ private fun QRCodeModel.toBitmap(colorDark: RGBA, colorLight: RGBA): Bitmap32 {
 
 private class QR8bitByte(parsedDataS: ByteArray) {
 	var mode = QRMode.MODE_8BIT_BYTE
-	val parsedData = UByteArray(parsedDataS)
+	val parsedData = UByteArrayInt(parsedDataS)
 
 	companion object {
 		operator fun invoke(data: String): QR8bitByte {

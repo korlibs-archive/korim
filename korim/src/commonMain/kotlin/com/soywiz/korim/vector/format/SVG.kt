@@ -210,7 +210,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 					val out = ss.readWhile { it.isNumeric }.toDouble()
 					ss.skipWhile { !it.isNumeric }
 					out
-				}))
+				}).toList())
 				val path = GraphicsPath()
 				var edges = 0
 				path.moveTo(pps.read(), pps.read())

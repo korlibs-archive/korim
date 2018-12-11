@@ -70,7 +70,7 @@ class JPEGDecoder {
 		yDensity: Int,
 		thumbWidth: Int,
 		thumbHeight: Int,
-		thumbData: UByteArray
+		thumbData: UByteArrayInt
 	)
 
 	@Suppress("unused")
@@ -97,7 +97,7 @@ class JPEGDecoder {
 		}
 	}
 
-	private fun buildHuffmanTable(codeLengths: UByteArray, values: UByteArray): List<Any> {
+	private fun buildHuffmanTable(codeLengths: UByteArrayInt, values: UByteArrayInt): List<Any> {
 		var k = 0
 		val code = arrayListOf<HuffmanNode>()
 		var length = 16
@@ -134,7 +134,7 @@ class JPEGDecoder {
 	}
 
 	private fun decodeScan(
-		data: UByteArray, offset: Int,
+		data: UByteArrayInt, offset: Int,
 		frame: Frame, components: List<FrameComponent>, resetInterval: Int,
 		spectralStart: Int, spectralEnd: Int,
 		successivePrev: Int, successive: Int
@@ -417,20 +417,20 @@ class JPEGDecoder {
 	private fun buildComponentData(
 		@Suppress("UNUSED_PARAMETER") frame: Frame,
 		component: FrameComponent
-	): List<UByteArray> {
-		val lines = arrayListOf<UByteArray>()
+	): List<UByteArrayInt> {
+		val lines = arrayListOf<UByteArrayInt>()
 		val blocksPerLine = component.blocksPerLine
 		val blocksPerColumn = component.blocksPerColumn
 		val samplesPerLine = blocksPerLine shl 3
 		val rr = IntArray(64)
-		val r = UByteArray(64)
+		val r = UByteArrayInt(64)
 
 		// A port of poppler's IDCT method which in turn is taken from:
 		//   Christoph Loeffler, Adriaan Ligtenberg, George S. Moschytz,
 		//   "Practical Fast 1-D DCT Algorithms with 11 Multiplications",
 		//   IEEE Intl. Conf. on Acoustics, Speech and Signal Processing, 1989,
 		//   988-991.
-		fun quantizeAndInverse(zz: IntArray, dataOut: UByteArray, dataIn: IntArray) {
+		fun quantizeAndInverse(zz: IntArray, dataOut: UByteArrayInt, dataIn: IntArray) {
 			val qt = component.quantizationTable
 			var v0: Int
 			var v1: Int
@@ -595,7 +595,7 @@ class JPEGDecoder {
 		for (blockRow in 0 until blocksPerColumn) {
 			val scanLine = blockRow shl 3
 			for (i in 0 until 8)
-				lines.add(UByteArray(samplesPerLine))
+				lines.add(UByteArrayInt(samplesPerLine))
 			for (blockCol in 0 until blocksPerLine) {
 				quantizeAndInverse(component.blocks[blockRow][blockCol], r, rr)
 
@@ -614,7 +614,7 @@ class JPEGDecoder {
 	private fun clampTo8bit(a: Int): Int = if (a < 0) 0 else if (a > 255) 255 else a
 	//private fun clampTo8bit(a: Float): Float = if (a < 0f) 0f else if (a > 255f) 255f else a
 
-	private fun UByteArray.subarray(from: Int, to: Int) = UByteArray(this.data.copyOfRange(from, to))
+	private fun UByteArrayInt.subarray(from: Int, to: Int) = UByteArrayInt(this.asByteArray().copyOfRange(from, to))
 
 	class FrameComponent(
 		val h: Int,
@@ -646,7 +646,7 @@ class JPEGDecoder {
 		var mcusPerColumn: Int = 0
 	}
 
-	fun parse(data: UByteArray) {
+	fun parse(data: UByteArrayInt) {
 		var offset = 0
 		//var length = data.size
 		fun readUint16(): Int {
@@ -655,9 +655,9 @@ class JPEGDecoder {
 			return value
 		}
 
-		fun readDataBlock(): UByteArray {
+		fun readDataBlock(): UByteArrayInt {
 			val len = readUint16()
-			val array = UByteArray(data.data.copyOfRange(offset, offset + len - 2))
+			val array = UByteArrayInt(data.asByteArray().copyOfRange(offset, offset + len - 2))
 			offset += array.size
 			return array
 		}
@@ -796,14 +796,14 @@ class JPEGDecoder {
 					var i = 2
 					while (i < huffmanLength) {
 						val huffmanTableSpec = data[offset++]
-						val codeLengths = UByteArray(16)
+						val codeLengths = UByteArrayInt(16)
 						var codeLengthSum = 0
 						for (j in 0 until 16) {
 							codeLengths[j] = data[offset]
 							codeLengthSum += codeLengths[j]
 							offset++
 						}
-						val huffmanValues = UByteArray(codeLengthSum)
+						val huffmanValues = UByteArrayInt(codeLengthSum)
 						for (j in 0 until codeLengthSum) {
 							huffmanValues[j] = data[offset]
 							offset++
@@ -888,15 +888,15 @@ class JPEGDecoder {
 		}
 	}
 
-	class Component(val lines: List<UByteArray>, val scaleX: Float, val scaleY: Float)
+	class Component(val lines: List<UByteArrayInt>, val scaleX: Float, val scaleY: Float)
 
-	private fun getData(width: Int, height: Int): UByteArray {
+	private fun getData(width: Int, height: Int): UByteArrayInt {
 		val scaleX = this.width / width
 		val scaleY = this.height / height
 
 		var offset = 0
 		val dataLength = width * height * this.components.size
-		val data = UByteArray(dataLength)
+		val data = UByteArrayInt(dataLength)
 
 		when (this.components.size) {
 			1 -> {
@@ -1049,11 +1049,11 @@ class JPEGDecoder {
 	}
 
 	data class ImageInfo(val width: Int, val height: Int)
-	class ImageData(val width: Int, val height: Int, val data: UByteArray)
+	class ImageData(val width: Int, val height: Int, val data: UByteArrayInt)
 
 	companion object {
 		fun decodeInfo(jpegData: ByteArray): ImageInfo {
-			val arr = UByteArray(jpegData)
+			val arr = UByteArrayInt(jpegData)
 			val decoder = JPEGDecoder()
 			decoder.parse(arr)
 			return JPEGDecoder.ImageInfo(decoder.width, decoder.height)
@@ -1061,18 +1061,18 @@ class JPEGDecoder {
 
 		fun decode(jpegData: ByteArray): Bitmap32 {
 			val data = decodeToData(jpegData)
-			return RGBA.decodeToBitmap32(data.width, data.height, data.data.data)
+			return RGBA.decodeToBitmap32(data.width, data.height, data.data.asByteArray())
 		}
 
 		private fun decodeToData(jpegData: ByteArray): ImageData {
-			val arr = UByteArray(jpegData)
+			val arr = UByteArrayInt(jpegData)
 			val decoder = JPEGDecoder()
 			decoder.parse(arr)
 
 			val image = ImageData(
 				width = decoder.width,
 				height = decoder.height,
-				data = UByteArray(decoder.width * decoder.height * 4)
+				data = UByteArrayInt(decoder.width * decoder.height * 4)
 			)
 
 			decoder.copyToImageData(image)

@@ -49,7 +49,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 			if (y !in 0 until bmp.height) continue // Calculate right range instead of skipping
 
 			// @TODO: Optimize
-			val xx = edges.filter { it.containsY(y) }.map { Point2d(it.intersectX(y), y) }.sortedBy2 { it.x }
+			val xx = edges.filter { it.containsY(y) }.map { Point2d(it.intersectX(y), y) }.sortedBy { it.x }
 				.map { it.x.toInt() }
 			for (n in 0 until xx.size - 1) {
 				val a = xx[n + 0].clamp(0, bmp.width)

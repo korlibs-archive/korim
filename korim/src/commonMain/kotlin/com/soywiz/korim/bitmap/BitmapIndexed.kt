@@ -18,7 +18,7 @@ abstract class BitmapIndexed(
 
 	protected val temp = ByteArray(max(width, height))
 
-	val datau = UByteArray(data)
+	val datau = UByteArrayInt(data)
 	val n8_dbpp: Int = 8 / bpp
 	val mask = ((1 shl bpp) - 1)
 
@@ -36,7 +36,7 @@ abstract class BitmapIndexed(
 	fun index_m(x: Int, y: Int) = index(x, y) % n8_dbpp
 
 	fun setRow(y: Int, row: UByteArray) {
-		arraycopy(row.data, 0, data, index(0, y), stride)
+		arraycopy(row.asByteArray(), 0, data, index(0, y), stride)
 	}
 
 	fun setRow(y: Int, row: ByteArray) {

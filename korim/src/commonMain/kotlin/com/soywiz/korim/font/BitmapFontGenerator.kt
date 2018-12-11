@@ -23,7 +23,7 @@ object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: IntArray): BitmapFont {
 		println("BitmapFontGenerator.generate($fontName, $fontSize, $chars)...")
 
-		val result = measureTime {
+		val result = measureTimeWithResult {
 			val bni = NativeImage(1, 1)
 			val bnictx = bni.getContext2d()
 			bnictx.font = Context2d.Font(fontName, fontSize.toDouble())

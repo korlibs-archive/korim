@@ -9,7 +9,7 @@ open class ImageData(
     val area: Int get() = frames.area
 
     val mainBitmap: Bitmap
-        get() = frames.sortedBy2 {
+        get() = frames.sortedBy {
             if (it.main) {
                 Int.MAX_VALUE
             } else {

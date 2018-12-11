@@ -189,8 +189,8 @@ object PNG : ImageFormat("png") {
 
 		var pheader: Header? = null
 		val pngdata = ByteArrayBuilder()
-		val rgbPalette = UByteArray(3 * 0x100)
-		val aPalette = UByteArray(ByteArray(0x100) { -1 })
+		val rgbPalette = UByteArrayInt(3 * 0x100)
+		val aPalette = UByteArrayInt(ByteArray(0x100) { -1 })
 		var paletteCount = 0
 
 		fun SyncStream.readChunk() {
@@ -216,11 +216,11 @@ object PNG : ImageFormat("png") {
 				}
 				"PLTE" -> {
 					paletteCount = max(paletteCount, data.length.toInt() / 3)
-					data.read(rgbPalette.data, 0, data.length.toInt())
+					data.read(rgbPalette.asByteArray(), 0, data.length.toInt())
 				}
 				"tRNS" -> {
 					paletteCount = max(paletteCount, data.length.toInt())
-					data.read(aPalette.data, 0, data.length.toInt())
+					data.read(aPalette.asByteArray(), 0, data.length.toInt())
 				}
 				"IDAT" -> {
 					pngdata.append(data.readAll())
@@ -281,18 +281,18 @@ object PNG : ImageFormat("png") {
 				val filter = databb[databbp++].toInt() and 0xFF
 				val currentRow = context.currentRow
 				val lastRow = context.lastRow
-				arraycopy(databb, databbp, currentRow.data, 0, bytesInThisRow)
+				arraycopy(databb, databbp, currentRow.asByteArray(), 0, bytesInThisRow)
 				databbp += bytesInThisRow
 				when {
 					bmp8 != null -> {
 						applyFilter(filter, lastRow, currentRow, header.bytes)
-						bmp8.setRowChunk(col, row, currentRow.data, width, colIncrement)
+						bmp8.setRowChunk(col, row, currentRow.asByteArray(), width, colIncrement)
 					}
 					bmp32 != null -> {
 						applyFilter(filter, lastRow, currentRow, bpp, bytesInThisRow)
 						when (bpp) {
-							3 -> RGB.decode(currentRow.data, 0, row32, 0, pixelsInThisRow)
-							4 -> RGBA.decode(currentRow.data, 0, row32, 0, pixelsInThisRow)
+							3 -> RGB.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
+							4 -> RGBA.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
 							else -> TODO("Bytes: $bpp")
 						}
 						bmp32.setRowChunk(col, row, row32, width, colIncrement)
@@ -306,8 +306,8 @@ object PNG : ImageFormat("png") {
 	}
 
 	class DecodingContext(val header: Header) {
-		var lastRow = UByteArray(header.stride)
-		var currentRow = UByteArray(header.stride)
+		var lastRow = UByteArrayInt(header.stride)
+		var currentRow = UByteArrayInt(header.stride)
 		val row32 = RgbaArray(header.width)
 
 		fun swapRows() {
@@ -328,7 +328,7 @@ object PNG : ImageFormat("png") {
 		return if ((pa <= pb) && (pa <= pc)) a else if (pb <= pc) b else c
 	}
 
-	fun applyFilter(filter: Int, p: UByteArray, c: UByteArray, bpp: Int, size: Int = c.size) {
+	fun applyFilter(filter: Int, p: UByteArrayInt, c: UByteArrayInt, bpp: Int, size: Int = c.size) {
 		when (filter) {
 			0 -> Unit
 			1 -> for (n in bpp until size) c[n] += c[n - bpp]
