@@ -62,13 +62,8 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	)
 
 	companion object {
-		@JvmStatic
 		fun clamp0_FF(v: Int) = if (v < 0x00) 0x00 else if (v > 0xFF) 0xFF else v
-
-		@JvmStatic
 		fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
-
-		@JvmStatic
 		fun clampFF(a: Int): Int = min(a, 255)
 	}
 

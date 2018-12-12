@@ -54,7 +54,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 	fun equals(other: RGBA): Boolean = other.rgba == this.rgba
 
 	companion object : ColorFormat32() {
-		//@JvmStatic
+		
 		//operator fun invoke(r: Int, g: Int, b: Int, a: Int) = pack(r, g, b, a)
 		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA =
 			RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
@@ -76,68 +76,68 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 				a
 			)) shl 24)
 
-		//@JvmStatic
+		
 		fun getFastR(v: Int): Int = (v ushr 0) and 0xFF
 
-		//@JvmStatic
+		
 		fun getFastG(v: Int): Int = (v ushr 8) and 0xFF
 
-		//@JvmStatic
+		
 		fun getFastB(v: Int): Int = (v ushr 16) and 0xFF
 
-		//@JvmStatic
+		
 		fun getFastA(v: Int): Int = (v ushr 24) and 0xFF
 
-		//@JvmStatic
+		
 		fun getFastRf(v: Int): Float = ((v ushr 0) and 0xFF).toFloat() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastGf(v: Int): Float = ((v ushr 8) and 0xFF).toFloat() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastBf(v: Int): Float = ((v ushr 16) and 0xFF).toFloat() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastAf(v: Int): Float = ((v ushr 24) and 0xFF).toFloat() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastRd(v: Int): Double = ((v ushr 0) and 0xFF).toDouble() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastGd(v: Int): Double = ((v ushr 8) and 0xFF).toDouble() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastBd(v: Int): Double = ((v ushr 16) and 0xFF).toDouble() / 0xFF
 
-		//@JvmStatic
+		
 		fun getFastAd(v: Int): Double = ((v ushr 24) and 0xFF).toDouble() / 0xFF
 
 		//fun getRGB(v: Int): Int = v and 0xFFFFFF
 
-		//@JvmStatic
+		
 		fun getRGB(v: Int): Int = v and 0xFFFFFF
 
 		@Deprecated("", ReplaceWith("RGBA.premultiplyFast(v)", "com.soywiz.korim.color.RGBA"))
-		//@JvmStatic
+		
 		fun multipliedByAlpha(v: RGBA): RGBA = premultiplyFast(v)
 
-		//@JvmStatic
+		
 		fun toHexString(v: Int): String = "#%02x%02x%02x%02x".format(getFastR(v), getFastG(v), getFastB(v), getFastA(v))
 
-		//@JvmStatic
+		
 		fun toHtmlColor(v: Int): String = "rgba(${getFastR(v)}, ${getFastG(v)}, ${getFastB(v)}, ${getFastAf(v)})"
 
-		//@JvmStatic
+		
 		fun premultiply(v: RGBA): RGBA = premultiplyFast(v)
 
-		//@JvmStatic
+		
 		fun premultiplyAccurate(v: Int): Int {
 			val a1 = getFastA(v)
 			val af = a1.toFloat() / 255f
 			return packFast((getFastR(v) * af).toInt(), (getFastG(v) * af).toInt(), (getFastB(v) * af).toInt(), a1)
 		}
 
-		//@JvmStatic
+		
 		fun premultiplyFast(v: RGBA): RGBA = RGBA(premultiplyFastInt(v.rgba))
 
 		// @TODO: kotlin-native in release make colors yellowish (a bug in LLVM optimizer?)
@@ -148,21 +148,21 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return (v and 0x00FFFFFF.inv()) or RB or G
 		}
 
-		////@JvmStatic fun premultiplyFast2(v: Int): Int {
+		// fun premultiplyFast2(v: Int): Int {
 		//	val Ad = (v ushr 24).toDouble() / 255.0
 		//	val RB = ((v and 0x00FF00FF) * Ad).toInt() and 0x00FF00FF
 		//	val G = ((v and 0x0000FF00) * Ad).toInt() and 0x0000FF00
 		//	return (v and 0x00FFFFFF.inv()) or RB or G
 		//}
 
-		//@JvmStatic
+		
 		fun mutliplyByAlpha(v: Int, alpha: Double): Int =
 			com.soywiz.korim.color.RGBA.pack(getFastR(v), getFastG(v), getFastB(v), (getFastA(v) * alpha).toInt())
 
-		//@JvmStatic
+		
 		fun depremultiply(v: RGBA): RGBA = depremultiplyFast(v)
 
-		//@JvmStatic
+		
 		fun depremultiplyAccurate(v: RGBA): RGBA {
 			val alpha = v.ad
 			if (alpha == 0.0) {
@@ -184,7 +184,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		fun Int.clamp0_255() = clamp(0, 255)
 		fun Int.clamp255() = if (this > 255) 255 else this
 
-		//@JvmStatic
+		
 		fun depremultiplyFast(v: RGBA): RGBA = RGBA(depremultiplyFastInt(v.rgba))
 
 		fun depremultiplyFastInt(v: Int): Int {
@@ -208,7 +208,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			for (n in start until end) array[n] = premultiplyFastInt(array[n])
 		}
 
-		//@JvmStatic
+		
 		fun depremultiplyFastOld(v: Int): Int {
 			val A = (v ushr 24)
 			if (A == 0) return 0
@@ -218,7 +218,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return packFast(R, G, B, A)
 		}
 
-		//@JvmStatic
+		
 		fun depremultiplyFaster(v: Int): Int {
 			val A = (v ushr 24)
 			val A1 = A + 1
@@ -228,7 +228,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return packFast(R, G, B, A)
 		}
 
-		//@JvmStatic
+		
 		fun depremultiplyFastest(v: Int): Int {
 			val A = (v ushr 24) + 1
 			val R = (((v and 0x0000FF) shl 8) / A) and 0x0000F0
@@ -237,21 +237,21 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return (v and 0x00FFFFFF.inv()) or B or G or R
 		}
 
-		//@JvmStatic
+		
 		fun packFast(r: Int, g: Int, b: Int, a: Int) = (r shl 0) or (g shl 8) or (b shl 16) or (a shl 24)
 		fun packFast(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 
-		//@JvmStatic
+		
 		fun packfFast(r: Float, g: Float, b: Float, a: Float): Int =
 			((r * 0xFF).toInt() shl 0) or ((g * 0xFF).toInt() shl 8) or ((b * 0xFF).toInt() shl 16) or ((a * 0xFF).toInt() shl 24)
 
-		//@JvmStatic
+		
 		fun packRGB_A(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 
-		//@JvmStatic
+		
 		fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
 
-		//@JvmStatic
+		
 		fun blendRGB(c1: Int, c2: Int, factor256: Int): Int {
 			val f1 = 256 - factor256
 			return ((
@@ -261,45 +261,45 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		}
 
 		@Deprecated("", ReplaceWith("blendRGB(c1, c2, factor)", "com.soywiz.korim.color.RGBA.blendRGB"))
-		//@JvmStatic
+		
 		fun blend(c1: Int, c2: Int, factor: Int): Int = blendRGB(c1, c2, factor)
 
 		@Deprecated("", ReplaceWith("blendRGB(c1, c2, factor)", "com.soywiz.korim.color.RGBA.blendRGB"))
-		//@JvmStatic
+		
 		fun blend(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, factor)
 
-		//@JvmStatic
+		
 		fun blendRGB(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, (factor * 256).toInt())
 
 		fun blendRGBAInt(c1: Int, c2: Int, factor: Double): Int = blendRGBA(RGBA(c1), RGBA(c2), factor).rgba
 
-		//@JvmStatic
+		
 		fun blendRGBA(c1: RGBA, c2: RGBA, factor: Double): RGBA {
 			val RGB = blendRGB(c1.rgba and 0xFFFFFF, c2.rgba and 0xFFFFFF, (factor * 256).toInt())
 			val A = blendComponent(c1.a, c2.a, factor)
 			return RGBA(packRGB_A(RGB, A))
 		}
 
-		//@JvmStatic
+		
 		fun rgbaToBgra(v: Int) =
 			((v shl 16) and 0x00FF0000) or ((v shr 16) and 0x000000FF) or (v and 0xFF00FF00.toInt())
 
-		//@JvmStatic
+		
 		private fun d2i(v: Double): Int = (ColorFormat.clampf01(v.toFloat()) * 255).toInt()
 
-		//@JvmStatic
+		
 		private fun f2i(v: Float): Int = (ColorFormat.clampf01(v) * 255).toInt()
 
-		//@JvmStatic
+		
 		fun packf(r: Double, g: Double, b: Double, a: Double): Int = packFast(d2i(r), d2i(g), d2i(b), d2i(a))
 
-		//@JvmStatic
+		
 		fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
 
-		//@JvmStatic
+		
 		fun packf(rgb: Int, a: Float): Int = packRGB_A(rgb, f2i(a))
 
-		//@JvmStatic
+		
 		fun mix(dst: RGBA, src: RGBA): RGBA = RGBA(mixInt(dst.rgba, src.rgba))
 
 		fun mixInt(dst: Int, src: Int): Int {
@@ -311,7 +311,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			}
 		}
 
-		//@JvmStatic
+		
 		fun interpolate(src: RGBA, dst: RGBA, ratio: Double): RGBA = RGBA(interpolateInt(src.rgba, dst.rgba, ratio))
 
 		fun interpolateInt(src: Int, dst: Int, ratio: Double): Int = RGBA.pack(
@@ -321,7 +321,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			com.soywiz.korma.interpolation.interpolate(getA(src), getA(dst), ratio)
 		)
 
-		//@JvmStatic
+		
 		fun multiply(c1: RGBA, c2: RGBA): RGBA = RGBA(multiplyInt(c1.rgba, c2.rgba))
 
 		fun multiplyInt(c1: Int, c2: Int): Int = RGBAInt(
@@ -331,7 +331,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			clamp0_FF((RGBA.getA(c1) * RGBA.getA(c2)) / 0xFF)
 		)
 
-		//@JvmStatic
+		
 		fun blendRGBAFastAlreadyPremultiplied_05(c1: Int, c2: Int): Int {
 			//val R1 = getFastR(c1)
 			//val G1 = getFastG(c1)
@@ -351,7 +351,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return (A shl 24) or RB or G
 		}
 
-		//@JvmStatic
+		
 		fun blendRGBAFastAlreadyPremultiplied_05(c1: Int, c2: Int, c3: Int, c4: Int): Int {
 			val RB =
 				(((c1 and 0xFF00FF) + (c2 and 0xFF00FF) + (c3 and 0xFF00FF) + (c4 and 0xFF00FF)) ushr 2) and 0xFF00FF
@@ -361,7 +361,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 			return (A shl 24) or RB or G
 		}
 
-		////@JvmStatic fun downScaleBy2AlreadyPremultiplied(
+		// fun downScaleBy2AlreadyPremultiplied(
 		//	dstData: IntArray, dstOffset: Int, dstStep: Int,
 		//	srcData: IntArray, srcOffset: Int, srcStep: Int,
 		//	count: Int

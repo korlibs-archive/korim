@@ -30,25 +30,13 @@ object YUVA : ColorFormat32() {
 	//private const val Umax = 0.436
 	//private const val Vmax = 0.615
 
-	@JvmStatic
 	fun getY(r: Int, g: Int, b: Int): Int = clamp0_FF(((0.299 * r) + (0.587 * g) + (0.114 * b)).toInt())
-
-	@JvmStatic
 	fun getU(r: Int, g: Int, b: Int): Int = clamp0_FF((0.492 * (b * getY(r, g, b))).toInt())
-
-	@JvmStatic
 	fun getV(r: Int, g: Int, b: Int): Int = clamp0_FF((0.877 * (r * getY(r, g, b))).toInt())
-
-	@JvmStatic
 	fun getR(y: Int, u: Int, v: Int): Int = clamp0_FF((y + 1.14 * v).toInt())
-
-	@JvmStatic
 	fun getG(y: Int, u: Int, v: Int): Int = clamp0_FF((y - 0.395 * u - 0.581 * v).toInt())
-
-	@JvmStatic
 	fun getB(y: Int, u: Int, v: Int): Int = clamp0_FF((y + 2.033 * u).toInt())
 
-	@JvmStatic
 	fun YUVtoRGB(out: IntArray, outPos: Int, inY: ByteArray, inU: ByteArray, inV: ByteArray, inPos: Int, count: Int) {
 		var opos = outPos
 		var ipos = inPos

@@ -47,7 +47,7 @@ class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, 
 
 	private val rbuffer: ByteBuffer by lazy {
 		ByteBuffer.allocateDirect(width * height * 4).apply {
-			clear()
+            (this as Buffer).clear()
 			val ib = asIntBuffer()
 			when (dataBuffer) {
 				// @TODO: Swap Bytes
@@ -56,16 +56,16 @@ class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, 
 				else -> TODO("dataBuffer: $dataBuffer")
 			}
 			for (n in 0 until area) ib.put(n, argb2rgba(ib.get(n)))
-			position(width * height * 4)
+            (this as Buffer).position(width * height * 4)
 			//println("BYTES: ${bytes.size}")
 			//println("BYTES: ${bytes.size}")
-			flip()
+            (this as Buffer).flip()
 		}
 	}
 
 	private fun argb2rgba(col: Int): Int = (col shl 8) or (col ushr 24)
 
-	val buffer: ByteBuffer get() = rbuffer.apply { rewind() }
+	val buffer: ByteBuffer get() = rbuffer.apply { (this as Buffer).rewind() }
 }
 
 //fun createRenderingHints(antialiasing: Boolean): RenderingHints = RenderingHints(mapOf<RenderingHints.Key, Any>())

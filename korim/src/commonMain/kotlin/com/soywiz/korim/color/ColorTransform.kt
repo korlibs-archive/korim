@@ -35,7 +35,6 @@ data class ColorTransform(
 	override fun interpolateWith(other: ColorTransform, ratio: Double): ColorTransform =
 		ColorTransform().setToInterpolated(this, other, ratio)
 
-	@Transient
 	private var dirty = true
 
 	private var _colorMulInt: Int = Colors.WHITE.rgba

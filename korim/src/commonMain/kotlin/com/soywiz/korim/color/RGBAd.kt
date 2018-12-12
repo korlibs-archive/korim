@@ -3,10 +3,10 @@ package com.soywiz.korim.color
 import com.soywiz.korio.*
 
 class RGBAd(
-	@JvmField var r: Double,
-	@JvmField var g: Double,
-	@JvmField var b: Double,
-	@JvmField var a: Double
+	var r: Double,
+	var g: Double,
+	var b: Double,
+	var a: Double
 ) {
 	constructor(c: RGBAd) : this(c.r, c.g, c.b, c.a)
 	constructor(c: Int) : this(RGBA.getRd(c), RGBA.getGd(c), RGBA.getBd(c), RGBA.getAd(c))
