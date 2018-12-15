@@ -131,7 +131,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 	}
 
 	var state = State()
-	private val stack = LinkedList<State>()
+	private val stack = Stack<State>()
 
 	var lineScaleMode: ScaleMode by redirectField { state::lineScaleMode }
 	var lineWidth: Double by redirectField { state::lineWidth }
@@ -207,8 +207,8 @@ class Context2d(val renderer: Renderer) : Disposable {
 		}
 	}
 
-	fun save() = run { stack.addLast(state.clone()) }
-	fun restore() = run { state = stack.removeLast() }
+	fun save() = run { stack.push(state.clone()) }
+	fun restore() = run { state = stack.pop() }
 
 	inline fun scale(sx: Number, sy: Number = sx) = scale(sx.toDouble(), sy.toDouble())
 	inline fun translate(tx: Number, ty: Number) = translate(tx.toDouble(), ty.toDouble())
