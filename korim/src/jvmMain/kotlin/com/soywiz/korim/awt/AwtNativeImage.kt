@@ -1,6 +1,5 @@
 package com.soywiz.korim.awt
 
-import com.soywiz.klogger.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
@@ -104,9 +103,7 @@ fun BufferedImage.createGraphics(antialiasing: Boolean): Graphics2D = this.creat
 //	return out
 //}
 
-class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true) : Context2d.Renderer() {
-	val logger = Logger("AwtContext2dRender")
-
+class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.Renderer() {
 	//val nativeImage = AwtNativeImage(awtImage)
 	override val width: Int get() = awtImage.width
 	override val height: Int get() = awtImage.height
@@ -207,7 +204,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
 		this.toAwtUnsafe(transform)
 	} catch (e: Throwable) {
-		logger.error { "Context2d.Paint.toAwt: $e" }
+        warningProcessor?.invoke("Context2d.Paint.toAwt: $e")
 		Color.PINK
 	}
 

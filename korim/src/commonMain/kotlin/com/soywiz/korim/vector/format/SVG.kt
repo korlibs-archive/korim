@@ -1,7 +1,6 @@
 package com.soywiz.korim.vector.format
 
 import com.soywiz.kds.*
-import com.soywiz.klogger.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.error.*
@@ -12,11 +11,9 @@ import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
 import kotlin.collections.set
 
-class SVG(val root: Xml) : Context2d.SizedDrawable {
+class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.SizedDrawable {
 	//constructor(@Language("xml") str: String) : this(Xml(str))
 	constructor(str: String) : this(Xml(str))
-
-	val logger = Logger("SVG")
 
 	val x = root.int("x", 0)
 	val y = root.int("y", 0)
@@ -245,13 +242,13 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				val tokens = tokenizePath(d)
 				val tl = ListReader(tokens)
 
-				fun dumpTokens() = run { for ((n, token) in tokens.withIndex()) logger.warn { "- $n: $token" } }
+				fun dumpTokens() = run { for ((n, token) in tokens.withIndex()) warningProcessor?.invoke("- $n: $token") }
 				fun isNextNumber(): Boolean = if (tl.hasMore) tl.peek() is PathTokenNumber else false
 				fun readNumber(): Double {
 					while (tl.hasMore) {
 						val token = tl.read()
 						if (token is PathTokenNumber) return token.value
-						logger.warn { "Invalid path (expected number but found $token) at ${tl.position - 1}" }
+                        warningProcessor?.invoke("Invalid path (expected number but found $token) at ${tl.position - 1}")
 						dumpTokens()
 					}
 					return 0.0
@@ -261,7 +258,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 					while (tl.hasMore) {
 						val token = tl.read()
 						if (token is PathTokenCmd) return token.id
-						logger.warn { "Invalid path (expected command but found $token) at ${tl.position - 1}" }
+                        warningProcessor?.invoke("Invalid path (expected command but found $token) at ${tl.position - 1}")
 						dumpTokens()
 					}
 					return null
@@ -320,9 +317,9 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
 				}
-				logger.trace { "Parsed SVG Path: '${state.path.toSvgPathString()}'" }
-				logger.trace { "Original SVG Path: '$d'" }
-				logger.trace { "Points: ${state.path.getPoints()}" }
+                warningProcessor?.invoke("Parsed SVG Path: '${state.path.toSvgPathString()}'")
+                warningProcessor?.invoke("Original SVG Path: '$d'")
+                warningProcessor?.invoke("Points: ${state.path.getPoints()}")
 				getBounds(bounds)
 			}
 		}
@@ -341,7 +338,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			font = font.copy(name = xml.str("font-family"))
 		}
 		if (xml.hasAttribute("style")) {
-			applyStyle(c, SvgStyle.parse(xml.str("style")), bounds)
+			applyStyle(c, SvgStyle.parse(xml.str("style"), warningProcessor), bounds)
 		}
 		if (xml.hasAttribute("transform")) {
 			applyTransform(state, parseTransform(xml.str("transform")))
@@ -382,7 +379,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			//println("$k <-- $v")
 			when (k) {
 				"fill" -> applyFill(c, v, bounds)
-				else -> logger.warn { "Unsupported style $k in css" }
+				else -> warningProcessor?.invoke("Unsupported style $k in css")
 			}
 		}
 	}
@@ -470,8 +467,6 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 		val styles: MutableMap<String, String> = hashMapOf()
 	) {
 		companion object {
-			val logger = Logger("SVG")
-
 			fun tokenize(str: String): List<String> {
 				val sr = StrReader(str)
 				val out = arrayListOf<String>()
@@ -497,7 +492,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 			fun ListReader<String>.readColon() = expect(":")
 			fun ListReader<String>.readExpression() = this.read()
 
-			fun parse(str: String): SvgStyle {
+			fun parse(str: String, warningProcessor: ((message: String) -> Unit)? = null): SvgStyle {
 				val tokens = tokenize(str)
 				val tr = ListReader(tokens)
 				//println("Style: $str : $tokens")
@@ -505,7 +500,7 @@ class SVG(val root: Xml) : Context2d.SizedDrawable {
 				while (tr.hasMore) {
 					val id = tr.readId()
 					if (tr.eof) {
-						logger.error { "EOF. Parsing (ID='$id'): '$str', $tokens" }
+                        warningProcessor?.invoke("EOF. Parsing (ID='$id'): '$str', $tokens")
 						break
 					}
 					tr.readColon()
