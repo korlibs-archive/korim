@@ -10,9 +10,9 @@ import com.soywiz.korio.stream.*
 object PSD : ImageFormat("psd") {
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData = s.run {
 		val header = decodeHeader(this, props) ?: invalidOp("Not a PSD file")
-		@Suppress("UNUSED_VARIABLE") val colorMode = readStream(readS32_be())
-		@Suppress("UNUSED_VARIABLE") val imageResources = readStream(readS32_be())
-		@Suppress("UNUSED_VARIABLE") val layerAndMask = readStream(readS32_be())
+		@Suppress("UNUSED_VARIABLE") val colorMode = readStream(readS32BE())
+		@Suppress("UNUSED_VARIABLE") val imageResources = readStream(readS32BE())
+		@Suppress("UNUSED_VARIABLE") val layerAndMask = readStream(readS32BE())
 		val imageData = readAvailable().openFastStream().readImageData(header)
 		//println(colorMode.length)
 		//println(imageResources.length)
@@ -32,10 +32,10 @@ object PSD : ImageFormat("psd") {
 
 		for (y in 0 until height) {
 			for (x in 0 until width) {
-				val r = rchannel[pos].toUnsigned()
-				val g = gchannel[pos].toUnsigned()
-				val b = bchannel[pos].toUnsigned()
-				val a = achannel[pos].toUnsigned()
+				val r = rchannel[pos].unsigned
+				val g = gchannel[pos].unsigned
+				val b = bchannel[pos].unsigned
+				val a = achannel[pos].unsigned
 				out.data.array[pos] = RGBA.packFast(r, g, b, a)
 				pos++
 			}
@@ -45,7 +45,7 @@ object PSD : ImageFormat("psd") {
 	}
 
 	private fun FastByteArrayInputStream.readImageData(header: PsdImageInfo): Bitmap32 {
-		val compressionMethod = readU16_be()
+		val compressionMethod = readU16BE()
 		val width = header.width
 		val height = header.height
 		val cchannels = header.channels
@@ -58,7 +58,7 @@ object PSD : ImageFormat("psd") {
 				}
 			}
 			1 -> { // RLE
-				val sizes = (0 until cchannels).map { readShortArray_be(height) }
+				val sizes = (0 until cchannels).map { readShortArrayBE(height) }
 				//println("PSD: channels=${header.channels}, bitsPerChannel=${header.bitsPerChannel}, colorMode=${header.colorMode}")
 				//println(sizes)
 
@@ -92,7 +92,7 @@ object PSD : ImageFormat("psd") {
 
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): PsdImageInfo? = s.run {
 		if (readStringz(4) != "8BPS") return null
-		val version = readU16_be()
+		val version = readU16BE()
 		when (version) {
 			1 -> Unit
 			2 -> return null // PSB file not supported yet!
@@ -100,11 +100,11 @@ object PSD : ImageFormat("psd") {
 		}
 		@Suppress("UNUSED_VARIABLE")
 		val reserved = readBytes(6)
-		val channels = readU16_be()
-		val height = readS32_be()
-		val width = readS32_be()
-		val bitsPerChannel = readU16_be()
-		val colorMode = readU16_be()
+		val channels = readU16BE()
+		val height = readS32BE()
+		val width = readS32BE()
+		val bitsPerChannel = readU16BE()
+		val colorMode = readU16BE()
 		return PsdImageInfo().apply {
 			this.width = width
 			this.height = height

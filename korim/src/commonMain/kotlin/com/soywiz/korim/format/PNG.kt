@@ -84,8 +84,8 @@ object PNG : ImageFormat("png") {
 		val bitmap = image.mainBitmap
 		val width = bitmap.width
 		val height = bitmap.height
-		s.write32_be(MAGIC1)
-		s.write32_be(MAGIC2)
+		s.write32BE(MAGIC1)
+		s.write32BE(MAGIC2)
 
 		fun writeChunk(name: String, data: ByteArray) {
 			val nameBytes = name.toByteArray().copyOf(4)
@@ -94,10 +94,10 @@ object PNG : ImageFormat("png") {
 			crc = CRC32.update(crc, nameBytes)
 			crc = CRC32.update(crc, data)
 
-			s.write32_be(data.size)
+			s.write32BE(data.size)
 			s.writeBytes(nameBytes)
 			s.writeBytes(data)
-			s.write32_be(crc) // crc32!
+			s.write32BE(crc) // crc32!
 		}
 
 		val level = props.quality.convertRangeClamped(0.0, 1.0, 0.0, 9.0).toInt()
@@ -117,8 +117,8 @@ object PNG : ImageFormat("png") {
 
 		fun writeHeader(colorspace: Colorspace) {
 			writeChunk("IHDR", initialCapacity = 13) {
-				write32_be(width)
-				write32_be(height)
+				write32BE(width)
+				write32BE(height)
 				write8(8) // bits
 				write8(colorspace.id) // colorspace
 				write8(0) // compressionmethod
@@ -163,12 +163,12 @@ object PNG : ImageFormat("png") {
 					val index = bitmap.index(0, y)
 					if (bitmap.premult) {
 						for (x in 0 until width) {
-							out.write32_le(pos, RGBA.depremultiplyFastInt(bitmap.data.array[index + x]))
+							out.write32LE(pos, RGBA.depremultiplyFastInt(bitmap.data.array[index + x]))
 							pos += 4
 						}
 					} else {
 						for (x in 0 until width) {
-							out.write32_le(pos, bitmap.data.array[index + x])
+							out.write32LE(pos, bitmap.data.array[index + x])
 							pos += 4
 						}
 					}
@@ -183,9 +183,9 @@ object PNG : ImageFormat("png") {
 	}
 
 	private fun readCommon(s: SyncStream, readHeader: Boolean): Any? {
-		val magic = s.readS32_be()
+		val magic = s.readS32BE()
 		if (magic != MAGIC1) throw IllegalArgumentException("Invalid PNG file magic: ${magic.hex}!=${MAGIC1.hex}")
-		s.readS32_be() // magic continuation
+		s.readS32BE() // magic continuation
 
 		var pheader: Header? = null
 		val pngdata = ByteArrayBuilder()
@@ -194,18 +194,18 @@ object PNG : ImageFormat("png") {
 		var paletteCount = 0
 
 		fun SyncStream.readChunk() {
-			val length = readS32_be()
+			val length = readS32BE()
 			val type = readStringz(4)
 			val data = readStream(length.toLong())
 			@Suppress("UNUSED_VARIABLE")
-			val crc = readS32_be()
+			val crc = readS32BE()
 
 			when (type) {
 				"IHDR" -> {
 					pheader = data.run {
 						Header(
-							width = readS32_be(),
-							height = readS32_be(),
+							width = readS32BE(),
+							height = readS32BE(),
 							bitsPerChannel = readU8(),
 							colorspace = Colorspace.BY_ID[readU8()] ?: Colorspace.RGBA,
 							compressionmethod = readU8(),

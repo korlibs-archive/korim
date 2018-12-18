@@ -95,25 +95,14 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		size: Int,
 		littleEndian: Boolean = true
 	) {
-		when (bpp) {
-			16 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU16_le)
-			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU16_be)
-			}
-			24 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU24_le)
-			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readU24_be)
-			}
-			32 -> if (littleEndian) {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readS32_le)
-			} else {
-				decodeInternal(data, dataOffset, out, outOffset, size, ByteArray::readS32_be)
-			}
+		val readFunc = when (bpp) {
+			16 -> if (littleEndian) ByteArray::readU16LE else ByteArray::readU16BE
+			24 -> if (littleEndian) ByteArray::readU24LE else ByteArray::readU24BE
+			32 -> if (littleEndian) ByteArray::readS32LE else ByteArray::readS32BE
 			else -> throw IllegalArgumentException("Unsupported bpp $bpp")
 		}
-	}
+        decodeInternal(data, dataOffset, out, outOffset, size, readFunc)
+    }
 
 	open fun decode(
 		data: ByteArray,
@@ -159,9 +148,9 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 			val c = colors.array[io++]
 			val ec = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
 			when (bpp) {
-				16 -> if (littleEndian) out.write16_le(oo, ec) else out.write16_be(oo, ec)
-				24 -> if (littleEndian) out.write24_le(oo, ec) else out.write24_be(oo, ec)
-				32 -> if (littleEndian) out.write32_le(oo, ec) else out.write32_be(oo, ec)
+				16 -> if (littleEndian) out.write16LE(oo, ec) else out.write16BE(oo, ec)
+				24 -> if (littleEndian) out.write24LE(oo, ec) else out.write24BE(oo, ec)
+				32 -> if (littleEndian) out.write32LE(oo, ec) else out.write32BE(oo, ec)
 				else -> throw IllegalArgumentException("Unsupported bpp $bpp")
 			}
 			oo += bytesPerPixel

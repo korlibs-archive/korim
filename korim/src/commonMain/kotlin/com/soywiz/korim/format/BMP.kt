@@ -9,16 +9,16 @@ object BMP : ImageFormat("bmp") {
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readStringz(2) != "BM") return null
 		// FILE HEADER
-		val size = s.readS32_le()
-		val reserved1 = s.readS16_le()
-		val reserved2 = s.readS16_le()
-		val offBits = s.readS32_le()
+		val size = s.readS32LE()
+		val reserved1 = s.readS16LE()
+		val reserved2 = s.readS16LE()
+		val offBits = s.readS32LE()
 		// INFO HEADER
-		val bsize = s.readS32_le()
-		val width = s.readS32_le()
-		val height = s.readS32_le()
-		val planes = s.readS16_le()
-		val bitcount = s.readS16_le()
+		val bsize = s.readS32LE()
+		val width = s.readS32LE()
+		val height = s.readS32LE()
+		val planes = s.readS16LE()
+		val bitcount = s.readS16LE()
 		return ImageInfo().apply {
 			this.width = width
 			this.height = height
@@ -29,17 +29,17 @@ object BMP : ImageFormat("bmp") {
 	override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
 		val h = decodeHeader(s, props) ?: throw IllegalArgumentException("Not a BMP file")
 
-		val compression = s.readS32_le()
-		val sizeImage = s.readS32_le()
-		val pixelsPerMeterX = s.readS32_le()
-		val pixelsPerMeterY = s.readS32_le()
-		val clrUsed = s.readS32_le()
-		val clrImportant = s.readS32_le()
+		val compression = s.readS32LE()
+		val sizeImage = s.readS32LE()
+		val pixelsPerMeterX = s.readS32LE()
+		val pixelsPerMeterY = s.readS32LE()
+		val clrUsed = s.readS32LE()
+		val clrImportant = s.readS32LE()
 
 		return when (h.bitsPerPixel) {
 			8 -> {
 				val out = Bitmap8(h.width, h.height)
-				for (n in 0 until 256) out.palette.array[n] = RGBA.packFast(s.readS32_le(), 0xFF)
+				for (n in 0 until 256) out.palette.array[n] = RGBA.packFast(s.readS32LE(), 0xFF)
 				for (n in 0 until h.height) out.setRow(h.height - n - 1, s.readBytes(h.width))
 				ImageData(listOf(ImageFrame(out)))
 			}

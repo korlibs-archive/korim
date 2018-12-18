@@ -7,32 +7,32 @@ import com.soywiz.korio.stream.*
 object DDS : ImageFormat("dds") {
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
 		if (s.readString(4) != "DDS ") return null
-		val size = s.readS32_le()
+		val size = s.readS32LE()
 		val sh = s.readStream(size - 4)
-		val flags = sh.readS32_le()
-		val height = sh.readS32_le()
-		val width = sh.readS32_le()
-		val pitchOrLinearSize = sh.readS32_le()
-		val depth = sh.readS32_le()
-		val mipmapCount = sh.readS32_le()
-		val reserved = sh.readIntArray_le(11)
+		val flags = sh.readS32LE()
+		val height = sh.readS32LE()
+		val width = sh.readS32LE()
+		val pitchOrLinearSize = sh.readS32LE()
+		val depth = sh.readS32LE()
+		val mipmapCount = sh.readS32LE()
+		val reserved = sh.readIntArrayLE(11)
 
-		val pf_size = sh.readS32_le()
+		val pf_size = sh.readS32LE()
 		val pf_s = sh.readStream(pf_size - 4)
-		val pf_flags = pf_s.readS32_le()
+		val pf_flags = pf_s.readS32LE()
 		val pf_fourcc = pf_s.readString(4)
-		val pf_bitcount = pf_s.readS32_le()
-		val pf_rbitmask = pf_s.readS32_le()
-		val pf_gbitmask = pf_s.readS32_le()
-		val pf_bbitmask = pf_s.readS32_le()
-		val pf_abitmask = pf_s.readS32_le()
+		val pf_bitcount = pf_s.readS32LE()
+		val pf_rbitmask = pf_s.readS32LE()
+		val pf_gbitmask = pf_s.readS32LE()
+		val pf_bbitmask = pf_s.readS32LE()
+		val pf_abitmask = pf_s.readS32LE()
 
-		val caps = sh.readS32_le()
-		val caps2 = sh.readS32_le()
-		val caps3 = sh.readS32_le()
-		val caps4 = sh.readS32_le()
+		val caps = sh.readS32LE()
+		val caps2 = sh.readS32LE()
+		val caps3 = sh.readS32LE()
+		val caps4 = sh.readS32LE()
 
-		val reserved2 = sh.readS32_le()
+		val reserved2 = sh.readS32LE()
 
 		return ImageInfo().apply {
 			this.width = width

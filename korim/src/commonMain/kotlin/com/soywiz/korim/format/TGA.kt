@@ -40,14 +40,14 @@ object TGA : ImageFormat("tga") {
 			9, 10 -> TODO("Unsupported RLE")
 			else -> TODO("Unknown TGA")
 		}
-		val firstIndexEntry = s.readU16_le()
-		val colorMapLength = s.readU16_le()
+		val firstIndexEntry = s.readU16LE()
+		val colorMapLength = s.readU16LE()
 		val colorMapEntrySize = s.readU8()
 		s.position += colorMapLength * colorMapEntrySize
-		val xorig = s.readS16_le()
-		val yorig = s.readS16_le()
-		val width = s.readS16_le()
-		val height = s.readS16_le()
+		val xorig = s.readS16LE()
+		val yorig = s.readS16LE()
+		val width = s.readS16LE()
+		val height = s.readS16LE()
 		val pixelDepth = s.readU8()
 		when (pixelDepth) {
 			24, 32 -> Unit
@@ -90,13 +90,13 @@ object TGA : ImageFormat("tga") {
 				s.write8(0) // idLength
 				s.write8(0) // colorMapType
 				s.write8(2) // imageType=RGBA
-				s.write16_le(0) // firstIndexEntry
-				s.write16_le(0) // colorMapLength
+				s.write16LE(0) // firstIndexEntry
+				s.write16LE(0) // colorMapLength
 				s.write8(0) // colorMapEntrySize
-				s.write16_le(0) // xorig
-				s.write16_le(0) // yorig
-				s.write16_le(bitmap.width) // width
-				s.write16_le(bitmap.height) // height
+				s.write16LE(0) // xorig
+				s.write16LE(0) // yorig
+				s.write16LE(bitmap.width) // width
+				s.write16LE(bitmap.height) // height
 				s.write8(32) // pixelDepth
 				s.write8(1 shl 5) // imageDescriptor
 				//s.write8(0 shl 5) // imageDescriptor

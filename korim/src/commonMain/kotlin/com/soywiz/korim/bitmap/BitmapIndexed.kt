@@ -79,6 +79,6 @@ abstract class BitmapIndexed(
 		val out = outBmp.data.array
 		val inp = this@BitmapIndexed.data
 		val pal = this@BitmapIndexed.palette.array
-		for (n in 0 until min(out.size, inp.size)) out[n] = pal[inp[n].toUnsigned()]
+		for (n in 0 until min(out.size, inp.size)) out[n] = pal[inp[n].unsigned]
 	}
 }

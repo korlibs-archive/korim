@@ -1,5 +1,6 @@
 package com.soywiz.korim.format.jpg
 
+import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korio.stream.*
 import kotlin.math.*

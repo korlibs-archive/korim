@@ -18,7 +18,7 @@ object DXT5 : DXT4_5("dxt5", premult = false)
 open class DXT1Base(format: String, premult: Boolean) : DXT(format, premult = true, blockSize = 8) {
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt1ColorCond(data, dataOffset + 0, cc)
-		val cdata = data.readS32_le(dataOffset + 4)
+		val cdata = data.readS32LE(dataOffset + 4)
 		var pos = bmpOffset
 		var n = 0
 		for (y in 0 until 4) {
@@ -36,8 +36,8 @@ open class DXT2_3(format: String, premult: Boolean) : DXT(format, premult = prem
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt5Alpha(data, dataOffset + 0, aa)
 		decodeDxt1Color(data, dataOffset + 8, cc)
-		val cdata = data.readS32_le(dataOffset + 8 + 4)
-		val adata = data.readU32_le(dataOffset + 2) or (data.readU16_le(dataOffset + 6).toLong() shl 32)
+		val cdata = data.readS32LE(dataOffset + 8 + 4)
+		val adata = data.readU32LE(dataOffset + 2) or (data.readU16LE(dataOffset + 6).toLong() shl 32)
 		var pos = bmpOffset
 		var n = 0
 		for (y in 0 until 4) {
@@ -56,8 +56,8 @@ open class DXT4_5(format: String, premult: Boolean) : DXT(format, premult, block
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt5Alpha(data, dataOffset + 0, aa)
 		decodeDxt1ColorCond(data, dataOffset + 8, cc)
-		val cdata = data.readS32_le(dataOffset + 8 + 4)
-		val adata = data.readU32_le(dataOffset + 2) or (data.readU16_le(dataOffset + 6).toLong() shl 32)
+		val cdata = data.readS32LE(dataOffset + 8 + 4)
+		val adata = data.readU32LE(dataOffset + 2) or (data.readU16LE(dataOffset + 6).toLong() shl 32)
 		var pos = bmpOffset
 		var n = 0
 		for (y in 0 until 4) {
@@ -132,8 +132,8 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 		const val FACT_1_2: Int = ((1.0 / 2.0) * 256).toInt()
 
 		fun decodeDxt1ColorCond(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
-			val c0 = data.readU16_le(dataOffset + 0)
-			val c1 = data.readU16_le(dataOffset + 2)
+			val c0 = data.readU16LE(dataOffset + 0)
+			val c1 = data.readU16LE(dataOffset + 2)
 			val ccArray = cc.array
 
 			ccArray[0] = decodeRGB656Int(c0)
@@ -151,8 +151,8 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 		}
 
 		fun decodeDxt1Color(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
-			cc.array[0] = decodeRGB656Int(data.readU16_le(dataOffset + 0))
-			cc.array[1] = decodeRGB656Int(data.readU16_le(dataOffset + 2))
+			cc.array[0] = decodeRGB656Int(data.readU16LE(dataOffset + 0))
+			cc.array[1] = decodeRGB656Int(data.readU16LE(dataOffset + 2))
 			cc.array[2] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_2_3)
 			cc.array[3] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_1_3)
 			//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)

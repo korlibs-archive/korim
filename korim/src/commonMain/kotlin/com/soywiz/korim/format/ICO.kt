@@ -7,9 +7,9 @@ import com.soywiz.korio.stream.*
 @Suppress("UNUSED_VARIABLE")
 object ICO : ImageFormat("ico") {
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
-		if (s.readU16_le() != 0) return null
-		if (s.readU16_le() != 1) return null
-		val count = s.readU16_le()
+		if (s.readU16LE() != 0) return null
+		if (s.readU16LE() != 1) return null
+		val count = s.readU16LE()
 		if (count >= 1000) return null
 		return ImageInfo()
 	}
@@ -30,29 +30,29 @@ object ICO : ImageFormat("ico") {
 			height = s.readU8(),
 			colorCount = s.readU8(),
 			reserved = s.readU8(),
-			planes = s.readU16_le(),
-			bitCount = s.readU16_le(),
-			size = s.readS32_le(),
-			offset = s.readS32_le()
+			planes = s.readU16LE(),
+			bitCount = s.readU16LE(),
+			size = s.readS32LE(),
+			offset = s.readS32LE()
 		)
 
 		fun readBitmap(e: DirEntry, s: SyncStream): Bitmap {
-			val tryPNGHead = s.sliceStart().readU32_be()
+			val tryPNGHead = s.sliceStart().readU32BE()
 			if (tryPNGHead == 0x89_50_4E_47L) return PNG.decode(
 				s.sliceStart(),
 				props.copy(filename = "${props.filename}.png")
 			)
-			val headerSize = s.readS32_le()
-			val width = s.readS32_le()
-			val height = s.readS32_le()
-			val planes = s.readS16_le()
-			val bitCount = s.readS16_le()
-			val compression = s.readS32_le()
-			val imageSize = s.readS32_le()
-			val pixelsXPerMeter = s.readS32_le()
-			val pixelsYPerMeter = s.readS32_le()
-			val clrUsed = s.readS32_le()
-			val clrImportant = s.readS32_le()
+			val headerSize = s.readS32LE()
+			val width = s.readS32LE()
+			val height = s.readS32LE()
+			val planes = s.readS16LE()
+			val bitCount = s.readS16LE()
+			val compression = s.readS32LE()
+			val imageSize = s.readS32LE()
+			val pixelsXPerMeter = s.readS32LE()
+			val pixelsYPerMeter = s.readS32LE()
+			val clrUsed = s.readS32LE()
+			val clrImportant = s.readS32LE()
 			var palette = RgbaArray(0)
 			if (compression != 0) throw UnsupportedOperationException("Not supported compressed .ico")
 			if (bitCount <= 8) {
@@ -77,9 +77,9 @@ object ICO : ImageFormat("ico") {
 			}
 		}
 
-		val reserved = s.readU16_le()
-		val type = s.readU16_le()
-		val count = s.readU16_le()
+		val reserved = s.readU16LE()
+		val type = s.readU16LE()
+		val count = s.readU16LE()
 		val entries = (0 until count).map { readDirEntry() }
 		val bitmaps = arrayListOf<Bitmap>()
 		for (e in entries) {

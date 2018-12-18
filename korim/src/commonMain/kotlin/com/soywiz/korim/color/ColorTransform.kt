@@ -2,6 +2,7 @@ package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
 import com.soywiz.korio.*
+import com.soywiz.korio.util.*
 import com.soywiz.korma.interpolation.*
 
 data class ColorTransform(

@@ -43,7 +43,7 @@ class TtfFont private constructor(val s: SyncStream) {
 
 	data class Fixed(val num: Int, val den: Int)
 
-	fun SyncStream.readFixed() = Fixed(readS16_le(), readS16_le())
+	fun SyncStream.readFixed() = Fixed(readS16LE(), readS16LE())
 	data class HorMetric(val advanceWidth: Int, val lsb: Int)
 
 	val tablesByName = LinkedHashMap<String, Table>()
@@ -114,15 +114,15 @@ class TtfFont private constructor(val s: SyncStream) {
 	}
 
 	fun readHeaderTables() = s.sliceStart().apply {
-		val majorVersion = readU16_be().apply { if (this != 1) invalidOp("Not a TTF file") }
-		val minorVersion = readU16_be().apply { if (this != 0) invalidOp("Not a TTF file") }
-		val numTables = readU16_be()
-		val searchRange = readU16_be()
-		val entrySelector = readU16_be()
-		val rangeShift = readU16_be()
+		val majorVersion = readU16BE().apply { if (this != 1) invalidOp("Not a TTF file") }
+		val minorVersion = readU16BE().apply { if (this != 0) invalidOp("Not a TTF file") }
+		val numTables = readU16BE()
+		val searchRange = readU16BE()
+		val entrySelector = readU16BE()
+		val rangeShift = readU16BE()
 
 		val tables = (0 until numTables).map {
-			Table(readStringz(4), readS32_be(), readS32_be(), readS32_be())
+			Table(readStringz(4), readS32BE(), readS32BE(), readS32BE())
 		}
 
 		for (table in tables) {
@@ -140,16 +140,16 @@ class TtfFont private constructor(val s: SyncStream) {
 	inline fun <T> runTable(name: String, callback: SyncStream.() -> T): T? = openTable(name)?.let { callback(it) }
 
 	fun readNames() = runTableUnit("name") {
-		val format = readU16_be()
-		val count = readU16_be()
-		val stringOffset = readU16_be()
+		val format = readU16BE()
+		val count = readU16BE()
+		val stringOffset = readU16BE()
 		for (n in 0 until count) {
-			val platformId = readU16_be()
-			val encodingId = readU16_be()
-			val languageId = readU16_be()
-			val nameId = readU16_be()
-			val length = readU16_be()
-			val offset = readU16_be()
+			val platformId = readU16BE()
+			val encodingId = readU16BE()
+			val languageId = readU16BE()
+			val nameId = readU16BE()
+			val length = readU16BE()
+			val offset = readU16BE()
 
 			val charset = when (encodingId) {
 				0 -> UTF8
@@ -175,8 +175,8 @@ class TtfFont private constructor(val s: SyncStream) {
 
 		FastByteArrayInputStream(data).run {
 			when (indexToLocFormat) {
-				0 -> run { for (n in locs.indices) locs[n] = readU16_be() * 2 }
-				1 -> run { for (n in locs.indices) locs[n] = readS32_be() * 2 }
+				0 -> run { for (n in locs.indices) locs[n] = readU16BE() * 2 }
+				1 -> run { for (n in locs.indices) locs[n] = readS32BE() * 2 }
 				else -> invalidOp
 			}
 		}
@@ -184,24 +184,24 @@ class TtfFont private constructor(val s: SyncStream) {
 	}
 
 	fun readHead() = runTableUnit("head") {
-		readU16_be().apply { if (this != 1) invalidOp("Invalid TTF") }
-		readU16_be().apply { if (this != 0) invalidOp("Invalid TTF") }
+		readU16BE().apply { if (this != 1) invalidOp("Invalid TTF") }
+		readU16BE().apply { if (this != 0) invalidOp("Invalid TTF") }
 		fontRev = readFixed()
-		val checkSumAdjustment = readS32_be()
-		readS32_be().apply { if (this != 0x5F0F3CF5) invalidOp("Invalid magic ${this.hex}") }
-		val flags = readU16_be()
-		unitsPerEm = readU16_be()
-		val created = readS64_be() * 1000L
-		val modified = readS64_be() * 1000L
-		xMin = readS16_be()
-		yMin = readS16_be()
-		xMax = readS16_be()
-		yMax = readS16_be()
-		macStyle = readU16_be()
-		lowestRecPPEM = readU16_be()
-		fontDirectionHint = readS16_be()
-		indexToLocFormat = readS16_be() // 0=Int16, 1=Int32
-		glyphDataFormat = readS16_be()
+		val checkSumAdjustment = readS32BE()
+		readS32BE().apply { if (this != 0x5F0F3CF5) invalidOp("Invalid magic ${this.hex}") }
+		val flags = readU16BE()
+		unitsPerEm = readU16BE()
+		val created = readS64BE() * 1000L
+		val modified = readS64BE() * 1000L
+		xMin = readS16BE()
+		yMin = readS16BE()
+		xMax = readS16BE()
+		yMax = readS16BE()
+		macStyle = readU16BE()
+		lowestRecPPEM = readU16BE()
+		fontDirectionHint = readS16BE()
+		indexToLocFormat = readS16BE() // 0=Int16, 1=Int32
+		glyphDataFormat = readS16BE()
 
 		println("unitsPerEm: $unitsPerEm")
 		println("created: ${DateTime(created) - 76.years}")
@@ -211,76 +211,76 @@ class TtfFont private constructor(val s: SyncStream) {
 
 	fun readMaxp() = runTableUnit("maxp") {
 		val version = readFixed()
-		numGlyphs = readU16_be()
-		maxPoints = readU16_be()
-		maxContours = readU16_be()
-		maxCompositePoints = readU16_be()
-		maxCompositeContours = readU16_be()
-		maxZones = readU16_be()
-		maxTwilightPoints = readU16_be()
-		maxStorage = readU16_be()
-		maxFunctionDefs = readU16_be()
-		maxInstructionDefs = readU16_be()
-		maxStackElements = readU16_be()
-		maxSizeOfInstructions = readU16_be()
-		maxComponentElements = readU16_be()
-		maxComponentDepth = readU16_be()
+		numGlyphs = readU16BE()
+		maxPoints = readU16BE()
+		maxContours = readU16BE()
+		maxCompositePoints = readU16BE()
+		maxCompositeContours = readU16BE()
+		maxZones = readU16BE()
+		maxTwilightPoints = readU16BE()
+		maxStorage = readU16BE()
+		maxFunctionDefs = readU16BE()
+		maxInstructionDefs = readU16BE()
+		maxStackElements = readU16BE()
+		maxSizeOfInstructions = readU16BE()
+		maxComponentElements = readU16BE()
+		maxComponentDepth = readU16BE()
 	}
 
 	fun readHhea() = runTableUnit("hhea") {
 		hheaVersion = readFixed()
-		ascender = readS16_be()
-		descender = readS16_be()
-		lineGap = readS16_be()
-		advanceWidthMax = readU16_be()
-		minLeftSideBearing = readS16_be()
-		minRightSideBearing = readS16_be()
-		xMaxExtent = readS16_be()
-		caretSlopeRise = readS16_be()
-		caretSlopeRun = readS16_be()
-		caretOffset = readS16_be()
-		readS16_be() // reserved
-		readS16_be() // reserved
-		readS16_be() // reserved
-		readS16_be() // reserved
-		metricDataFormat = readS16_be()
-		numberOfHMetrics = readU16_be()
+		ascender = readS16BE()
+		descender = readS16BE()
+		lineGap = readS16BE()
+		advanceWidthMax = readU16BE()
+		minLeftSideBearing = readS16BE()
+		minRightSideBearing = readS16BE()
+		xMaxExtent = readS16BE()
+		caretSlopeRise = readS16BE()
+		caretSlopeRun = readS16BE()
+		caretOffset = readS16BE()
+		readS16BE() // reserved
+		readS16BE() // reserved
+		readS16BE() // reserved
+		readS16BE() // reserved
+		metricDataFormat = readS16BE()
+		numberOfHMetrics = readU16BE()
 	}
 
 	fun readHmtx() = runTableUnit("hmtx") {
-		val firstMetrics = (0 until numberOfHMetrics).map { HorMetric(readU16_be(), readS16_be()) }
+		val firstMetrics = (0 until numberOfHMetrics).map { HorMetric(readU16BE(), readS16BE()) }
 		val lastAdvanceWidth = firstMetrics.last().advanceWidth
 		val compressedMetrics =
-			(0 until (numGlyphs - numberOfHMetrics)).map { HorMetric(lastAdvanceWidth, readS16_be()) }
+			(0 until (numGlyphs - numberOfHMetrics)).map { HorMetric(lastAdvanceWidth, readS16BE()) }
 		horMetrics = firstMetrics + compressedMetrics
 	}
 
 	fun readCmap() = runTableUnit("cmap") {
 		data class EncodingRecord(val platformId: Int, val encodingId: Int, val offset: Int)
 
-		val version = readU16_be()
-		val numTables = readU16_be()
-		val tables = (0 until numTables).map { EncodingRecord(readU16_be(), readU16_be(), readS32_be()) }
+		val version = readU16BE()
+		val numTables = readU16BE()
+		val tables = (0 until numTables).map { EncodingRecord(readU16BE(), readU16BE(), readS32BE()) }
 
 		for (table in tables) {
 			sliceStart(table.offset.toLong()).run {
-				val format = readU16_be()
+				val format = readU16BE()
 				when (format) {
 					4 -> {
-						val length = readU16_be()
+						val length = readU16BE()
 						//s.readStream(length - 4).run {
-						val language = readU16_be()
-						val segCount = readU16_be() / 2
-						val searchRangeS = readU16_be()
-						val entrySelector = readU16_be()
-						val rangeShift = readU16_be()
-						val endCount = readCharArray_be(segCount)
-						readU16_be() // reserved
-						val startCount = readCharArray_be(segCount)
-						val idDelta = readShortArray_be(segCount)
+						val language = readU16BE()
+						val segCount = readU16BE() / 2
+						val searchRangeS = readU16BE()
+						val entrySelector = readU16BE()
+						val rangeShift = readU16BE()
+						val endCount = readCharArrayBE(segCount)
+						readU16BE() // reserved
+						val startCount = readCharArrayBE(segCount)
+						val idDelta = readShortArrayBE(segCount)
 						val rangeOffsetPos = position.toInt()
-						val idRangeOffset = readCharArray_be(segCount)
-						//val glyphIdArray = readCharArray_be(idRangeOffset.max()?.toInt() ?: 0)
+						val idRangeOffset = readCharArrayBE(segCount)
+						//val glyphIdArray = readCharArrayBE(idRangeOffset.max()?.toInt() ?: 0)
 
 						//println("$language")
 
@@ -296,7 +296,7 @@ class TtfFont private constructor(val s: SyncStream) {
 									var glyphIndexOffset = rangeOffsetPos + n * 2
 									glyphIndexOffset += iro
 									glyphIndexOffset += (c - sc) * 2
-									index = sliceStart(glyphIndexOffset.toLong()).readU16_be()
+									index = sliceStart(glyphIndexOffset.toLong()).readU16BE()
 									if (index != 0) {
 										index += delta
 									}
@@ -311,15 +311,15 @@ class TtfFont private constructor(val s: SyncStream) {
 						//for ((c, index) in characterMaps) println("\\u%04X -> %d".format(c.toInt(), index))
 					}
 					12 -> {
-						readU16_be() // reserved
-						val length = readS32_be()
-						val language = readS32_be()
-						val numGroups = readS32_be()
+						readU16BE() // reserved
+						val length = readS32BE()
+						val language = readS32BE()
+						val numGroups = readS32BE()
 
 						for (n in 0 until numGroups) {
-							val startCharCode = readS32_be()
-							val endCharCode = readS32_be()
-							val startGlyphId = readS32_be()
+							val startCharCode = readS32BE()
+							val endCharCode = readS32BE()
+							val startGlyphId = readS32BE()
 
 							var glyphId = startGlyphId
 							for (c in startCharCode..endCharCode) {
@@ -344,8 +344,8 @@ class TtfFont private constructor(val s: SyncStream) {
 	fun getGlyphByChar(char: Char): IGlyph? = getGlyphByCodePoint(char.toInt())
 
 	fun getGlyphByIndex(index: Int): IGlyph? = runTable("glyf") {
-		val start = locs.getOrNull(index)?.toUnsigned() ?: 0
-		val end = locs.getOrNull(index + 1)?.toUnsigned() ?: start
+		val start = locs.getOrNull(index)?.unsigned ?: 0
+		val end = locs.getOrNull(index + 1)?.unsigned ?: start
 		val size = end - start
 		if (size != 0L) {
 			sliceStart(start).readGlyph(index)
@@ -521,29 +521,29 @@ class TtfFont private constructor(val s: SyncStream) {
 	}
 
 	fun SyncStream.readF2DOT14(): Float {
-		val v = readS16_be()
+		val v = readS16BE()
 		val i = v shr 14
 		val f = v and 0x3FFF
 		return i.toFloat() + f.toFloat() / 16384f
 	}
 
 	@Suppress("FunctionName")
-	fun SyncStream.readMix_be(signed: Boolean, word: Boolean): Int {
+	fun SyncStream.readMixBE(signed: Boolean, word: Boolean): Int {
 		return when {
 			!word && signed -> readS8()
 			!word && !signed -> readU8()
-			word && signed -> readS16_be()
-			word && !signed -> readU16_be()
+			word && signed -> readS16BE()
+			word && !signed -> readU16BE()
 			else -> invalidOp
 		}
 	}
 
 	fun SyncStream.readGlyph(index: Int): IGlyph {
-		val ncontours = readS16_be()
-		val xMin = readS16_be()
-		val yMin = readS16_be()
-		val xMax = readS16_be()
-		val yMax = readS16_be()
+		val ncontours = readS16BE()
+		val xMin = readS16BE()
+		val yMin = readS16BE()
+		val xMax = readS16BE()
+		val yMax = readS16BE()
 
 		if (ncontours < 0) {
 			//println("WARNING: readCompositeGlyph not implemented")
@@ -564,12 +564,12 @@ class TtfFont private constructor(val s: SyncStream) {
 			val references = arrayListOf<GlyphReference>()
 
 			do {
-				val flags = readU16_be()
-				val glyphIndex = readU16_be()
+				val flags = readU16BE()
+				val glyphIndex = readU16BE()
 				val signed = (flags and ARGS_ARE_XY_VALUES) != 0
 				val words = (flags and ARG_1_AND_2_ARE_WORDS) != 0
-				val x = readMix_be(signed, words)
-				val y = readMix_be(signed, words)
+				val x = readMixBE(signed, words)
+				val y = readMixBE(signed, words)
 				var scaleX = 1f
 				var scaleY = 1f
 				var scale01 = 0f
@@ -603,8 +603,8 @@ class TtfFont private constructor(val s: SyncStream) {
 		} else {
 			val contoursIndices = IntArray(ncontours + 1)
 			contoursIndices[0] = -1
-			for (n in 1..ncontours) contoursIndices[n] = readU16_be()
-			val instructionLength = readU16_be()
+			for (n in 1..ncontours) contoursIndices[n] = readU16BE()
+			val instructionLength = readU16BE()
 			val instructions = readBytesExact(instructionLength)
 			val numPoints = contoursIndices.lastOrNull()?.plus(1) ?: 0
 			val flags = IntArrayList()
@@ -639,7 +639,7 @@ class TtfFont private constructor(val s: SyncStream) {
 						val magnitude = readU8()
 						if (b2) p += magnitude else p -= magnitude
 					} else if (!b2) {
-						p += readS16_be()
+						p += readS16BE()
 					}
 					pos[n] = p
 				}
