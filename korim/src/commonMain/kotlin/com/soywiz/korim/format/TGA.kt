@@ -78,10 +78,11 @@ object TGA : ImageFormat("tga") {
 			is Bitmap8 -> {
 				TODO("Not implemented encoding TGA Bitmap8")
 			}
-			is Bitmap32 -> {
-				val data = ByteArray(bitmap.area * 4)
+			else -> {
+                val bmp = bitmap.toBMP32()
+				val data = ByteArray(bmp.area * 4)
 				var m = 0
-				for (c in bitmap.data) {
+				for (c in bmp.data) {
 					data[m++] = c.b.toByte()
 					data[m++] = c.g.toByte()
 					data[m++] = c.r.toByte()
@@ -95,8 +96,8 @@ object TGA : ImageFormat("tga") {
 				s.write8(0) // colorMapEntrySize
 				s.write16LE(0) // xorig
 				s.write16LE(0) // yorig
-				s.write16LE(bitmap.width) // width
-				s.write16LE(bitmap.height) // height
+				s.write16LE(bmp.width) // width
+				s.write16LE(bmp.height) // height
 				s.write8(32) // pixelDepth
 				s.write8(1 shl 5) // imageDescriptor
 				//s.write8(0 shl 5) // imageDescriptor

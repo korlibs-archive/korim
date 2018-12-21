@@ -153,22 +153,23 @@ object PNG : ImageFormat("png") {
 				}
 				writeChunk("IDAT", compress(out))
 			}
-			is Bitmap32 -> {
+			else -> {
+                val bmp = bitmap.toBMP32()
 				writeHeader(Colorspace.RGBA)
 
 				val out = ByteArray(height + width * height * 4)
 				var pos = 0
 				for (y in 0 until height) {
 					out.write8(pos++, 0) // no filter
-					val index = bitmap.index(0, y)
-					if (bitmap.premult) {
+					val index = bmp.index(0, y)
+					if (bmp.premult) {
 						for (x in 0 until width) {
-							out.write32LE(pos, RGBA.depremultiplyFastInt(bitmap.data.array[index + x]))
+							out.write32LE(pos, RGBA.depremultiplyFastInt(bmp.data.array[index + x]))
 							pos += 4
 						}
 					} else {
 						for (x in 0 until width) {
-							out.write32LE(pos, bitmap.data.array[index + x])
+							out.write32LE(pos, bmp.data.array[index + x])
 							pos += 4
 						}
 					}
