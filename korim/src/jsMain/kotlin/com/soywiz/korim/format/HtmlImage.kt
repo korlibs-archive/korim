@@ -7,19 +7,16 @@ import org.khronos.webgl.set
 import org.w3c.dom.*
 
 object HtmlImage {
-	fun createHtmlCanvas(width: Int, height: Int): HTMLCanvasElement {
-		val canvas: HTMLCanvasElement = HtmlCanvas.createCanvas(width, height)
-		canvas.width = width
-		canvas.height = height
-		return canvas
+	fun createHtmlCanvas(width: Int, height: Int): HTMLCanvasElementLike {
+		return HtmlCanvas.createCanvas(width, height)
 	}
 
 	fun renderToHtmlCanvas(
 		bmpData: RgbaArray,
 		bmpWidth: Int,
 		bmpHeight: Int,
-		canvas: HTMLCanvasElement
-	): HTMLCanvasElement {
+		canvas: HTMLCanvasElementLike
+	): HTMLCanvasElementLike {
 		val pixelCount = bmpData.size
 		val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
 		val idata = ctx.createImageData(bmpWidth.toDouble(), bmpHeight.toDouble())
@@ -38,7 +35,7 @@ object HtmlImage {
 		return canvas
 	}
 
-	fun renderToHtmlCanvas(bmp: Bitmap32, canvas: HTMLCanvasElement): HTMLCanvasElement {
+	fun renderToHtmlCanvas(bmp: Bitmap32, canvas: HTMLCanvasElementLike): HTMLCanvasElementLike {
 		val data = if (bmp.premult) {
 			RGBA.depremultiplyFast(RgbaArray(bmp.data.array.copyOf()))
 		} else {
@@ -47,7 +44,7 @@ object HtmlImage {
 		return renderToHtmlCanvas(data, bmp.width, bmp.height, canvas)
 	}
 
-	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElement, out: RgbaArray): Unit {
+	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElementLike, out: RgbaArray): Unit {
 		val width = canvas.width
 		val height = canvas.height
 		val len = width * height
@@ -65,28 +62,28 @@ object HtmlImage {
 		//console.log(out);
 	}
 
-	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElement, bmp: Bitmap32): Unit {
+	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElementLike, bmp: Bitmap32): Unit {
 		renderHtmlCanvasIntoBitmap(canvas, bmp.data)
 	}
 
-	fun bitmapToHtmlCanvas(bmp: Bitmap32): HTMLCanvasElement {
+	fun bitmapToHtmlCanvas(bmp: Bitmap32): HTMLCanvasElementLike {
 		return renderToHtmlCanvas(bmp, createHtmlCanvas(bmp.width, bmp.height))
 	}
 
-	fun htmlCanvasToDataUrl(canvas: HTMLCanvasElement): String = canvas.toDataURL()
+	fun htmlCanvasToDataUrl(canvas: HTMLCanvasElementLike): String = canvas.toDataURL()
 
-	fun htmlCanvasClear(canvas: HTMLCanvasElement): Unit {
+	fun htmlCanvasClear(canvas: HTMLCanvasElementLike): Unit {
 		val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
 		ctx.clearRect(
 			0.0, 0.0, canvas.width.toDouble(), canvas.height.toDouble()
 		)
 	}
 
-	fun htmlCanvasSetSize(canvas: HTMLCanvasElement, width: Int, height: Int): HTMLCanvasElement {
-		canvas.width = width
-		canvas.height = height
-		return canvas
-	}
+	//fun htmlCanvasSetSize(canvas: HTMLCanvasElementLike, width: Int, height: Int): HTMLCanvasElementLike {
+	//	canvas.width = width
+	//	canvas.height = height
+	//	return canvas
+	//}
 }
 
 fun Bitmap.toHtmlNative(): HtmlNativeImage = when (this) {

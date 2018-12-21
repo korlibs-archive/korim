@@ -83,15 +83,6 @@ abstract class Bitmap(
 		}
 	}
 
-	inline fun context2d(antialiased: Boolean = true, callback: Context2d.() -> Unit) {
-		val ctx = getContext2d(antialiased)
-		try {
-			callback(ctx)
-		} finally {
-			ctx.dispose()
-		}
-	}
-
 	open fun getContext2d(antialiasing: Boolean = true): Context2d =
 		throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
 
@@ -119,3 +110,14 @@ fun <T : Bitmap> T.extract(x: Int, y: Int, width: Int, height: Int): T {
 	this.copy(x, y, out, 0, 0, width, height)
 	return out
 }
+
+inline fun <T : Bitmap> T.context2d(antialiased: Boolean = true, callback: Context2d.() -> Unit): T {
+    val ctx = getContext2d(antialiased)
+    try {
+        callback(ctx)
+    } finally {
+        ctx.dispose()
+    }
+    return this
+}
+

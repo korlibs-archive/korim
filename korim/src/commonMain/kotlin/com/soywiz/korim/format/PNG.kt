@@ -59,14 +59,14 @@ object PNG : ImageFormat("png") {
 		@Suppress("unused") val filtermethod: Int,
 		val interlacemethod: Int
 	) {
-		val bytes = when (colorspace) {
+		val components = when (colorspace) {
 			Colorspace.GRAYSCALE -> 1
 			Colorspace.INDEXED -> 1
 			Colorspace.GRAYSCALE_ALPHA -> 2
 			Colorspace.RGB -> 3
 			Colorspace.RGBA -> 4
 		}
-		val stride = width * bytes
+		val stride = (width * components * bitsPerChannel) / 8
 	}
 
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = try {
@@ -132,14 +132,14 @@ object PNG : ImageFormat("png") {
 				writeHeader(Colorspace.INDEXED)
 				writeChunk("PLTE", initialCapacity = bitmap.palette.size * 3) {
 					for (c in bitmap.palette) {
-						write8(RGBA.getR(c))
-						write8(RGBA.getG(c))
-						write8(RGBA.getB(c))
+						write8(c.r)
+						write8(c.g)
+						write8(c.b)
 					}
 				}
 				writeChunk("tRNS", initialCapacity = bitmap.palette.size * 1) {
 					for (c in bitmap.palette) {
-						write8(RGBA.getA(c))
+						write8(c.a)
 					}
 				}
 
@@ -164,13 +164,25 @@ object PNG : ImageFormat("png") {
 					val index = bmp.index(0, y)
 					if (bmp.premult) {
 						for (x in 0 until width) {
-							out.write32LE(pos, RGBA.depremultiplyFastInt(bmp.data.array[index + x]))
-							pos += 4
-						}
+							//out.write32LE(pos, RGBA.depremultiplyFastInt(bmp.data.array[index + x]))
+							//pos += 4
+
+                            val c = RGBA.depremultiplyFast(bmp.data[index + x])
+                            out.write8(pos++, c.r)
+                            out.write8(pos++, c.g)
+                            out.write8(pos++, c.b)
+                            out.write8(pos++, c.a)
+                        }
 					} else {
 						for (x in 0 until width) {
-							out.write32LE(pos, bmp.data.array[index + x])
-							pos += 4
+							//out.write32LE(pos, bmp.data.array[index + x])
+							//pos += 4
+
+                            val c = bmp.data[index + x]
+                            out.write8(pos++, c.r)
+                            out.write8(pos++, c.g)
+                            out.write8(pos++, c.b)
+                            out.write8(pos++, c.a)
 						}
 					}
 				}
@@ -243,16 +255,16 @@ object PNG : ImageFormat("png") {
 
 		//val databb = ByteArrayBuffer((1 + width) * height * header.bytes)
 
-		val databb = KorioNative.uncompress(pngdata.toByteArray(), (1 + width) * height * header.bytes, "zlib")
+		val databb = KorioNative.uncompress(pngdata.toByteArray(), (1 + width) * height * header.components, "zlib")
 		//method.syncUncompress(pngdata.toByteArray().openSync(), MemorySyncStreamBase(databb).toSyncStream(0L))
 		var databbp = 0
 
 		val context = DecodingContext(header)
-		val bpp = context.header.bytes
+		val bpp = context.header.components
 		val row32 = context.row32
 
 		val bmp = when {
-			header.bytes == 1 -> Bitmap8(
+			header.components == 1 -> Bitmap8(
 				width,
 				height,
 				palette = RgbaArray((0 until paletteCount).map {
@@ -278,7 +290,7 @@ object PNG : ImageFormat("png") {
 				val col = pass.startingCol
 				val colIncrement = pass.colIncrement
 				val pixelsInThisRow = width ushr pass.colIncrementShift
-				val bytesInThisRow = (pixelsInThisRow * header.bytes)
+				val bytesInThisRow = (pixelsInThisRow * header.components * header.bitsPerChannel / 8)
 				val filter = databb[databbp++].toInt() and 0xFF
 				val currentRow = context.currentRow
 				val lastRow = context.lastRow
@@ -286,17 +298,28 @@ object PNG : ImageFormat("png") {
 				databbp += bytesInThisRow
 				when {
 					bmp8 != null -> {
-						applyFilter(filter, lastRow, currentRow, header.bytes)
-						bmp8.setRowChunk(col, row, currentRow.asByteArray(), width, colIncrement)
+						applyFilter(filter, lastRow, currentRow, header.components)
+                        when (header.bitsPerChannel) {
+                            1 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 8].extract((n % 8) * 1, 1)
+                            2 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 4].extract((n % 4) * 2, 2)
+                            4 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 2].extract((n % 2) * 4, 4)
+                            8 -> bmp8.setRowChunk(col, row, currentRow.asByteArray(), width, colIncrement)
+                            else -> error("Unsupported header.bitsPerChannel=${header.bitsPerChannel}")
+                        }
 					}
 					bmp32 != null -> {
-						applyFilter(filter, lastRow, currentRow, bpp, bytesInThisRow)
-						when (bpp) {
-							3 -> RGB.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
-							4 -> RGBA.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
-							else -> TODO("Bytes: $bpp")
-						}
-						bmp32.setRowChunk(col, row, row32, width, colIncrement)
+                        when (header.bitsPerChannel) {
+                            8 -> {
+                                applyFilter(filter, lastRow, currentRow, bpp, bytesInThisRow)
+                                when (bpp) {
+                                    3 -> RGB.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
+                                    4 -> RGBA.decode(currentRow.asByteArray(), 0, row32, 0, pixelsInThisRow)
+                                    else -> TODO("Bytes: $bpp")
+                                }
+                                bmp32.setRowChunk(col, row, row32, width, colIncrement)
+                            }
+                            else -> error("Unsupported header.bitsPerChannel=${header.bitsPerChannel}")
+                        }
 					}
 				}
 				context.swapRows()

@@ -88,6 +88,9 @@ subprojects {
     task installMocha(type: NpmTask) {
         args = ["install", "mocha@5.2.0"]
     }
+    task installJsCanvas(type: NpmTask) {
+        args = ["install", "canvas@2.2.0"]
+    }
 
     task populateNodeModules {
         doLast {
@@ -104,7 +107,7 @@ subprojects {
         }
     }
 
-    task runMocha(type: NodeTask, dependsOn: [jsCompilations.test.compileKotlinTaskName, installMocha, populateNodeModules]) {
+    task runMocha(type: NodeTask, dependsOn: [jsCompilations.test.compileKotlinTaskName, installMocha, installJsCanvas, populateNodeModules]) {
         script = file("$buildDir/node_modules/mocha/bin/mocha")
         args = ["--timeout", "15000", relativePath("${jsCompilations.test.output.classesDirs.first()}/${project.name}_test.js")]
     }

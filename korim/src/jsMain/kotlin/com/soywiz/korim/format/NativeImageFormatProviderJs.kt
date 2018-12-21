@@ -15,6 +15,7 @@ import org.w3c.dom.url.*
 import org.w3c.files.*
 import kotlin.browser.*
 import kotlin.coroutines.*
+import kotlin.js.*
 import kotlin.math.*
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = HtmlNativeImageFormatProvider
@@ -24,15 +25,15 @@ open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: In
 	override val name: String = "HtmlNativeImage"
 	val element: HTMLElement get() = texSource as HTMLElement
 
-	constructor(img: HTMLImageElement) : this(img, img.width, img.height)
-	constructor(canvas: HTMLCanvasElement) : this(canvas, canvas.width, canvas.height)
+	constructor(img: HTMLImageElementLike) : this(img, img.width, img.height)
+	constructor(canvas: HTMLCanvasElementLike) : this(canvas, canvas.width, canvas.height)
 
-	val lazyCanvasElement: HTMLCanvasElement by lazy {
-		when (texSource) {
-			is HTMLCanvasElement -> texSource
-			is HTMLImageElement -> BrowserImage.imageToCanvas(texSource)
-			else -> TODO("Unsupported image type $texSource")
-		}
+	val lazyCanvasElement: HTMLCanvasElementLike by lazy {
+        if (texSource.asDynamic().src !== undefined) {
+            BrowserImage.imageToCanvas(texSource.unsafeCast<HTMLImageElementLike>())
+        } else {
+            texSource.unsafeCast<HTMLCanvasElementLike>()
+        }
 	}
 
 	override fun toNonNativeBmp(): Bitmap {
@@ -102,31 +103,37 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 
 @Suppress("unused")
 object BrowserImage {
-	suspend fun decodeToCanvas(bytes: ByteArray): HTMLCanvasElement {
-		val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
-		val blobURL = URL.createObjectURL(blob)
-		try {
-			return loadCanvas(blobURL)
-		} finally {
-			URL.revokeObjectURL(blobURL)
-		}
+    private fun toNodeJsBuffer(@Suppress("UNUSED_PARAMETER") ba: ByteArray): dynamic = js("(Buffer.from(ba.buffer))")
+
+	suspend fun decodeToCanvas(bytes: ByteArray): HTMLCanvasElementLike {
+        if (OS.isNodejs) {
+            return (js("(require('canvas'))").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
+        } else {
+            val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
+            val blobURL = URL.createObjectURL(blob)
+            try {
+                return loadCanvas(blobURL)
+            } finally {
+                URL.revokeObjectURL(blobURL)
+            }
+        }
 	}
 
-	fun imageToCanvas(img: HTMLImageElement): HTMLCanvasElement {
-		val canvas: HTMLCanvasElement = HtmlCanvas.createCanvas(img.width, img.height)
-		//println("[onload.b]")
-		val ctx: CanvasRenderingContext2D = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
-		//println("[onload.c]")
-		ctx.drawImage(img, 0.0, 0.0)
-		return canvas
+	fun imageToCanvas(img: HTMLImageElementLike): HTMLCanvasElementLike {
+        val canvas = HtmlCanvas.createCanvas(img.width, img.height)
+        //println("[onload.b]")
+        val ctx: CanvasRenderingContext2D = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
+        //println("[onload.c]")
+        ctx.drawImage(img, 0.0, 0.0)
+        return canvas
 	}
 
-	suspend fun loadImage(jsUrl: String): HTMLImageElement = suspendCancellableCoroutine { c ->
+	suspend fun loadImage(jsUrl: String): HTMLImageElementLike = suspendCancellableCoroutine { c ->
 		// Doesn't work with Kotlin.JS
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")
 		if (OS.isNodejs) {
-			js("(require('canvas'))").loadImage(jsUrl).then({ v ->
+            (js("(require('canvas'))").loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
 				c.resume(v)
 			}, { v ->
 				c.resumeWithException(v)
@@ -135,7 +142,7 @@ object BrowserImage {
 		} else {
 			val img = document.createElement("img").unsafeCast<HTMLImageElement>()
 			img.onload = {
-				c.resume(img)
+				c.resume(img.unsafeCast<HTMLImageElementLike>())
 			}
 			img.onerror = { _, _, _, _, _ ->
 				c.resumeWithException(RuntimeException("error loading image $jsUrl"))
@@ -145,12 +152,12 @@ object BrowserImage {
 		}
 	}
 
-	suspend fun loadCanvas(jsUrl: String): HTMLCanvasElement {
+	suspend fun loadCanvas(jsUrl: String): HTMLCanvasElementLike {
 		return imageToCanvas(loadImage(jsUrl))
 	}
 }
 
-class CanvasContext2dRenderer(private val canvas: HTMLCanvasElement) : Context2d.Renderer() {
+class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Context2d.Renderer() {
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
