@@ -4,6 +4,7 @@ import com.soywiz.kmem.*
 import com.soywiz.korio.ds.*
 import com.soywiz.korio.error.*
 import com.soywiz.korio.lang.*
+import com.soywiz.korma.interpolation.*
 
 inline fun RGBAInt(rgba: Int): Int = rgba
 inline fun RGBAInt(r: Int, g: Int, b: Int, a: Int) = RGBA.pack(r, g, b, a)
@@ -156,7 +157,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		//}
 
 		
-		fun mutliplyByAlpha(v: Int, alpha: Double): Int =
+		fun mutliplyByAlpha(v: Int, alpha: Float): Int =
 			com.soywiz.korim.color.RGBA.pack(getFastR(v), getFastG(v), getFastB(v), (getFastA(v) * alpha).toInt())
 
 		
@@ -249,7 +250,7 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		fun packRGB_A(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 
 		
-		fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
+		fun blendComponent(c1: Int, c2: Int, factor: Float): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
 
 		
 		fun blendRGB(c1: Int, c2: Int, factor256: Int): Int {
@@ -266,15 +267,15 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 
 		@Deprecated("", ReplaceWith("blendRGB(c1, c2, factor)", "com.soywiz.korim.color.RGBA.blendRGB"))
 		
-		fun blend(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, factor)
+		fun blend(c1: Int, c2: Int, factor: Float): Int = blendRGB(c1, c2, factor)
 
 		
-		fun blendRGB(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, (factor * 256).toInt())
+		fun blendRGB(c1: Int, c2: Int, factor: Float): Int = blendRGB(c1, c2, (factor * 256).toInt())
 
-		fun blendRGBAInt(c1: Int, c2: Int, factor: Double): Int = blendRGBA(RGBA(c1), RGBA(c2), factor).rgba
+		fun blendRGBAInt(c1: Int, c2: Int, factor: Float): Int = blendRGBA(RGBA(c1), RGBA(c2), factor).rgba
 
 		
-		fun blendRGBA(c1: RGBA, c2: RGBA, factor: Double): RGBA {
+		fun blendRGBA(c1: RGBA, c2: RGBA, factor: Float): RGBA {
 			val RGB = blendRGB(c1.rgba and 0xFFFFFF, c2.rgba and 0xFFFFFF, (factor * 256).toInt())
 			val A = blendComponent(c1.a, c2.a, factor)
 			return RGBA(packRGB_A(RGB, A))
@@ -286,14 +287,10 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 
 		
 		private fun d2i(v: Double): Int = (ColorFormat.clampf01(v.toFloat()) * 255).toInt()
-
-		
 		private fun f2i(v: Float): Int = (ColorFormat.clampf01(v) * 255).toInt()
 
 		
 		fun packf(r: Double, g: Double, b: Double, a: Double): Int = packFast(d2i(r), d2i(g), d2i(b), d2i(a))
-
-		
 		fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
 
 		
@@ -312,13 +309,13 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		}
 
 		
-		fun interpolate(src: RGBA, dst: RGBA, ratio: Double): RGBA = RGBA(interpolateInt(src.rgba, dst.rgba, ratio))
+		fun interpolate(src: RGBA, dst: RGBA, ratio: Float): RGBA = RGBA(interpolateInt(src.rgba, dst.rgba, ratio))
 
-		fun interpolateInt(src: Int, dst: Int, ratio: Double): Int = RGBA.pack(
-			com.soywiz.korma.interpolation.interpolate(getR(src), getR(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getG(src), getG(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getB(src), getB(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getA(src), getA(dst), ratio)
+		fun interpolateInt(src: Int, dst: Int, ratio: Float): Int = pack(
+			ratio.interpolate(getR(src), getR(dst)),
+            ratio.interpolate(getG(src), getG(dst)),
+			ratio.interpolate(getB(src), getB(dst)),
+			ratio.interpolate(getA(src), getA(dst))
 		)
 
 		
@@ -420,7 +417,7 @@ class RgbaArray(val array: IntArray) : List<RGBA> {
 	override fun toString(): String = "RgbaArray($size)"
 }
 
-fun RGBA.mix(other: RGBA, ratio: Double) = RGBA.blendRGBA(this, other, ratio)
+fun RGBA.mix(other: RGBA, ratio: Float) = RGBA.blendRGBA(this, other, ratio)
 
 /*
 java.lang.VerifyError: Bad type on operand stack

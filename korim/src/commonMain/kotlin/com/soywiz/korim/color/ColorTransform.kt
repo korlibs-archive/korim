@@ -6,10 +6,10 @@ import com.soywiz.korio.util.*
 import com.soywiz.korma.interpolation.*
 
 data class ColorTransform(
-	private var _mR: Double,
-	private var _mG: Double,
-	private var _mB: Double,
-	private var _mA: Double,
+	private var _mR: Float,
+	private var _mG: Float,
+	private var _mB: Float,
+	private var _mA: Float,
 	private var _aR: Int,
 	private var _aG: Int,
 	private var _aB: Int,
@@ -18,11 +18,11 @@ data class ColorTransform(
 	companion object {
 		val identity = ColorTransform()
 
-		fun Multiply(r: Double, g: Double, b: Double, a: Double) = ColorTransform(r, g, b, a, 0, 0, 0, 0)
+		fun Multiply(r: Float, g: Float, b: Float, a: Float) = ColorTransform(r, g, b, a, 0, 0, 0, 0)
 		fun Add(r: Int, g: Int, b: Int, a: Int) = ColorTransform(1, 1, 1, 1, r, g, b, a)
 	}
 
-	override fun setToInterpolated(l: ColorTransform, r: ColorTransform, ratio: Double): ColorTransform = setTo(
+	override fun setToInterpolated(l: ColorTransform, r: ColorTransform, ratio: Float): ColorTransform = setTo(
 		ratio.interpolate(l.mR, r.mR),
 		ratio.interpolate(l.mG, r.mG),
 		ratio.interpolate(l.mB, r.mB),
@@ -33,7 +33,7 @@ data class ColorTransform(
 		ratio.interpolate(l.aA, r.aA)
 	)
 
-	override fun interpolateWith(other: ColorTransform, ratio: Double): ColorTransform =
+	override fun interpolateWith(other: ColorTransform, ratio: Float): ColorTransform =
 		ColorTransform().setToInterpolated(this, other, ratio)
 
 	private var dirty = true
@@ -52,10 +52,10 @@ data class ColorTransform(
 	var colorMulInt: Int
 		get() = computeColors()._colorMulInt
 		set(v) {
-			_mR = RGBA.getRd(v)
-			_mG = RGBA.getGd(v)
-			_mB = RGBA.getBd(v)
-			_mA = RGBA.getAd(v)
+			_mR = RGBA.getRf(v)
+			_mG = RGBA.getGf(v)
+			_mB = RGBA.getBf(v)
+			_mA = RGBA.getAf(v)
 			dirty = true
 		}
 
@@ -76,15 +76,10 @@ data class ColorTransform(
 			dirty = true
 		}
 
-	var mR: Double get() = _mR; set(v) = run { _mR = v; dirty = true }
-	var mG: Double get() = _mG; set(v) = run { _mG = v; dirty = true }
-	var mB: Double get() = _mB; set(v) = run { _mB = v; dirty = true }
-	var mA: Double get() = _mA; set(v) = run { _mA = v; dirty = true }
-
-	var mRf: Float get() = _mR.toFloat(); set(v) = run { _mR = v.toDouble(); dirty = true }
-	var mGf: Float get() = _mG.toFloat(); set(v) = run { _mG = v.toDouble(); dirty = true }
-	var mBf: Float get() = _mB.toFloat(); set(v) = run { _mB = v.toDouble(); dirty = true }
-	var mAf: Float get() = _mA.toFloat(); set(v) = run { _mA = v.toDouble(); dirty = true }
+	var mR: Float get() = _mR; set(v) = run { _mR = v; dirty = true }
+	var mG: Float get() = _mG; set(v) = run { _mG = v; dirty = true }
+	var mB: Float get() = _mB; set(v) = run { _mB = v; dirty = true }
+	var mA: Float get() = _mA; set(v) = run { _mA = v; dirty = true }
 
 	var aR: Int get() = _aR; set(v) = run { _aR = v; dirty = true }
 	var aG: Int get() = _aG; set(v) = run { _aG = v; dirty = true }
@@ -92,10 +87,10 @@ data class ColorTransform(
 	var aA: Int get() = _aA; set(v) = run { _aA = v; dirty = true }
 
 	fun setMultiplyTo(
-		mR: Double = 1.0,
-		mG: Double = 1.0,
-		mB: Double = 1.0,
-		mA: Double = 1.0
+		mR: Float = 1f,
+		mG: Float = 1f,
+		mB: Float = 1f,
+		mA: Float = 1f
 	): ColorTransform = this.apply {
 		this._mR = mR
 		this._mG = mG
@@ -118,10 +113,10 @@ data class ColorTransform(
 	}
 
 	fun setTo(
-		mR: Double = 1.0,
-		mG: Double = 1.0,
-		mB: Double = 1.0,
-		mA: Double = 1.0,
+		mR: Float = 1f,
+		mG: Float = 1f,
+		mB: Float = 1f,
+		mA: Float = 1f,
 		aR: Int = 0,
 		aG: Int = 0,
 		aB: Int = 0,
@@ -171,12 +166,12 @@ data class ColorTransform(
 		"ColorTransform(*[${mR.niceStr}, ${mG.niceStr}, ${mB.niceStr}, ${mA.niceStr}]+[$aR, $aG, $aB, $aA])"
 
 	fun isIdentity(): Boolean =
-		(mR == 1.0) && (mG == 1.0) && (mB == 1.0) && (mA == 1.0) && (aR == 0) && (aG == 0) && (aB == 0) && (aA == 0)
+		(mR == 1f) && (mG == 1f) && (mB == 1f) && (mA == 1f) && (aR == 0) && (aG == 0) && (aB == 0) && (aA == 0)
 
 	fun hasJustAlpha(): Boolean =
-		(mR == 1.0) && (mG == 1.0) && (mB == 1.0) && (aR == 0) && (aG == 0) && (aB == 0) && (aA == 0)
+		(mR == 1f) && (mG == 1f) && (mB == 1f) && (aR == 0) && (aG == 0) && (aB == 0) && (aA == 0)
 
-	fun setToIdentity() = setTo(1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0)
+	fun setToIdentity() = setTo(1f, 1f, 1f, 1f, 0, 0, 0, 0)
 
 	fun applyToColor(color: Int): Int {
 		val r = ((RGBA.getFastR(color) * mR) + aR).toInt()
@@ -229,10 +224,10 @@ inline fun ColorTransform(
 	aB: Number = 0,
 	aA: Number = 0
 ) = ColorTransform(
-	mR.toDouble(),
-	mG.toDouble(),
-	mB.toDouble(),
-	mA.toDouble(),
+	mR.toFloat(),
+	mG.toFloat(),
+	mB.toFloat(),
+	mA.toFloat(),
 	aR.toInt(),
 	aG.toInt(),
 	aB.toInt(),

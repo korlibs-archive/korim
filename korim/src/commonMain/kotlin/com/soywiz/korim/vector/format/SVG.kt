@@ -7,8 +7,8 @@ import com.soywiz.korio.error.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
 
 class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.SizedDrawable {
@@ -45,20 +45,20 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
 	//interface Def
 
-	fun parsePercent(str: String): Double {
+	fun parsePercent(str: String): Float {
 		return if (str.endsWith("%")) {
-			str.substr(0, -1).toDouble() / 100.0
+			str.substr(0, -1).toFloat() / 100f
 		} else {
-			str.toDouble()
+			str.toFloat()
 		}
 	}
 
-	fun parseStops(xml: Xml): List<Pair<Double, Int>> {
-		val out = arrayListOf<Pair<Double, Int>>()
+	fun parseStops(xml: Xml): List<Pair<Float, Int>> {
+		val out = arrayListOf<Pair<Float, Int>>()
 		for (stop in xml.children("stop")) {
 			val offset = parsePercent(stop.str("offset"))
 			val colorStop = Colors.Default[stop.str("stop-color")]
-			val alphaStop = stop.double("stop-opacity", 1.0)
+			val alphaStop = stop.float("stop-opacity", 1f)
 			out += Pair(offset, RGBA.packRGB_A(colorStop.rgb, (alphaStop * 255).toInt()))
 		}
 		return out
@@ -69,19 +69,19 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		when (type) {
 			"lineargradient", "radialgradient" -> {
 				val id = def.str("id").toLowerCase()
-				val x0 = def.double("x1", 0.0)
-				val y0 = def.double("y1", 0.0)
-				val x1 = def.double("x2", 1.0)
-				val y1 = def.double("y2", 1.0)
+				val x0 = def.float("x1", 0f)
+				val y0 = def.float("y1", 0f)
+				val x1 = def.float("x2", 1f)
+				val y1 = def.float("y2", 1f)
 				val stops = parseStops(def)
 				val href = def.strNull("xlink:href")
 
 				val g: Context2d.Gradient = if (type == "lineargradient") {
 					//println("Linear: ($x0,$y0)-($x1-$y1)")
-					Context2d.Gradient(Context2d.Gradient.Kind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
+					Context2d.Gradient(Context2d.Gradient.Kind.LINEAR, x0, y0, 0f, x1, y1, 0f)
 				} else {
-					val r0 = def.double("r0", 0.0)
-					val r1 = def.double("r1", 0.0)
+					val r0 = def.float("r0", 0f)
+					val r1 = def.float("r1", 0f)
 					Context2d.Gradient(Context2d.Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
 				}
 
@@ -161,7 +161,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			}
 		}
 		if (res is Context2d.Gradient) {
-			val m = Matrix2d()
+			val m = Matrix()
 			m.scale(bounds.width, bounds.height)
 			val out = res.applyMatrix(m)
 			//println(out)
@@ -284,27 +284,19 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'h' -> while (isNextNumber()) rLineToH(readNumber())
 						'V' -> while (isNextNumber()) lineToV(readNumber())
 						'v' -> while (isNextNumber()) rLineToV(readNumber())
-						'Q' -> while (isNextNumber()) quadraticCurveTo(
+						'Q' -> while (isNextNumber()) quadTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
 							readNumber()
 						)
-						'q' -> while (isNextNumber()) rQuadraticCurveTo(
+						'q' -> while (isNextNumber()) rQuadTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
 							readNumber()
 						)
-						'C' -> while (isNextNumber()) bezierCurveTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'c' -> while (isNextNumber()) rBezierCurveTo(
+						'C' -> while (isNextNumber()) cubicTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
@@ -312,8 +304,16 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 							readNumber(),
 							readNumber()
 						)
-						'Z' -> closePath()
-						'z' -> closePath()
+						'c' -> while (isNextNumber()) rCubicTo(
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber()
+						)
+						'Z' -> close()
+						'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
 				}
@@ -325,14 +325,14 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 
 		if (xml.hasAttribute("stroke-width")) {
-			lineWidth = xml.double("stroke-width", 1.0)
+			lineWidth = xml.float("stroke-width", 1f)
 		}
 		if (xml.hasAttribute("stroke")) {
 			strokeStyle = parseFillStroke(c, xml.str("stroke"), bounds)
 		}
 		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
 		if (xml.hasAttribute("font-size")) {
-			font = font.copy(size = xml.double("font-size"))
+			font = font.copy(size = xml.float("font-size"))
 		}
 		if (xml.hasAttribute("font-family")) {
 			font = font.copy(name = xml.str("font-family"))
@@ -352,7 +352,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			}
 		}
 		if (xml.hasAttribute("fill-opacity")) {
-			globalAlpha = xml.double("fill-opacity", 1.0)
+			globalAlpha = xml.float("fill-opacity", 1f)
 		}
 
 		when (nodeName) {
@@ -368,7 +368,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		c.fillStyle = parseFillStroke(c, str, bounds)
 	}
 
-	private fun applyTransform(state: Context2d.State, transform: Matrix2d) {
+	private fun applyTransform(state: Context2d.State, transform: Matrix) {
 		//println("Apply transform $transform to $state")
 		state.transform.premultiply(transform)
 	}
@@ -384,10 +384,10 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 
-	fun parseTransform(str: String): Matrix2d {
+	fun parseTransform(str: String): Matrix {
 		val tokens = SvgStyle.tokenize(str)
 		val tr = ListReader(tokens)
-		val out = Matrix2d()
+		val out = Matrix()
 		//println("Not implemented: parseTransform: $str: $tokens")
 		while (tr.hasMore) {
 			val id = tr.read().toLowerCase()

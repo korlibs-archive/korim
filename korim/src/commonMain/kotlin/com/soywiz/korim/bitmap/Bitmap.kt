@@ -35,9 +35,9 @@ abstract class Bitmap(
 
 	// @TODO: super-slow, optimize this! and probably expose some API to read several sampled pixels at once, to reuse computations as much as possible
 
-	fun get32Sampled(x: Double, y: Double): RGBA = RGBA(get32SampledInt(x, y))
+	fun get32Sampled(x: Float, y: Float): RGBA = RGBA(get32SampledInt(x, y))
 
-	fun get32SampledInt(x: Double, y: Double): Int {
+	fun get32SampledInt(x: Float, y: Float): Int {
 		if (x < 0.0 || x >= width.toDouble() || y < 0.0 || y >= height.toDouble()) return Colors.TRANSPARENT_BLACK.rgba
 		val x0 = x.toIntFloor()
 		val x1 = x.toIntCeil()

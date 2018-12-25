@@ -7,9 +7,9 @@ import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.crypto.*
-import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.test.*
 
 class Bitmap32Context2dTest {
@@ -25,19 +25,19 @@ class Bitmap32Context2dTest {
                     fill(
                         Context2d.Gradient(
                             Context2d.Gradient.Kind.LINEAR,
-                            8.0, 8.0, 0.0,
-                            32.0, 32.0, 1.0,
+                            8f, 8f, 0f,
+                            32f, 32f, 1f,
                             //32.0, 8.0, 1.0,
-                            stops = DoubleArrayList(0.0, 1.0),
+                            stops = FloatArrayList(0f, 1f),
                             colors = IntArrayList(Colors.BLUE.rgba, Colors.RED.rgba),
-                            transform = Matrix2d().scale(2.0, 0.75)
+                            transform = Matrix().scale(2.0, 0.75)
                         )
                     )
                     if (true) {
                         keep {
                             beginPath()
                             moveTo(8, 8)
-                            quadraticCurveTo(40, 0, 64, 32)
+                            quadTo(40, 0, 64, 32)
                             lineTo(8, 64)
                             closePath()
 
@@ -63,14 +63,15 @@ class Bitmap32Context2dTest {
 
     @Test
     fun renderContext2dWithImage() = suspendTest {
-        val pngBytes = Base64.decode("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAA1BMVEVrVPMZmyLtAAAAC0lEQVR4AWMY5AAAAKAAAVQqnscAAAAASUVORK5CYII=")
+        val pngBytes =
+            Base64.decode("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAA1BMVEVrVPMZmyLtAAAAC0lEQVR4AWMY5AAAAKAAAVQqnscAAAAASUVORK5CYII=")
         PNG.decode(pngBytes)
 
         val img = nativeImageFormatProvider.decode(pngBytes)
 
         val rendered = NativeImage(128, 128).context2d {
             rect(0, 0, 100, 100)
-            fill(Context2d.BitmapPaint(img, Matrix2d()))
+            fill(Context2d.BitmapPaint(img, Matrix()))
         }
         val bmp = rendered.toBMP32()
 

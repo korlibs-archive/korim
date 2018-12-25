@@ -7,6 +7,7 @@ import com.soywiz.korim.format.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
 class NinePatchInfo(

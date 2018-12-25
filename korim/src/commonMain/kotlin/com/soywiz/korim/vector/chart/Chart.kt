@@ -3,6 +3,7 @@ package com.soywiz.korim.vector.chart
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
 abstract class Chart() : Context2d.Drawable {
@@ -31,21 +32,21 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
 	val colors = listOf(Colors["#5485ec"], Colors.GREEN, Colors.BLUE, Colors.AZURE, Colors.CHARTREUSE, Colors.CADETBLUE)
 
 	private fun Context2d.renderLine(
-		x0: Number,
-		y0: Number,
-		x1: Number,
-		y1: Number,
+		x0: Float,
+		y0: Float,
+		x1: Float,
+		y1: Float,
 		color: RGBA,
-		width: Number = 1.2
+		width: Float = 1.2f
 	) {
-		lineWidth = width.toDouble()
+		lineWidth = width
 		beginPath()
 		moveTo(x0, y0)
 		lineTo(x1, y1)
 		stroke(createColor(color))
 	}
 
-	private fun Context2d.renderRefLine(rect: Rectangle, y: Number, value: String, important: Boolean) {
+	private fun Context2d.renderRefLine(rect: Rectangle, y: Float, value: String, important: Boolean) {
 		val x = rect.left
 		renderLine(x, y, rect.right, y, if (important) Colors.BLACK else Colors.DARKGREY)
 		fillText(
@@ -63,7 +64,7 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
 
 	private fun Context2d.renderReferenceLines(rect: Rectangle) {
 		for (n in 0 until 5) {
-			val ratio = n.toDouble() / 4
+			val ratio = n.toFloat() / 4
 			renderRefLine(
 				rect,
 				rect.bottom - 1 - (rect.height - 1) * ratio,

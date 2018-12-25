@@ -189,7 +189,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 		out.bounds.setTo(rect.left.toDouble(), rect.top.toDouble(), rect.width().toDouble(), rect.height().toDouble())
 	}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
 		TODO()
 	}
 }

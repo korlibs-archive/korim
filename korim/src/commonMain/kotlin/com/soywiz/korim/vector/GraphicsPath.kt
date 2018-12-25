@@ -2,10 +2,11 @@ package com.soywiz.korim.vector
 
 import com.soywiz.kds.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 
 class GraphicsPath(
 	commands: IntArrayList = IntArrayList(),
-	data: DoubleArrayList = DoubleArrayList(),
+	data: FloatArrayList = FloatArrayList(),
 	winding: VectorPath.Winding = VectorPath.Winding.EVEN_ODD
 ) : VectorPath(commands, data, winding), Context2d.SizedDrawable {
 
@@ -16,6 +17,5 @@ class GraphicsPath(
 		c.state.path.write(this)
 	}
 
-	override fun clone() = GraphicsPath(IntArrayList(commands), DoubleArrayList(data), winding)
+	override fun clone() = GraphicsPath(IntArrayList(commands), FloatArrayList(data), winding)
 }
-

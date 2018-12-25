@@ -6,6 +6,7 @@ import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.format.SVG
 import com.soywiz.korio.async.*
 import com.soywiz.korio.file.std.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.test.*
 
 class Context2dTest {

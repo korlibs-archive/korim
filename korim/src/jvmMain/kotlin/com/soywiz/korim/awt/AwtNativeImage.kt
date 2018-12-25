@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import java.awt.*
 import java.awt.Rectangle
 import java.awt.RenderingHints.*
@@ -134,20 +135,24 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		this.visitCmds(
 			moveTo = { x, y ->
 				//flush()
-				polyline.moveTo(x, y)
+				polyline.moveTo(x.toDouble(), y.toDouble())
 				//kotlin.io.println("moveTo: $x, $y")
 			},
 			lineTo = { x, y ->
-				polyline.lineTo(x, y)
+				polyline.lineTo(x.toDouble(), y.toDouble())
 				//kotlin.io.println("lineTo: $x, $y")
 				parts++
 			},
 			quadTo = { cx, cy, ax, ay ->
-				polyline.quadTo(cx, cy, ax, ay)
+				polyline.quadTo(cx.toDouble(), cy.toDouble(), ax.toDouble(), ay.toDouble())
 				parts++
 			},
 			cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
-				polyline.curveTo(cx1, cy1, cx2, cy2, ax, ay)
+				polyline.curveTo(
+                    cx1.toDouble(), cy1.toDouble(),
+                    cx2.toDouble(), cy2.toDouble(),
+                    ax.toDouble(), ay.toDouble()
+                )
 				parts++
 			},
 			close = {
@@ -164,7 +169,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		return toJava2dPaths().firstOrNull()
 	}
 
-	//override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
+	//override fun renderShape(shape: Shape, transform: Matrix, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
 	//	when (shapeRasterizerMethod) {
 	//		Context2d.ShapeRasterizerMethod.NONE -> {
 	//			super.renderShape(shape, transform, shapeRasterizerMethod)
@@ -187,7 +192,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	//	}
 	//}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
 		//transform.toAwt()
 		//BufferedImageOp
 		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x, y, width, height, null)
@@ -210,7 +215,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
 
-	fun Matrix2d.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
+	fun Matrix.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
 
 	fun Context2d.Gradient.InterpolationMethod.toAwt() = when (this) {
 		Context2d.Gradient.InterpolationMethod.LINEAR -> MultipleGradientPaint.ColorSpaceType.LINEAR_RGB
@@ -226,7 +231,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 			when (this) {
 				is Context2d.Gradient -> {
-					val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(RGBA(it)) })
+					val pairs = this.stops.zip(this.colors.map { convertColor(RGBA(it)) })
 						.distinctBy { it.first }
 					val stops = pairs.map { it.first }.toFloatArray()
 					val colors = pairs.map { it.second }.toTypedArray()
@@ -237,8 +242,8 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 							val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
 							if (valid) {
 								java.awt.LinearGradientPaint(
-									Point2D.Double(this.x0, this.y0),
-									Point2D.Double(this.x1, this.y1),
+									Point2D.Float(this.x0, this.y0),
+									Point2D.Float(this.x1, this.y1),
 									stops,
 									colors,
 									this.cycle.toAwt(),
@@ -253,9 +258,9 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 							val valid = (pairs.size >= 2)
 							if (valid) {
 								java.awt.RadialGradientPaint(
-									Point2D.Double(this.x0, this.y0),
-									this.r1.toFloat(),
-									Point2D.Double(this.x1, this.y1),
+									Point2D.Float(this.x0, this.y0),
+                                    this.r1,
+									Point2D.Float(this.x1, this.y1),
 									stops,
 									colors,
 									this.cycle.toAwt(),
@@ -318,7 +323,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	fun applyState(state: Context2d.State, fill: Boolean) {
 		val t = state.transform
-		awtTransform.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+		awtTransform.setTransform(t.a.toDouble(), t.b.toDouble(), t.c.toDouble(), t.d.toDouble(), t.tx.toDouble(), t.ty.toDouble())
 		g.transform = awtTransform
 		g.clip = state.clip?.toJava2dPath()
 		if (fill) {
@@ -341,7 +346,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 			g.paint = state.strokeStyle.toAwt(awtTransform)
 		}
 		val comp = AlphaComposite.SRC_OVER
-		g.composite = if (state.globalAlpha == 1.0) AlphaComposite.getInstance(comp) else AlphaComposite.getInstance(
+		g.composite = if (state.globalAlpha == 1f) AlphaComposite.getInstance(comp) else AlphaComposite.getInstance(
 			comp,
 			state.globalAlpha.toFloat()
 		)
@@ -367,8 +372,8 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		state: Context2d.State,
 		font: Context2d.Font,
 		text: String,
-		x: Double,
-		y: Double,
+		x: Float,
+		y: Float,
 		fill: Boolean
 	) {
 		if (text.isEmpty()) return
@@ -384,15 +389,15 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		//println("leading:${fm.leading}, ascent:${fm.ascent}, maxAscent:${fm.maxAscent}")
 		//println(metrics.bounds)
 		val baseline = metrics.bounds.y
-		val oy: Double = state.verticalAlign.getOffsetY(bounds.height, baseline.toDouble())
+		val oy: Float = state.verticalAlign.getOffsetY(bounds.height.toFloat(), baseline)
 		//val oy = 0.0
-		val ox: Double = state.horizontalAlign.getOffsetX(bounds.width)
+		val ox: Float = state.horizontalAlign.getOffsetX(bounds.width.toFloat())
 		//println("$ox, $oy")
 		//println("${tl.baseline}")
 		//println("${fm.ascent}")
 		//println("${fm.ascent + fm.descent}")
 		//at.translate(x - ox, y - baseline + oy)
-		at.translate(x - ox, y - baseline + oy)
+		at.translate((x - ox).toDouble(), (y - baseline + oy).toDouble())
 		//println("translate: ${x - ox}, ${y - oy}")
 		val outline = tl.getOutline(at)
 		g.setRenderingHints(hints)

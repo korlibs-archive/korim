@@ -1,12 +1,13 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.shape.*
+import com.soywiz.korma.geom.vector.*
 
 /*
 <svg width="80px" height="30px" viewBox="0 0 80 30"
@@ -45,7 +46,7 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 				Xml.Tag("defs", mapOf(), defs),
 				Xml.Tag(
 					"g",
-					mapOf("transform" to Matrix2d().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()),
+					mapOf("transform" to Matrix().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()),
 					nodes
 				)
 			) //+ nodes
@@ -53,21 +54,35 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 	}
 }
 
-private fun Matrix2d.toSvg() = this.run {
+private fun Matrix.toSvg() = this.run {
 	when (getType()) {
-		Matrix2d.Type.IDENTITY -> "translate()"
-		Matrix2d.Type.TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr})"
-		Matrix2d.Type.SCALE -> "scale(${a.niceStr}, ${d.niceStr})"
-		Matrix2d.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
+		Matrix.Type.IDENTITY -> "translate()"
+		Matrix.Type.TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr})"
+		Matrix.Type.SCALE -> "scale(${a.niceStr}, ${d.niceStr})"
+		Matrix.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
 		else -> "matrix(${a.niceStr}, ${b.niceStr}, ${c.niceStr}, ${d.niceStr}, ${tx.niceStr}, ${ty.niceStr})"
 	}
+}
+
+private fun Float.toString(dplaces: Int, skipTrailingZeros: Boolean = false): String {
+    val res = this.toString()
+    val parts = res.split('.', limit = 2)
+    val integral = parts.getOrElse(0) { "0" }
+    val decimal = parts.getOrElse(1) { "0" }
+    if (dplaces == 0) return integral
+    var out = integral + "." + (decimal + "0".repeat(dplaces)).substr(0, dplaces)
+    if (skipTrailingZeros) {
+        while (out.endsWith('0')) out = out.substring(0, out.length - 1)
+        if (out.endsWith('.')) out = out.substring(0, out.length - 1)
+    }
+    return out
 }
 
 fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1): String {
 	val parts = arrayListOf<String>()
 
-	fun Double.fixX() = this.toString(decimalPlaces, skipTrailingZeros = true)
-	fun Double.fixY() = this.toString(decimalPlaces, skipTrailingZeros = true)
+	fun Float.fixX() = this.toString(decimalPlaces, skipTrailingZeros = true)
+	fun Float.fixY() = this.toString(decimalPlaces, skipTrailingZeros = true)
 
 	this.visitCmds(
 		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },
@@ -116,10 +131,10 @@ interface StyledShape : Shape {
 	val path: GraphicsPath
 	val clip: GraphicsPath?
 	val paint: Context2d.Paint
-	val transform: Matrix2d
+	val transform: Matrix
 
-	override fun addBounds(bb: BoundsBuilder): Unit {
-		path.addBounds(bb)
+	override fun addBounds(bb: BoundsBuilder) {
+        bb.add(path)
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
@@ -248,7 +263,7 @@ data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
 	override val paint: Context2d.Paint,
-	override val transform: Matrix2d
+	override val transform: Matrix
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
@@ -270,14 +285,14 @@ data class PolylineShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
 	override val paint: Context2d.Paint,
-	override val transform: Matrix2d,
-	val thickness: Double,
+	override val transform: Matrix,
+	val thickness: Float,
 	val pixelHinting: Boolean,
 	val scaleMode: Context2d.ScaleMode,
 	val startCaps: Context2d.LineCap,
 	val endCaps: Context2d.LineCap,
 	val joints: String?,
-	val miterLimit: Double
+	val miterLimit: Float
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.lineScaleMode = scaleMode
