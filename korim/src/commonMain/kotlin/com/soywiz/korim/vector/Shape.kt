@@ -5,8 +5,10 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.shape.*
+import com.soywiz.korma.geom.vector.*
 
 /*
 <svg width="80px" height="30px" viewBox="0 0 80 30"
@@ -45,7 +47,7 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 				Xml.Tag("defs", mapOf(), defs),
 				Xml.Tag(
 					"g",
-					mapOf("transform" to Matrix2d().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()),
+					mapOf("transform" to Matrix().translate(-bounds.x, -bounds.y).scale(scale, scale).toSvg()),
 					nodes
 				)
 			) //+ nodes
@@ -53,12 +55,12 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 	}
 }
 
-private fun Matrix2d.toSvg() = this.run {
+private fun Matrix.toSvg() = this.run {
 	when (getType()) {
-		Matrix2d.Type.IDENTITY -> "translate()"
-		Matrix2d.Type.TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr})"
-		Matrix2d.Type.SCALE -> "scale(${a.niceStr}, ${d.niceStr})"
-		Matrix2d.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
+		Matrix.Type.IDENTITY -> "translate()"
+		Matrix.Type.TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr})"
+		Matrix.Type.SCALE -> "scale(${a.niceStr}, ${d.niceStr})"
+		Matrix.Type.SCALE_TRANSLATE -> "translate(${tx.niceStr}, ${ty.niceStr}) scale(${a.niceStr}, ${d.niceStr})"
 		else -> "matrix(${a.niceStr}, ${b.niceStr}, ${c.niceStr}, ${d.niceStr}, ${tx.niceStr}, ${ty.niceStr})"
 	}
 }
@@ -116,10 +118,10 @@ interface StyledShape : Shape {
 	val path: GraphicsPath
 	val clip: GraphicsPath?
 	val paint: Context2d.Paint
-	val transform: Matrix2d
+	val transform: Matrix
 
 	override fun addBounds(bb: BoundsBuilder): Unit {
-		path.addBounds(bb)
+        bb.add(path)
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
@@ -248,7 +250,7 @@ data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
 	override val paint: Context2d.Paint,
-	override val transform: Matrix2d
+	override val transform: Matrix
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
@@ -270,7 +272,7 @@ data class PolylineShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
 	override val paint: Context2d.Paint,
-	override val transform: Matrix2d,
+	override val transform: Matrix,
 	val thickness: Double,
 	val pixelHinting: Boolean,
 	val scaleMode: Context2d.ScaleMode,

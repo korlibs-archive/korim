@@ -5,12 +5,13 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
-class Context2d(val renderer: Renderer) : Disposable {
-	val width: Int get() = renderer.width
+class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
+    val width: Int get() = renderer.width
 	val height: Int get() = renderer.height
 
 	enum class LineCap { BUTT, ROUND, SQUARE }
@@ -31,7 +32,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 		override val width: Int get() = (parent.width / scaleX).toInt()
 		override val height: Int get() = (parent.height / scaleY).toInt()
 
-		private inline fun <T> adjustMatrix(transform: Matrix2d, callback: () -> T): T {
+		private inline fun <T> adjustMatrix(transform: Matrix, callback: () -> T): T {
 			return transform.keep {
 				transform.scale(scaleX, scaleY)
 				callback()
@@ -46,7 +47,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 			adjustState(state) { parent.renderText(state, font, text, x, y, fill) }
 
 		override fun getBounds(font: Font, text: String, out: TextMetrics): Unit = parent.getBounds(font, text, out)
-		override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d): Unit {
+		override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix): Unit {
 			adjustMatrix(transform) { parent.drawImage(image, x, y, width, height, transform) }
 		}
 	}
@@ -73,11 +74,11 @@ class Context2d(val renderer: Renderer) : Disposable {
 			y: Int,
 			width: Int = image.width,
 			height: Int = image.height,
-			transform: Matrix2d = Matrix2d()
+			transform: Matrix = Matrix()
 		): Unit {
 			val state = State(transform = transform, path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) }, fillStyle = Context2d.BitmapPaint(
 				image,
-				transform = Matrix2d()
+				transform = Matrix()
 					.scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
 					.translate(x, y)
 			))
@@ -108,7 +109,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 	}
 
 	data class State(
-		var transform: Matrix2d = Matrix2d(),
+		var transform: Matrix = Matrix(),
 		var clip: GraphicsPath? = null,
 		var path: GraphicsPath = GraphicsPath(),
 		var lineScaleMode: ScaleMode = ScaleMode.NORMAL,
@@ -220,34 +221,32 @@ class Context2d(val renderer: Renderer) : Disposable {
 	fun rotateDeg(degs: Double) = run { state.transform.prerotate(Angle.degreesToRadians(degs)) }
 
 	fun translate(tx: Double, ty: Double) = run { state.transform.pretranslate(tx, ty) }
-	fun transform(m: Matrix2d) = run { state.transform.premultiply(m) }
+	fun transform(m: Matrix) = run { state.transform.premultiply(m) }
 	fun transform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) =
 		run { state.transform.premultiply(a, b, c, d, tx, ty) }
 
-	fun setTransform(m: Matrix2d) = run { state.transform.copyFrom(m) }
+	fun setTransform(m: Matrix) = run { state.transform.copyFrom(m) }
 	fun setTransform(a: Double, b: Double, c: Double, d: Double, tx: Double, ty: Double) =
 		run { state.transform.setTo(a, b, c, d, tx, ty) }
 
 	fun shear(sx: Double, sy: Double) = transform(1.0, sy, sx, 1.0, 0.0, 0.0)
-	inline fun moveTo(x: Number, y: Number) = moveTo(x.toDouble(), y.toDouble())
-	inline fun lineTo(x: Number, y: Number) = lineTo(x.toDouble(), y.toDouble())
-	inline fun quadraticCurveTo(cx: Number, cy: Number, ax: Number, ay: Number) =
-		quadraticCurveTo(cx.toDouble(), cy.toDouble(), ax.toDouble(), ay.toDouble())
 
-	inline fun bezierCurveTo(cx1: Number, cy1: Number, cx2: Number, cy2: Number, ax: Number, ay: Number) =
-		bezierCurveTo(cx1.toDouble(), cy1.toDouble(), cx2.toDouble(), cy2.toDouble(), ax.toDouble(), ay.toDouble())
+    override val lastX: Double get() = state.path.lastX
+    override val lastY: Double get() = state.path.lastY
+    override val totalPoints: Int  get() = state.path.totalPoints
 
-	inline fun arcTo(x1: Number, y1: Number, x2: Number, y2: Number, radius: Number) =
-		arcTo(x1.toDouble(), y1.toDouble(), x2.toDouble(), y2.toDouble(), radius.toDouble())
+    override fun close() = state.path.close()
 
-	fun moveTo(p: Vector2) = moveTo(p.x, p.y)
-	fun lineTo(p: Vector2) = lineTo(p.x, p.y)
-	fun quadraticCurveTo(c: Vector2, a: Vector2) = quadraticCurveTo(c.x, c.y, a.x, a.y)
-	fun bezierCurveTo(c1: Vector2, c2: Vector2, a: Vector2) = bezierCurveTo(c1.x, c1.y, c2.x, c2.y, a.x, a.y)
-	fun arcTo(p1: Vector2, p2: Vector2, radius: Double) = arcTo(p1.x, p1.y, p2.x, p2.y, radius)
+    override fun moveTo(x: Double, y: Double) = run { state.path.moveTo(x, y) }
+    override fun lineTo(x: Double, y: Double) = run { state.path.lineTo(x, y) }
+    override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
+        state.path.cubicTo(cx1, cy1, cx2, cy2, ax, ay)
+    }
 
-	inline fun rect(x: Number, y: Number, width: Number, height: Number) =
-		rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
+    override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
+        state.path.quadTo(cx, cy, ax, ay)
+    }
+
 
 	inline fun strokeRect(x: Number, y: Number, width: Number, height: Number) =
 		strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
@@ -261,38 +260,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 		fill()
 	}
 
-	fun arc(x: Double, y: Double, r: Double, start: Double, end: Double) = run { state.path.arc(x, y, r, start, end) }
 	fun strokeDot(x: Double, y: Double) = run { beginPath(); moveTo(x, y); lineTo(x, y); stroke() }
-	fun arcTo(x1: Double, y1: Double, x2: Double, y2: Double, r: Double) = run { state.path.arcTo(x1, y1, x2, y2, r) }
-	fun circle(x: Double, y: Double, radius: Double) = arc(x, y, radius, 0.0, PI * 2.0)
-	fun rMoveTo(x: Double, y: Double) = run { state.path.rMoveTo(x, y) }
-	fun moveTo(x: Double, y: Double) = run { state.path.moveTo(x, y) }
-	fun moveToH(x: Double) = run { state.path.moveToH(x) }
-	fun moveToV(y: Double) = run { state.path.moveToV(y) }
-	fun rMoveToH(x: Double) = run { state.path.rMoveToH(x) }
-	fun rMoveToV(y: Double) = run { state.path.rMoveToV(y) }
-
-	fun lineToH(x: Double) = run { state.path.lineToH(x) }
-	fun lineToV(y: Double) = run { state.path.lineToV(y) }
-	fun rLineToH(x: Double) = run { state.path.rLineToH(x) }
-	fun rLineToV(y: Double) = run { state.path.rLineToV(y) }
-
-	fun lineTo(x: Double, y: Double) = run { state.path.lineTo(x, y) }
-	fun rLineTo(x: Double, y: Double) = run { state.path.rLineTo(x, y) }
-	fun quadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) = run { state.path.quadTo(cx, cy, ax, ay) }
-	fun rQuadraticCurveTo(cx: Double, cy: Double, ax: Double, ay: Double) = run { state.path.rQuadTo(cx, cy, ax, ay) }
-	fun bezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) =
-		run { state.path.cubicTo(cx1, cy1, cx2, cy2, x, y) }
-
-	fun rBezierCurveTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, x: Double, y: Double) =
-		run { state.path.rCubicTo(cx1, cy1, cx2, cy2, x, y) }
-
-	fun rect(x: Double, y: Double, width: Double, height: Double) = run { state.path.rect(x, y, width, height) }
-	inline fun rectHole(x: Number, y: Number, width: Number, height: Number) =
-		run { state.path.rectHole(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) }
-
-	fun roundRect(x: Double, y: Double, w: Double, h: Double, rx: Double, ry: Double = rx) =
-		run { this.beginPath(); state.path.roundRect(x, y, w, h, rx, ry); this.closePath() }
 
 	fun path(path: GraphicsPath) = run { this.state.path.write(path) }
 	fun draw(d: Drawable) = run { d.draw(this) }
@@ -307,7 +275,6 @@ class Context2d(val renderer: Renderer) : Disposable {
 
 	fun getBounds(out: Rectangle = Rectangle()) = state.path.getBounds(out)
 
-	fun closePath() = run { state.path.close() }
 	fun stroke() = run { if (state.strokeStyle != None) renderer.render(state, fill = false) }
 	fun fill() = run { if (state.fillStyle != None) renderer.render(state, fill = true) }
 
@@ -361,7 +328,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 					else -> newBi
 				}
 				keepTransform {
-					setTransform(Matrix2d())
+					setTransform(Matrix())
 					this.renderer.drawImage(renderBi, 0, 0)
 				}
 				//} finally {
@@ -382,7 +349,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 		bitmap: Bitmap,
 		repeat: Boolean = false,
 		smooth: Boolean = true,
-		transform: Matrix2d = Matrix2d()
+		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
 	val none = None
@@ -432,7 +399,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 	data class Color(val color: RGBA) : Paint
 
 	interface TransformedPaint : Paint {
-		val transform: Matrix2d
+		val transform: Matrix
 	}
 
 	data class Gradient(
@@ -446,7 +413,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 		val stops: DoubleArrayList = DoubleArrayList(),
 		val colors: IntArrayList = IntArrayList(),
 		val cycle: CycleMethod = CycleMethod.NO_CYCLE,
-		override val transform: Matrix2d = Matrix2d(),
+		override val transform: Matrix = Matrix(),
 		val interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL,
 		val units: Units = Units.OBJECT_BOUNDING_BOX
 	) : TransformedPaint {
@@ -470,7 +437,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 			return this
 		}
 
-		fun applyMatrix(m: Matrix2d): Gradient = Gradient(
+		fun applyMatrix(m: Matrix): Gradient = Gradient(
 			kind,
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
@@ -481,7 +448,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 			DoubleArrayList(stops),
 			IntArrayList(colors),
 			cycle,
-			Matrix2d(),
+			Matrix(),
 			interpolationMethod,
 			units
 		)
@@ -494,7 +461,7 @@ class Context2d(val renderer: Renderer) : Disposable {
 
 	class BitmapPaint(
 		val bitmap: Bitmap,
-		override val transform: Matrix2d,
+		override val transform: Matrix,
 		val repeat: Boolean = false,
 		val smooth: Boolean = true
 	) : TransformedPaint

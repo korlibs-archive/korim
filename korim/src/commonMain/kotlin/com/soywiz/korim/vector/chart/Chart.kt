@@ -31,12 +31,12 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
 	val colors = listOf(Colors["#5485ec"], Colors.GREEN, Colors.BLUE, Colors.AZURE, Colors.CHARTREUSE, Colors.CADETBLUE)
 
 	private fun Context2d.renderLine(
-		x0: Number,
-		y0: Number,
-		x1: Number,
-		y1: Number,
+		x0: Double,
+		y0: Double,
+		x1: Double,
+		y1: Double,
 		color: RGBA,
-		width: Number = 1.2
+		width: Double = 1.2
 	) {
 		lineWidth = width.toDouble()
 		beginPath()
@@ -45,7 +45,7 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
 		stroke(createColor(color))
 	}
 
-	private fun Context2d.renderRefLine(rect: Rectangle, y: Number, value: String, important: Boolean) {
+	private fun Context2d.renderRefLine(rect: Rectangle, y: Double, value: String, important: Boolean) {
 		val x = rect.left
 		renderLine(x, y, rect.right, y, if (important) Colors.BLACK else Colors.DARKGREY)
 		fillText(

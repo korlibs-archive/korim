@@ -2,6 +2,7 @@ package com.soywiz.korim.vector
 
 import com.soywiz.kds.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 
 class GraphicsPath(
 	commands: IntArrayList = IntArrayList(),

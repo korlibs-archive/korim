@@ -22,7 +22,7 @@ data class ColorTransform(
 		fun Add(r: Int, g: Int, b: Int, a: Int) = ColorTransform(1, 1, 1, 1, r, g, b, a)
 	}
 
-	override fun setToInterpolated(l: ColorTransform, r: ColorTransform, ratio: Double): ColorTransform = setTo(
+	override fun setToInterpolated(ratio: Double, l: ColorTransform, r: ColorTransform): ColorTransform = setTo(
 		ratio.interpolate(l.mR, r.mR),
 		ratio.interpolate(l.mG, r.mG),
 		ratio.interpolate(l.mB, r.mB),
@@ -33,8 +33,8 @@ data class ColorTransform(
 		ratio.interpolate(l.aA, r.aA)
 	)
 
-	override fun interpolateWith(other: ColorTransform, ratio: Double): ColorTransform =
-		ColorTransform().setToInterpolated(this, other, ratio)
+	override fun interpolateWith(ratio: Double, other: ColorTransform): ColorTransform =
+		ColorTransform().setToInterpolated(ratio, this, other)
 
 	private var dirty = true
 

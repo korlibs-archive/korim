@@ -7,8 +7,9 @@ import com.soywiz.korio.error.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
 
 class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.SizedDrawable {
@@ -161,7 +162,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			}
 		}
 		if (res is Context2d.Gradient) {
-			val m = Matrix2d()
+			val m = Matrix()
 			m.scale(bounds.width, bounds.height)
 			val out = res.applyMatrix(m)
 			//println(out)
@@ -284,27 +285,19 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'h' -> while (isNextNumber()) rLineToH(readNumber())
 						'V' -> while (isNextNumber()) lineToV(readNumber())
 						'v' -> while (isNextNumber()) rLineToV(readNumber())
-						'Q' -> while (isNextNumber()) quadraticCurveTo(
+						'Q' -> while (isNextNumber()) quadTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
 							readNumber()
 						)
-						'q' -> while (isNextNumber()) rQuadraticCurveTo(
+						'q' -> while (isNextNumber()) rQuadTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
 							readNumber()
 						)
-						'C' -> while (isNextNumber()) bezierCurveTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'c' -> while (isNextNumber()) rBezierCurveTo(
+						'C' -> while (isNextNumber()) cubicTo(
 							readNumber(),
 							readNumber(),
 							readNumber(),
@@ -312,8 +305,16 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 							readNumber(),
 							readNumber()
 						)
-						'Z' -> closePath()
-						'z' -> closePath()
+						'c' -> while (isNextNumber()) rCubicTo(
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber(),
+							readNumber()
+						)
+						'Z' -> close()
+						'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
 				}
@@ -368,7 +369,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		c.fillStyle = parseFillStroke(c, str, bounds)
 	}
 
-	private fun applyTransform(state: Context2d.State, transform: Matrix2d) {
+	private fun applyTransform(state: Context2d.State, transform: Matrix) {
 		//println("Apply transform $transform to $state")
 		state.transform.premultiply(transform)
 	}
@@ -384,10 +385,10 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 
-	fun parseTransform(str: String): Matrix2d {
+	fun parseTransform(str: String): Matrix {
 		val tokens = SvgStyle.tokenize(str)
 		val tr = ListReader(tokens)
-		val out = Matrix2d()
+		val out = Matrix()
 		//println("Not implemented: parseTransform: $str: $tokens")
 		while (tr.hasMore) {
 			val id = tr.read().toLowerCase()

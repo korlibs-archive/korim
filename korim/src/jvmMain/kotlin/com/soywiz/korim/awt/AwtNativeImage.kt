@@ -3,8 +3,9 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korma.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import java.awt.*
 import java.awt.Rectangle
 import java.awt.RenderingHints.*
@@ -164,7 +165,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		return toJava2dPaths().firstOrNull()
 	}
 
-	//override fun renderShape(shape: Shape, transform: Matrix2d, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
+	//override fun renderShape(shape: Shape, transform: Matrix, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
 	//	when (shapeRasterizerMethod) {
 	//		Context2d.ShapeRasterizerMethod.NONE -> {
 	//			super.renderShape(shape, transform, shapeRasterizerMethod)
@@ -187,7 +188,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	//	}
 	//}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
 		//transform.toAwt()
 		//BufferedImageOp
 		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x, y, width, height, null)
@@ -210,7 +211,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
 
-	fun Matrix2d.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
+	fun Matrix.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
 
 	fun Context2d.Gradient.InterpolationMethod.toAwt() = when (this) {
 		Context2d.Gradient.InterpolationMethod.LINEAR -> MultipleGradientPaint.ColorSpaceType.LINEAR_RGB

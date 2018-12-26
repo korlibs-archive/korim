@@ -4,9 +4,10 @@ import com.soywiz.kds.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korma.*
+import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.shape.*
+import com.soywiz.korma.geom.vector.*
 
 // References:
 // - https://github.com/memononen/nanosvg/blob/master/src/nanosvgrast.h
@@ -49,7 +50,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 			if (y !in 0 until bmp.height) continue // Calculate right range instead of skipping
 
 			// @TODO: Optimize
-			val xx = edges.filter { it.containsY(y) }.map { Point2d(it.intersectX(y), y) }.sortedBy { it.x }
+			val xx = edges.filter { it.containsY(y) }.map { Point(it.intersectX(y), y) }.sortedBy { it.x }
 				.map { it.x.toInt() }
 			for (n in 0 until xx.size - 1) {
 				val a = xx[n + 0].clamp(0, bmp.width)
@@ -65,11 +66,11 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 		//bmp.fill(Colors.PINK)
 	}
 
-	fun VectorPath.getApproximatedPoints(): List<Point2d> {
-		return this.toPaths2().flatMap { it }
+	fun VectorPath.getApproximatedPoints(): List<Point> {
+		return this.toPathList().flatMap { it.toPoints() }
 	}
 
-	data class Edge(val a: Point2d, val b: Point2d, val wind: Int) {
+	data class Edge(val a: Point, val b: Point, val wind: Int) {
 		val isCoplanarX = a.y == b.y
 		val isNotCoplanarX get() = !isCoplanarX
 
@@ -117,8 +118,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 	}
 
 	class BitmapFiller(val antialiasing: Boolean) : Filler<Context2d.BitmapPaint>() {
-		lateinit var stateTrans: Matrix2d
-		lateinit var fillTrans: Matrix2d
+		lateinit var stateTrans: Matrix
+		lateinit var fillTrans: Matrix
 
 		override fun updated() {
 			stateTrans = state.transform.inverted()
@@ -145,8 +146,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 
 		fun stopN(n: Int): Int = (fill.stops[n] * NCOLORS).toInt()
 
-		lateinit var stateTrans: Matrix2d
-		lateinit var fillTrans: Matrix2d
+		lateinit var stateTrans: Matrix
+		lateinit var fillTrans: Matrix
 
 		override fun updated() {
 			stateTrans = state.transform.inverted()
@@ -168,10 +169,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 
 		override fun fill(data: RgbaArray, offset: Int, x: Int, y: Int, count: Int) {
 
-			val p0 = Point2d(fill.x0, fill.y0)
-			val p1 = Point2d(fill.x1, fill.y1)
+			val p0 = Point(fill.x0, fill.y0)
+			val p1 = Point(fill.x1, fill.y1)
 
-			val mat = Matrix2d().apply {
+			val mat = Matrix().apply {
 				multiply(this, stateTrans)
 				multiply(this, fillTrans)
 				translate(-p0.x, -p0.y)

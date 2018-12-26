@@ -7,7 +7,7 @@ import com.soywiz.korio.crypto.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
+import com.soywiz.korma.geom.*
 import kotlin.math.*
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = NativeNativeImageFormatProvider

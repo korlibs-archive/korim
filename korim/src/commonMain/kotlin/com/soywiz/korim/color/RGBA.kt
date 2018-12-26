@@ -4,6 +4,7 @@ import com.soywiz.kmem.*
 import com.soywiz.korio.ds.*
 import com.soywiz.korio.error.*
 import com.soywiz.korio.lang.*
+import com.soywiz.korma.interpolation.*
 
 inline fun RGBAInt(rgba: Int): Int = rgba
 inline fun RGBAInt(r: Int, g: Int, b: Int, a: Int) = RGBA.pack(r, g, b, a)
@@ -315,10 +316,10 @@ data class RGBA(val rgba: Int) : Comparable<RGBA> {// @TODO: SUPER Extremely slo
 		fun interpolate(src: RGBA, dst: RGBA, ratio: Double): RGBA = RGBA(interpolateInt(src.rgba, dst.rgba, ratio))
 
 		fun interpolateInt(src: Int, dst: Int, ratio: Double): Int = RGBA.pack(
-			com.soywiz.korma.interpolation.interpolate(getR(src), getR(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getG(src), getG(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getB(src), getB(dst), ratio),
-			com.soywiz.korma.interpolation.interpolate(getA(src), getA(dst), ratio)
+			ratio.interpolate(getR(src), getR(dst)),
+			ratio.interpolate(getG(src), getG(dst)),
+			ratio.interpolate(getB(src), getB(dst)),
+			ratio.interpolate(getA(src), getA(dst))
 		)
 
 		

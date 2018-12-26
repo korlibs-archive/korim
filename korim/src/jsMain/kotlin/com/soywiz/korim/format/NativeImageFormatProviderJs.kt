@@ -7,7 +7,8 @@ import com.soywiz.korio.crypto.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
-import com.soywiz.korma.*
+import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 import org.khronos.webgl.*
 import org.w3c.dom.*
@@ -240,7 +241,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix2d) {
+	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
 		ctx.save()
 		try {
 			transform.run { ctx.setTransform(a, b, c, d, tx, ty) }
