@@ -217,8 +217,8 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	inline fun rotateDeg(degs: Number) = rotateDeg(degs.toDouble())
 
 	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
-	fun rotate(angle: Double) = run { state.transform.prerotate(angle) }
-	fun rotateDeg(degs: Double) = run { state.transform.prerotate(Angle.degreesToRadians(degs)) }
+	fun rotate(angle: Double) = run { state.transform.prerotate(angle.radians) }
+	fun rotateDeg(degs: Double) = run { state.transform.prerotate(degs.degrees) }
 
 	fun translate(tx: Double, ty: Double) = run { state.transform.pretranslate(tx, ty) }
 	fun transform(m: Matrix) = run { state.transform.premultiply(m) }

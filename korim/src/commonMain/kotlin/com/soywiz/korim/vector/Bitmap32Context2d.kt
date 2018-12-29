@@ -177,7 +177,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 				multiply(this, fillTrans)
 				translate(-p0.x, -p0.y)
 				scale(1.0 / (p0.distanceTo(p1)).clamp(1.0, 16000.0))
-				rotate(-Angle.betweenRad(p0, p1))
+				rotate(-Angle.between(p0, p1))
 			}
 
 			for (n in 0 until count) {
