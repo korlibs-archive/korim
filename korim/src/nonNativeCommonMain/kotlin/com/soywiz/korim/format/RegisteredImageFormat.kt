@@ -1,8 +1,8 @@
 package com.soywiz.korim.format
 
-import kotlinx.atomicfu.*
+import com.soywiz.korio.atomic.*
 
-private var _RegisteredImageFormats_formats = atomic(ImageFormats(PNG))
+private var _RegisteredImageFormats_formats = korAtomic(ImageFormats(PNG))
 
 internal actual var RegisteredImageFormats_formats: ImageFormats
     get() = _RegisteredImageFormats_formats.value
