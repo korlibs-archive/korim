@@ -107,7 +107,7 @@ object BrowserImage {
     private fun toNodeJsBuffer(@Suppress("UNUSED_PARAMETER") ba: ByteArray): dynamic = js("(Buffer.from(ba.buffer))")
 
 	suspend fun decodeToCanvas(bytes: ByteArray): HTMLCanvasElementLike {
-        if (OS.isNodejs) {
+        if (OS.isJsNodeJs) {
             return (js("(require('canvas'))").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
         } else {
             val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
@@ -133,7 +133,7 @@ object BrowserImage {
 		// Doesn't work with Kotlin.JS
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")
-		if (OS.isNodejs) {
+		if (OS.isJsNodeJs) {
             (js("(require('canvas'))").loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
 				c.resume(v)
 			}, { v ->

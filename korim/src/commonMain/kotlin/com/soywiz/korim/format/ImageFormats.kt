@@ -1,7 +1,7 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korio.crypto.*
+import com.soywiz.korio.util.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
@@ -54,4 +54,4 @@ suspend fun Bitmap.writeTo(
 	file: VfsFile,
 	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageEncodingProps = ImageEncodingProps()
-) = file.writeBytes(formats.encode(this, props.copy(filename = file.basename)))
+) = file.writeBytes(formats.encode(this, props.copy(filename = file.baseName)))

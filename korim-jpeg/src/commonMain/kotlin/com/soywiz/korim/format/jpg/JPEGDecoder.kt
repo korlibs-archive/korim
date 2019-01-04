@@ -3,8 +3,7 @@ package com.soywiz.korim.format.jpg
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korio.error.*
-import com.soywiz.korio.util.*
+import com.soywiz.korio.lang.*
 import kotlin.math.*
 
 // https://github.com/eugeneware/jpeg-js/blob/652bfced3ead53808285b1b5fa9c0b589d00bbf0/lib/decoder.js
@@ -52,13 +51,13 @@ class JPEGDecoder {
 		63
 	)
 
-	private var dctCos1 = 4017   // cos(pi/16)
-	private var dctSin1 = 799   // sin(pi/16)
-	private var dctCos3 = 3406   // cos(3*pi/16)
-	private var dctSin3 = 2276   // sin(3*pi/16)
-	private var dctCos6 = 1567   // cos(6*pi/16)
-	private var dctSin6 = 3784   // sin(6*pi/16)
-	private var dctSqrt2 = 5793   // sqrt(2)
+	private var dctCos1 = 4017     // cos(pi/16)
+	private var dctSin1 = 799      // sin(pi/16)
+	private var dctCos3 = 3406     // cos(3*pi/16)
+	private var dctSin3 = 2276     // sin(3*pi/16)
+	private var dctCos6 = 1567     // cos(6*pi/16)
+	private var dctSin6 = 3784     // sin(6*pi/16)
+	private var dctSqrt2 = 5793    // sqrt(2)
 	private var dctSqrt1d2 = 2896  // sqrt(2) / 2
 
 	@Suppress("UNUSED_PARAMETER")
@@ -432,15 +431,6 @@ class JPEGDecoder {
 		//   988-991.
 		fun quantizeAndInverse(zz: IntArray, dataOut: UByteArrayInt, dataIn: IntArray) {
 			val qt = component.quantizationTable
-			var v0: Int
-			var v1: Int
-			var v2: Int
-			var v3: Int
-			var v4: Int
-			var v5: Int
-			var v6: Int
-			var v7: Int
-			var t: Int
 			@Suppress("UnnecessaryVariable")
 			val p = dataIn
 
@@ -456,7 +446,7 @@ class JPEGDecoder {
 					p[4 + row] == 0 && p[5 + row] == 0 && p[6 + row] == 0 &&
 					p[7 + row] == 0
 				) {
-					t = (dctSqrt2 * p[0 + row] + 512) shr 10
+					val t = (dctSqrt2 * p[0 + row] + 512) shr 10
 					p[0 + row] = t
 					p[1 + row] = t
 					p[2 + row] = t
@@ -469,17 +459,17 @@ class JPEGDecoder {
 				}
 
 				// stage 4
-				v0 = (dctSqrt2 * p[0 + row] + 128) shr 8
-				v1 = (dctSqrt2 * p[4 + row] + 128) shr 8
-				v2 = p[2 + row]
-				v3 = p[6 + row]
-				v4 = (dctSqrt1d2 * (p[1 + row] - p[7 + row]) + 128) shr 8
-				v7 = (dctSqrt1d2 * (p[1 + row] + p[7 + row]) + 128) shr 8
-				v5 = p[3 + row] shl 4
-				v6 = p[5 + row] shl 4
+				var v0 = (dctSqrt2 * p[0 + row] + 128) shr 8
+				var v1 = (dctSqrt2 * p[4 + row] + 128) shr 8
+				var v2 = p[2 + row]
+				var v3 = p[6 + row]
+				var v4 = (dctSqrt1d2 * (p[1 + row] - p[7 + row]) + 128) shr 8
+				var v7 = (dctSqrt1d2 * (p[1 + row] + p[7 + row]) + 128) shr 8
+				var v5 = p[3 + row] shl 4
+				var v6 = p[5 + row] shl 4
 
 				// stage 3
-				t = (v0 - v1 + 1) shr 1
+				var t = (v0 - v1 + 1) shr 1
 				v0 = (v0 + v1 + 1) shr 1
 				v1 = t
 				t = (v2 * dctSin6 + v3 * dctCos6 + 128) shr 8
@@ -524,7 +514,7 @@ class JPEGDecoder {
 					p[4 * 8 + col] == 0 && p[5 * 8 + col] == 0 && p[6 * 8 + col] == 0 &&
 					p[7 * 8 + col] == 0
 				) {
-					t = (dctSqrt2 * dataIn[col + 0] + 8192) shr 14
+					val t = (dctSqrt2 * dataIn[col + 0] + 8192) shr 14
 					p[0 * 8 + col] = t
 					p[1 * 8 + col] = t
 					p[2 * 8 + col] = t
@@ -537,17 +527,17 @@ class JPEGDecoder {
 				}
 
 				// stage 4
-				v0 = (dctSqrt2 * p[0 * 8 + col] + 2048) shr 12
-				v1 = (dctSqrt2 * p[4 * 8 + col] + 2048) shr 12
-				v2 = p[2 * 8 + col]
-				v3 = p[6 * 8 + col]
-				v4 = (dctSqrt1d2 * (p[1 * 8 + col] - p[7 * 8 + col]) + 2048) shr 12
-				v7 = (dctSqrt1d2 * (p[1 * 8 + col] + p[7 * 8 + col]) + 2048) shr 12
-				v5 = p[3 * 8 + col]
-				v6 = p[5 * 8 + col]
+				var v0 = (dctSqrt2 * p[0 * 8 + col] + 2048) shr 12
+				var v1 = (dctSqrt2 * p[4 * 8 + col] + 2048) shr 12
+				var v2 = p[2 * 8 + col]
+				var v3 = p[6 * 8 + col]
+				var v4 = (dctSqrt1d2 * (p[1 * 8 + col] - p[7 * 8 + col]) + 2048) shr 12
+				var v7 = (dctSqrt1d2 * (p[1 * 8 + col] + p[7 * 8 + col]) + 2048) shr 12
+				var v5 = p[3 * 8 + col]
+				var v6 = p[5 * 8 + col]
 
 				// stage 3
-				t = (v0 - v1 + 1) shr 1
+				var t = (v0 - v1 + 1) shr 1
 				v0 = (v0 + v1 + 1) shr 1
 				v1 = t
 				t = (v2 * dctSin6 + v3 * dctCos6 + 2048) shr 12

@@ -6,7 +6,8 @@ import com.soywiz.korim.color.*
 import com.soywiz.korio.*
 import com.soywiz.korio.compression.*
 import com.soywiz.korio.compression.deflate.*
-import com.soywiz.korio.crypto.*
+import com.soywiz.korio.util.*
+import com.soywiz.korio.util.checksum.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
 import kotlin.math.*
@@ -90,7 +91,7 @@ object PNG : ImageFormat("png") {
 		fun writeChunk(name: String, data: ByteArray) {
 			val nameBytes = name.toByteArray().copyOf(4)
 
-			var crc = CRC32.INITIAL
+			var crc = CRC32.initialValue
 			crc = CRC32.update(crc, nameBytes)
 			crc = CRC32.update(crc, data)
 
@@ -103,7 +104,7 @@ object PNG : ImageFormat("png") {
 		val level = props.quality.convertRangeClamped(0.0, 1.0, 0.0, 9.0).toInt()
 
 		fun compress(data: ByteArray): ByteArray {
-			return data.syncCompress(ZLib, CompressionContext(level = level))
+			return data.compress(ZLib, CompressionContext(level = level))
 		}
 
 		fun writeChunk(name: String, initialCapacity: Int = 4096, callback: SyncStream.() -> Unit) {
@@ -255,7 +256,9 @@ object PNG : ImageFormat("png") {
 
 		//val databb = ByteArrayBuffer((1 + width) * height * header.bytes)
 
-		val databb = KorioNative.uncompress(pngdata.toByteArray(), (1 + width) * height * header.components, "zlib")
+        val outputSizeHint = (1 + width) * height * header.components
+		val databb = pngdata.toByteArray().uncompress(ZLib)
+
 		//method.syncUncompress(pngdata.toByteArray().openSync(), MemorySyncStreamBase(databb).toSyncStream(0L))
 		var databbp = 0
 

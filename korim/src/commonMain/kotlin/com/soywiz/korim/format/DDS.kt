@@ -1,7 +1,7 @@
 package com.soywiz.korim.format
 
 import com.soywiz.kds.*
-import com.soywiz.korio.error.*
+import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
 
 object DDS : ImageFormat("dds") {

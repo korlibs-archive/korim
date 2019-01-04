@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.korim.color.*
+import com.soywiz.korio.lang.*
 
 enum class BitmapChannel(val index: Int) {
 	RED(0), GREEN(1), BLUE(2), ALPHA(3);
@@ -31,5 +32,5 @@ fun BitmapChannel.toStringYCbCr() = when (this.index) {
 	1 -> "Cb"
 	2 -> "Cr"
 	3 -> "A"
-	else -> com.soywiz.korio.error.invalidOp
+	else -> invalidOp
 }

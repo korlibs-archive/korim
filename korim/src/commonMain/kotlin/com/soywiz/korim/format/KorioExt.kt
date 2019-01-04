@@ -6,7 +6,7 @@ import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
 
 suspend fun ImageFormat.decode(s: VfsFile, props: ImageDecodingProps = ImageDecodingProps()) =
-	this.read(s.readAsSyncStream(), props.copy(filename = s.basename))
+	this.read(s.readAsSyncStream(), props.copy(filename = s.baseName))
 
 suspend fun ImageFormat.decode(s: AsyncStream, filename: String) = this.read(s.readAll(), ImageDecodingProps(filename))
 suspend fun ImageFormat.decode(s: AsyncStream, props: ImageDecodingProps = ImageDecodingProps()) =
@@ -38,16 +38,16 @@ suspend fun decodeImageFile(file: VfsFile): NativeImage {
 
 suspend fun VfsFile.readNativeImage(): NativeImage = decodeImageFile(this)
 suspend fun VfsFile.readImageData(formats: ImageFormat = RegisteredImageFormats, props: ImageDecodingProps = ImageDecodingProps()): ImageData =
-	formats.readImage(this.readAsSyncStream(), props.copy(filename = this.basename))
+	formats.readImage(this.readAsSyncStream(), props.copy(filename = this.baseName))
 
 
 suspend fun AsyncInputStream.readNativeImage(): NativeImage = decodeImageBytes(this.readAll())
 suspend fun AsyncInputStream.readImageData(formats: ImageFormat = RegisteredImageFormats, basename: String = "file.bin"): ImageData =
-	formats.readImageInWorker(this.readAll().openSync(), ImageDecodingProps(basename))
+	formats.readImage(this.readAll().openSync(), ImageDecodingProps(basename))
 
 suspend fun AsyncInputStream.readImageDataProps(
 	formats: ImageFormat = RegisteredImageFormats, props: ImageDecodingProps = ImageDecodingProps("file.bin")
-): ImageData = formats.readImageInWorker(this.readAll().openSync(), props)
+): ImageData = formats.readImage(this.readAll().openSync(), props)
 
 suspend fun AsyncInputStream.readBitmapListNoNative(formats: ImageFormat): List<Bitmap> =
 	this.readImageData(formats).frames.map { it.bitmap }
@@ -59,7 +59,7 @@ suspend fun VfsFile.readBitmapInfo(
 	formats.decodeHeader(this.readAsSyncStream(), props)
 
 suspend fun VfsFile.readImageData(formats: ImageFormat): ImageData =
-	formats.readImage(this.readAsSyncStream(), ImageDecodingProps(this.basename))
+	formats.readImage(this.readAsSyncStream(), ImageDecodingProps(this.baseName))
 
 suspend fun VfsFile.readBitmapListNoNative(formats: ImageFormat): List<Bitmap> =
 	this.readImageData(formats).frames.map { it.bitmap }
@@ -74,9 +74,9 @@ suspend fun AsyncInputStream.readBitmap(
 ): Bitmap {
 	val bytes = this.readAll()
 	return try {
-		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else formats.decodeInWorker(bytes, props)
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else formats.decode(bytes, props)
 	} catch (t: Throwable) {
-		formats.decodeInWorker(bytes, props)
+		formats.decode(bytes, props)
 	}
 }
 
@@ -100,12 +100,12 @@ suspend fun VfsFile.readBitmap(
 	val file = this
 	val bytes = this.read()
 	return try {
-		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else formats.decodeInWorker(
+		if (nativeImageLoadingEnabled) decodeImageBytes(bytes) else formats.decode(
 			bytes,
-			props.copy(filename = file.basename)
+			props.copy(filename = file.baseName)
 		)
 	} catch (t: Throwable) {
-		formats.decodeInWorker(bytes, props.copy(filename = file.basename))
+		formats.decode(bytes, props.copy(filename = file.baseName))
 	}
 }
 
@@ -126,17 +126,17 @@ suspend inline fun disableNativeImageLoading(callback: () -> Unit) {
 suspend fun VfsFile.readBitmapNoNative(
 	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageDecodingProps = ImageDecodingProps()
-): Bitmap = formats.readImageInWorker(this.readAsSyncStream(), props).mainBitmap
+): Bitmap = formats.readImage(this.readAsSyncStream(), props).mainBitmap
 
 suspend fun VfsFile.readBitmapNoNative(formats: ImageFormat = RegisteredImageFormats): Bitmap =
-	formats.decodeInWorker(this.read(), this.basename)
+	formats.decode(this, ImageDecodingProps(this.baseName))
 
 suspend fun VfsFile.writeBitmap(
 	bitmap: Bitmap,
 	format: ImageFormat,
 	props: ImageEncodingProps = ImageEncodingProps()
 ) {
-	this.write(format.encodeInWorker(bitmap, props.copy(filename = this.basename)))
+	this.write(format.encode(bitmap, props.copy(filename = this.baseName)))
 }
 //suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat = defaultImageFormats, props: ImageEncodingProps = ImageEncodingProps()) {
 //	this.write(format.encodeInWorker(bitmap, this.basename, props))

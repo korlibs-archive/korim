@@ -122,9 +122,9 @@ fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): Buff
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIOReadFormat(ByteArrayInputStream(data))
 suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage =
-	executeInWorker { ImageIOReadFormat(ByteArrayInputStream(data)) }
+    executeInWorkerJVM {  ImageIOReadFormat(ByteArrayInputStream(data)) }
 
 suspend fun awtReadImageInWorker(file: File): BufferedImage =
-	executeInWorker { FileInputStream(file).use { ImageIOReadFormat(it) } }
+    executeInWorkerJVM { FileInputStream(file).use { ImageIOReadFormat(it) } }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))

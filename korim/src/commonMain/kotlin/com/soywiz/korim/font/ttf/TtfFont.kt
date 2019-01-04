@@ -5,10 +5,9 @@ import com.soywiz.klock.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korio.crypto.*
-import com.soywiz.korio.error.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
+import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
 
