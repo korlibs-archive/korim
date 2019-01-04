@@ -100,7 +100,9 @@ subprojects {
         onlyIf { !(new File(node.nodeModulesDir, "mocha")).exists() }
         args = ["install", "mocha@5.2.0"]
     }
-
+    task installJsCanvas(type: NpmTask) {
+        args = ["install", "canvas@2.2.0"]	    //dump(kotlin.sourceSets.commonTest.resources)
+    }
     //dump(kotlin.sourceSets.commonTest.resources)
 
     task populateNodeModules {
@@ -142,7 +144,7 @@ subprojects {
         }
     }
 
-    task runMocha(type: NodeTask, dependsOn: [jsCompilations.test.compileKotlinTaskName, installMocha, populateNodeModules]) {
+    task runMocha(type: NodeTask, dependsOn: [jsCompilations.test.compileKotlinTaskName, installMocha, populateNodeModules, installJsCanvas]) {
         script = file("$buildDir/node_modules/mocha/bin/mocha")
         args = ["--timeout", "15000", relativePath("${jsCompilations.test.output.classesDirs.first()}/${project.name}_test.js")]
     }
