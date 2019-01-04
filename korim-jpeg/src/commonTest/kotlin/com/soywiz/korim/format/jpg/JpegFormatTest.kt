@@ -11,7 +11,12 @@ import kotlin.test.*
 
 class JpegFormatTest {
     val MyResourcesVfs = when {
-        OS.isJs -> localCurrentDirVfs["src/commonTest/resources"]
+        OS.isJs -> if (OS.isJsNodeJs)  {
+            localCurrentDirVfs["src/commonTest/resources"]
+        } else {
+            localCurrentDirVfs
+        }
+
         OS.isNative -> localCurrentDirVfs["../../../../../../src/commonTest/resources"]
         else -> ResourcesVfs
     }
