@@ -3,9 +3,10 @@ plugins {
     id 'com.moowork.node' version '1.2.0'
 }
 
-def dump(obj) { obj.properties.each { println "$it.key : ${it.value.class.name}   ->   $it.value" } }
-//println("-------------")
-//dump(jsCompilations.test.output)
+def dump(obj) {
+    println("${obj.class}: $obj")
+    obj.properties.each { println " - $it.key : ${it.value.class.name}   ->   $it.value" }
+}
 
 allprojects {
     repositories {
@@ -101,6 +102,7 @@ subprojects {
         args = ["install", "mocha@5.2.0"]
     }
     task installJsCanvas(type: NpmTask) {
+        onlyIf { !(new File(node.nodeModulesDir, "canvas")).exists() }
         args = ["install", "canvas@2.2.0"]	    //dump(kotlin.sourceSets.commonTest.resources)
     }
     //dump(kotlin.sourceSets.commonTest.resources)
@@ -110,34 +112,15 @@ subprojects {
             copy {
                 from "${node.nodeModulesDir}"
                 from jsCompilations.main.output.allOutputs
+                from jsCompilations.test.output.allOutputs
                 jsCompilations.test.runtimeDependencyFiles.each {
                     if (it.exists() && !it.isDirectory()) {
                         from zipTree(it.absolutePath).matching { include '*.js' }
                     }
                 }
-
                 for (sourceSet in kotlin.sourceSets) {
                     from sourceSet.resources
                 }
-                /*
-                for (target in project.kotlin.targets) {
-                    for (sourceSet in target.compilations.main.kotlinSourceSets) {
-                        //task.from(sourceSet.resources) { copy -> copy.configureWeb() }
-                        from sourceSet.resources
-                        //println(sourceSet.resources)
-                    }
-
-                    try {
-                        for (sourceSet in target.compilations.test.kotlinSourceSets) {
-                            //task.from(sourceSet.resources) { copy -> copy.configureWeb() }
-                            from sourceSet.resources
-                            //println(sourceSet.resources.files)
-                        }
-                    } catch (e) {
-                        // Metadata doesn't have test compilation
-                    }
-                }
-                */
 
                 into "$buildDir/node_modules"
             }
@@ -146,7 +129,8 @@ subprojects {
 
     task runMocha(type: NodeTask, dependsOn: [jsCompilations.test.compileKotlinTaskName, installMocha, populateNodeModules, installJsCanvas]) {
         script = file("$buildDir/node_modules/mocha/bin/mocha")
-        args = ["--timeout", "15000", relativePath("${jsCompilations.test.output.classesDirs.first()}/${project.name}_test.js")]
+        workingDir = file("$buildDir/node_modules")
+        args = ["--timeout", "15000", "${project.name}_test.js"]
     }
 
     task jsInstallMochaHeadlessChrome(type: NpmTask) {
@@ -179,6 +163,20 @@ subprojects {
         }
         script = file("${node.nodeModulesDir}/mocha-headless-chrome/bin/start")
         args = ['-f', "$buildDir/node_modules/tests.html", "-a", "no-sandbox", "-a", "disable-setuid-sandbox", "-a", "allow-file-access-from-files"]
+    }
+
+    afterEvaluate {
+        for (target in ["macosX64", "linuxX64", "mingwX64"]) {
+            String taskName = "copyResourcesToExecutable_${target}"
+            def targetTestTask = tasks.getByName("${target}Test")
+            tasks.create(name: taskName, type: Copy) {
+                for (sourceSet in kotlin.sourceSets) {
+                    from sourceSet.resources
+                }
+                into new File(targetTestTask.inputs.properties.executable).parentFile
+            }
+            targetTestTask.dependsOn(taskName)
+        }
     }
 
     // Only run JS tests if not in windows
