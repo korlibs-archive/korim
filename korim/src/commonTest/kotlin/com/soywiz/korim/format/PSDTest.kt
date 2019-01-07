@@ -2,16 +2,16 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korio.async.*
+import com.soywiz.korio.file.std.*
 import kotlin.test.*
 
-class PSDTest : BaseImageFormatTest() {
+class PSDTest {
     val formats = ImageFormats(PNG, PSD)
-    val ResourcesVfs = root
 
     @Test
     fun psdTest() = suspendTest {
-        val output = ResourcesVfs["small.psd"].readBitmapNoNative(formats)
-        val expected = ResourcesVfs["small.psd.png"].readBitmapNoNative(formats)
+        val output = resourcesVfs["small.psd"].readBitmapNoNative(formats)
+        val expected = resourcesVfs["small.psd.png"].readBitmapNoNative(formats)
         //showImageAndWait(output)
         assertEquals(0, output.matchContentsDistinctCount(expected))
     }

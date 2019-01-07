@@ -4,7 +4,7 @@ import com.soywiz.korim.color.*
 import kotlin.test.*
 
 class Bitmap32Test {
-	@kotlin.test.Test
+	@Test
 	fun name() {
 		val c = Bitmap32(1, 1)
 		c[0, 0] = Colors.WHITE
@@ -13,13 +13,13 @@ class Bitmap32Test {
 		assertEquals(Colors.WHITE.hexString, c[0, 0].hexString)
 	}
 
-	@kotlin.test.Test
+	@Test
 	fun constructGen() {
 		val c = Bitmap32(1, 1, Colors.BLUE, premult = false)
 		assertTrue(c.all { it == Colors.BLUE })
 	}
 
-	@kotlin.test.Test
+	@Test
 	fun fill() {
 		val c = Bitmap32(16, 16)
 		c.fill(Colors.RED)

@@ -7,7 +7,7 @@ import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
 import kotlin.test.*
 
-class ImageFormatsTest : BaseImageFormatTest() {
+class ImageFormatsTest {
 	val imageFormats = ImageFormats(PNG, SVG, ICO, TGA, BMP)
 
 	//@Test
@@ -22,13 +22,13 @@ class ImageFormatsTest : BaseImageFormatTest() {
 	@Test
 	fun png8() = suspendTest {
 		//println("ResourcesVfs.absolutePath:" + ResourcesVfs.absolutePath)
-		val bitmap = root["kotlin8.png"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin8.png"].readBitmapNoNative(imageFormats)
 		assertEquals("Bitmap8(190, 190, palette=32)", bitmap.toString())
 	}
 
 	@Test
 	fun png24() = suspendTest {
-		val bitmap = root["kotlin24.png"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin24.png"].readBitmapNoNative(imageFormats)
 		//JailedLocalVfs("c:/temp/")["lol.png"].writeBitmap(bitmap, formats)
 		//root["kotlin8.png"].writeBitmap()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
@@ -36,7 +36,7 @@ class ImageFormatsTest : BaseImageFormatTest() {
 
 	@Test
 	fun bmp() = suspendTest {
-		val bitmap = root["kotlin.bmp"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin.bmp"].readBitmapNoNative(imageFormats)
 		//JailedLocalVfs("c:/temp/")["lol.png"].writeBitmap(bitmap, formats)
 		//root["kotlin8.png"].writeBitmap()
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
@@ -45,7 +45,7 @@ class ImageFormatsTest : BaseImageFormatTest() {
 
 	@Test
 	fun png32Encoder() = suspendTest {
-		val bitmap = root["kotlin24.png"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin24.png"].readBitmapNoNative(imageFormats)
 		val data = PNG.encode(bitmap)
 		val bitmap2 = PNG.decode(data)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
@@ -55,7 +55,7 @@ class ImageFormatsTest : BaseImageFormatTest() {
 
 	@Test
 	fun png32EncoderPremultiplied() = suspendTest {
-		val bitmapOriginal = root["kotlin32.png"].readBitmapNoNative(imageFormats).toBMP32()
+		val bitmapOriginal = resourcesVfs["kotlin32.png"].readBitmapNoNative(imageFormats).toBMP32()
 		val bitmap = bitmapOriginal.premultiplied()
 		//showImageAndWait(bitmap)
 		val data = PNG.encode(bitmap)
@@ -69,19 +69,19 @@ class ImageFormatsTest : BaseImageFormatTest() {
 
 	@Test
 	fun png32() = suspendTest {
-		val bitmap = root["kotlin32.png"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin32.png"].readBitmapNoNative(imageFormats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@Test
 	fun tga() = suspendTest {
-		val bitmap = root["kotlin.tga"].readBitmapNoNative(imageFormats)
+		val bitmap = resourcesVfs["kotlin.tga"].readBitmapNoNative(imageFormats)
 		assertEquals("Bitmap32(190, 190)", bitmap.toString())
 	}
 
 	@Test
 	fun ico() = suspendTest {
-		val bitmaps = root["icon.ico"].readBitmapListNoNative(imageFormats)
+		val bitmaps = resourcesVfs["icon.ico"].readBitmapListNoNative(imageFormats)
 		assertEquals(
 			"[Bitmap32(256, 256), Bitmap32(128, 128), Bitmap32(96, 96), Bitmap32(72, 72), Bitmap32(64, 64), Bitmap32(48, 48), Bitmap32(32, 32), Bitmap32(24, 24), Bitmap32(16, 16)]",
 			bitmaps.toString()
