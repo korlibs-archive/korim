@@ -39,7 +39,7 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
         val pdata = datap.addressOf(0)
         val pstream = SHCreateMemStream(pdata.reinterpret(), data.size.convert())!!
         try {
-            if (GdipCreateBitmapFromStream(pstream, pimage) != 0.convert()) {
+            if (GdipCreateBitmapFromStream(pstream, pimage).toInt() != 0) {
                 throw RuntimeException("Can't load image from byte array")
             }
         } finally {
@@ -56,7 +56,7 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
         Height = height.value.toInt()
     }
     val bmpData = alloc<BitmapData>()
-    if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr.reinterpret()) != 0.convert()) {
+    if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr.reinterpret()).toInt() != 0) {
         throw RuntimeException("Can't lock image")
     }
 
@@ -66,7 +66,7 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
     out.usePinned { outp ->
         val o = outp.addressOf(0)
         for (y in 0 until bmpHeight) {
-            memcpy(o.reinterpret<IntVar>(), (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4).toInt())
+            memcpy(o.reinterpret<IntVar>() + bmpWidth * y, (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4.convert()).convert())
         }
     }
 
