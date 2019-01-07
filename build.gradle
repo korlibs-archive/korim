@@ -50,6 +50,7 @@ subprojects {
             nativeCommonMain
             nativeCommonTest
             nativePosixMain
+            iosCommonMain
             configure([jvmMain, jsMain]) {
                 dependsOn nonNativeCommonMain
             }
@@ -58,6 +59,9 @@ subprojects {
             }
             mingwX64Test {
                 dependsOn nativeCommonTest
+            }
+            configure([iosX64Main, iosArm32Main, iosArm64Main]) {
+                dependsOn iosCommonMain
             }
             configure([iosX64Main, iosArm32Main, iosArm64Main, macosX64Main, linuxX64Main]) {
                 dependsOn nativeCommonMain

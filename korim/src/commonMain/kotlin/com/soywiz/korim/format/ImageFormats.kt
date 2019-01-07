@@ -55,3 +55,5 @@ suspend fun Bitmap.writeTo(
 	formats: ImageFormat = RegisteredImageFormats,
 	props: ImageEncodingProps = ImageEncodingProps()
 ) = file.writeBytes(formats.encode(this, props.copy(filename = file.baseName)))
+
+suspend fun Bitmap.encode(formats: ImageFormat = RegisteredImageFormats, props: ImageEncodingProps = ImageEncodingProps()) = formats.encode(this, props)
