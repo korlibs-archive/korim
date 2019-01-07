@@ -19,7 +19,7 @@ private fun initGdiPlusOnce() {
     memScoped {
         val ptoken = allocArray<ULONG_PTRVar>(1)
         val si = alloc<GdiplusStartupInput>().apply {
-            GdiplusVersion = 1
+            GdiplusVersion = 1.convert()
             DebugEventCallback = null
             SuppressExternalCodecs = FALSE
             SuppressBackgroundThread = FALSE
@@ -36,9 +36,9 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
     initGdiPlusOnce()
     data.usePinned { datap ->
         val pdata = datap.addressOf(0)
-        val pstream = SHCreateMemStream(pdata, data.size)!!
+        val pstream = SHCreateMemStream(pdata.reinterpret(), data.size.convert())!!
         try {
-            if (GdipCreateBitmapFromStream(pstream, pimage) != 0) {
+            if (GdipCreateBitmapFromStream(pstream, pimage) != 0.convert()) {
                 throw RuntimeException("Can't load image from byte array")
             }
         } finally {
@@ -55,15 +55,17 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
         Height = height.value.toInt()
     }
     val bmpData = alloc<BitmapData>()
-    if (GdipBitmapLockBits(pimage[0], rect.ptr, ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr) != 0) {
+    if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr.reinterpret()) != 0.convert()) {
         throw RuntimeException("Can't lock image")
     }
 
-    val out = IntArray(bmpData.Width * bmpData.Height)
+    val bmpWidth = bmpData.Width.toInt()
+    val bmpHeight = bmpData.Height.toInt()
+    val out = IntArray((bmpWidth * bmpHeight).toInt())
     out.usePinned { outp ->
         val o = outp.addressOf(0)
-        for (y in 0 until bmpData.Height) {
-            memcpy(o, (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), bmpData.Width * 4)
+        for (y in 0 until bmpHeight) {
+            memcpy(o.reinterpret<IntVar>(), (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4).convert())
         }
     }
 
@@ -71,5 +73,5 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
     GdipDisposeImage(pimage[0])
 
     //println(out.toList())
-    Bitmap32(width.value.toInt(), height.value.toInt(), out, premult = false)
+    Bitmap32(bmpWidth, bmpHeight, out, premult = false)
 }
