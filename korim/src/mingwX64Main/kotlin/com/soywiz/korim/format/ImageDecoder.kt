@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import kotlinx.cinterop.*
+import platform.posix.*
 import platform.gdiplus.*
 import platform.windows.*
 
