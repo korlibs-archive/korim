@@ -66,7 +66,7 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
     out.usePinned { outp ->
         val o = outp.addressOf(0)
         for (y in 0 until bmpHeight) {
-            memcpy(o.reinterpret<IntVar>(), (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4).convert())
+            memcpy(o.reinterpret<IntVar>(), (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4).toInt())
         }
     }
 
@@ -74,5 +74,5 @@ private fun decodeImageSync(data: ByteArray): Bitmap32 = memScoped {
     GdipDisposeImage(pimage[0])
 
     //println(out.toList())
-    Bitmap32(bmpWidth, bmpHeight, out, premult = false)
+    Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premult = false)
 }
