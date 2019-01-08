@@ -108,8 +108,8 @@ class NinePatchBitmap32(val bmp: Bitmap32) {
 	val content = bmp.sliceWithBounds(1, 1, bmp.width - 1, bmp.height - 1)
 
 	val info = NinePatchInfo(
-		(1 until bmp.width - 1).computeRle { RGBA.getA(bmp[it, 0]) != 0 },
-		(1 until bmp.height - 1).computeRle { RGBA.getA(bmp[0, it]) != 0 },
+		(1 until bmp.width - 1).computeRle { bmp[it, 0].a != 0 },
+		(1 until bmp.height - 1).computeRle { bmp[0, it].a != 0 },
 		content.width, content.height
 	)
 
@@ -147,3 +147,27 @@ class NinePatchBitmap32(val bmp: Bitmap32) {
 
 fun Bitmap.asNinePatch() = NinePatchBitmap32(this.toBMP32())
 suspend fun VfsFile.readNinePatch(format: ImageFormat = RegisteredImageFormats) = NinePatchBitmap32(readBitmap(format).toBMP32())
+
+private inline fun <T, R : Any> Iterable<T>.computeRle(callback: (T) -> R): List<Pair<R, IntRange>> {
+    var first = true
+    var pos = 0
+    var startpos = 0
+    lateinit var lastRes: R
+    val out = arrayListOf<Pair<R, IntRange>>()
+    for (it in this) {
+        val current = callback(it)
+        if (!first) {
+            if (current != lastRes) {
+                out += lastRes to (startpos until pos)
+                startpos = pos
+            }
+        }
+        lastRes = current
+        first = false
+        pos++
+    }
+    if (startpos != pos) {
+        out += lastRes to (startpos until pos)
+    }
+    return out
+}

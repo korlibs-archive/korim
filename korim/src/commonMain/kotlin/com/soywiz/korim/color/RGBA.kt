@@ -527,13 +527,13 @@ fun List<RGBA>.toRgbaArray(): RgbaArray = RgbaArray(IntArray(this.size) { this@t
 
 fun arraycopy(src: RgbaArray, srcPos: Int, dst: RgbaArray, dstPos: Int, size: Int): Unit = arraycopy(src.array, srcPos, dst.array, dstPos, size)
 
-@Deprecated("")
+@Deprecated("", ReplaceWith("v.r"))
 fun RGBA.Companion.getR(v: RGBA): Int = v.r
-@Deprecated("")
+@Deprecated("", ReplaceWith("v.g"))
 fun RGBA.Companion.getG(v: RGBA): Int = v.g
-@Deprecated("")
+@Deprecated("", ReplaceWith("v.b"))
 fun RGBA.Companion.getB(v: RGBA): Int = v.b
-@Deprecated("")
+@Deprecated("", ReplaceWith("v.a"))
 fun RGBA.Companion.getA(v: RGBA): Int = v.a
 
 fun RGBA.Companion.toHexString(v: RGBA): String = v.hexString

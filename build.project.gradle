@@ -1,2 +1,7 @@
+(new File(projectDir, "korim/src/commonMain/kotlin/com/soywiz/korim/internal/KorimVersion.kt")).with {
+    parentFile.mkdirs()
+    write("package com.soywiz.korim.internal\n\ninternal const val KORIM_VERSION = \"$projectVersion\"")
+}
+
 dependencies {
 }
