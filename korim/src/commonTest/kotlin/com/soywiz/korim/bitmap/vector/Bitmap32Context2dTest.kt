@@ -6,7 +6,6 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
-import com.soywiz.korio.crypto.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -64,7 +63,7 @@ class Bitmap32Context2dTest {
 
     @Test
     fun renderContext2dWithImage() = suspendTest {
-        val pngBytes = Base64.decode("iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAA1BMVEVrVPMZmyLtAAAAC0lEQVR4AWMY5AAAAKAAAVQqnscAAAAASUVORK5CYII=")
+        val pngBytes = "iVBORw0KGgoAAAANSUhEUgAAACAAAAAgAQMAAABJtOi3AAAAA1BMVEVrVPMZmyLtAAAAC0lEQVR4AWMY5AAAAKAAAVQqnscAAAAASUVORK5CYII=".fromBase64()
         PNG.decode(pngBytes)
 
         val img = nativeImageFormatProvider.decode(pngBytes)

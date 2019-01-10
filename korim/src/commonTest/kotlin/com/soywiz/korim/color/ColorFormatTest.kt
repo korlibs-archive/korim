@@ -1,7 +1,6 @@
 package com.soywiz.korim.color
 
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korio.crypto.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import kotlin.test.*
