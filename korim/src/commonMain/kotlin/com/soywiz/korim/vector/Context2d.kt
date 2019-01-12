@@ -134,15 +134,15 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	var state = State()
 	private val stack = Stack<State>()
 
-	var lineScaleMode: ScaleMode by redirectField { state::lineScaleMode }
-	var lineWidth: Double by redirectField { state::lineWidth }
-	var lineCap: LineCap by redirectField { state::lineCap }
-	var strokeStyle: Paint by redirectField { state::strokeStyle }
-	var fillStyle: Paint by redirectField { state::fillStyle }
-	var font: Font by redirectField { state::font }
-	var verticalAlign: VerticalAlign by redirectField { state::verticalAlign }
-	var horizontalAlign: HorizontalAlign by redirectField { state::horizontalAlign }
-	var globalAlpha: Double by redirectField { state::globalAlpha }
+	var lineScaleMode: ScaleMode by { state::lineScaleMode }.redirected()
+	var lineWidth: Double by { state::lineWidth }.redirected()
+	var lineCap: LineCap by { state::lineCap }.redirected()
+	var strokeStyle: Paint by { state::strokeStyle }.redirected()
+	var fillStyle: Paint by { state::fillStyle }.redirected()
+	var font: Font by { state::font }.redirected()
+	var verticalAlign: VerticalAlign by { state::verticalAlign }.redirected()
+	var horizontalAlign: HorizontalAlign by { state::horizontalAlign }.redirected()
+	var globalAlpha: Double by { state::globalAlpha }.redirected()
 
 	inline fun fillStyle(paint: Paint, callback: () -> Unit) {
 		val oldStyle = fillStyle

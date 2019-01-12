@@ -2,14 +2,20 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korio.async.*
 import kotlinx.cinterop.*
 import platform.AppKit.*
 import platform.CoreGraphics.*
 import platform.Foundation.*
 import platform.posix.*
+import kotlin.native.concurrent.*
+
+private val ImageIOWorker by lazy { Worker.start() }
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray): NativeImage = wrapNative(decodeImageSync(data))
+    override suspend fun decode(data: ByteArray): NativeImage {
+        return wrapNative(ImageIOWorker.execute(TransferMode.SAFE, { if (data.isFrozen) data else data.copyOf().freeze() }, { decodeImageSync(it) }).await())
+    }
 }
 
 @UseExperimental(ExperimentalUnsignedTypes::class)

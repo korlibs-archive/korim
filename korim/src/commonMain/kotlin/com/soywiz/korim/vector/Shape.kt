@@ -68,8 +68,8 @@ private fun Matrix.toSvg() = this.run {
 fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1): String {
 	val parts = arrayListOf<String>()
 
-	fun Double.fixX() = this.toString(decimalPlaces, skipTrailingZeros = true)
-	fun Double.fixY() = this.toString(decimalPlaces, skipTrailingZeros = true)
+	fun Double.fixX() = this.toStringDecimal(decimalPlaces, skipTrailingZeros = true)
+	fun Double.fixY() = this.toStringDecimal(decimalPlaces, skipTrailingZeros = true)
 
 	this.visitCmds(
 		moveTo = { x, y -> parts += "M${x.fixX()} ${y.fixY()}" },

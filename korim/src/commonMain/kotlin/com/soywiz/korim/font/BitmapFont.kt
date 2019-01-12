@@ -4,6 +4,7 @@ import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
+import com.soywiz.korio.dynamic.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
@@ -138,7 +139,7 @@ private suspend fun readBitmapFontTxt(
 				//id=54 x=158 y=88 width=28 height=42 xoffset=2 yoffset=8 xadvance=28 page=0 chnl=0
 				val page = map["page"]?.toIntOrNull() ?: 0
 				val texture = textures[page] ?: textures.values.first()
-				glyphs += Dynamic {
+				glyphs += KDynamic {
 					BitmapFont.Glyph(
 						id = map["id"].int,
 						xoffset = map["xoffset"].int,

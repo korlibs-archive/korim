@@ -4,6 +4,7 @@ import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
+import com.soywiz.korio.util.encoding.*
 
 abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplied: Boolean) :
 	Bitmap(width, height, 32, premultiplied, null) {

@@ -6,6 +6,7 @@ import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
+import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*

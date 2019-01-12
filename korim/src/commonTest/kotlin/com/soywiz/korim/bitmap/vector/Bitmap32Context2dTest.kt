@@ -8,6 +8,7 @@ import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
+import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.test.*

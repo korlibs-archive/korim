@@ -10,6 +10,7 @@ import com.soywiz.korio.util.*
 import com.soywiz.korio.util.checksum.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
+import com.soywiz.korio.util.encoding.*
 import kotlin.math.*
 
 @Suppress("MemberVisibilityCanBePrivate")

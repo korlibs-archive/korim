@@ -5,6 +5,7 @@ import com.soywiz.korio.util.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
+import com.soywiz.korio.util.encoding.*
 
 class ImageFormats(formats: Iterable<ImageFormat>) : ImageFormat("") {
     constructor(vararg formats: ImageFormat) : this(formats.toList())
