@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.lang.*
 import kotlinx.cinterop.*
+import platform.posix.*
 import kotlin.native.concurrent.*
 
 private val ImageIOWorker by lazy { Worker.start() }
