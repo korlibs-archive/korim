@@ -5,6 +5,7 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
+import com.soywiz.korio.lang.*
 import kotlinx.cinterop.*
 import platform.posix.*
 import platform.gdiplus.*
@@ -30,7 +31,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                         val pstream = SHCreateMemStream(pdata.reinterpret(), data.size.convert())!!
                         try {
                             if (GdipCreateBitmapFromStream(pstream, pimage).toInt() != 0) {
-                                throw RuntimeException("Can't load image from byte array")
+                                return@execute null
                             }
                         } finally {
                             pstream.pointed.lpVtbl?.pointed?.Release?.invoke(pstream)
@@ -47,7 +48,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     }
                     val bmpData = alloc<BitmapData>()
                     if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr.reinterpret()).toInt() != 0) {
-                        throw RuntimeException("Can't lock image")
+                        return@execute null
                     }
 
                     val bmpWidth = bmpData.Width.toInt()
@@ -67,7 +68,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premult = false)
                 }
             }
-        ).await()
+        ).await() ?: throw IOException("Can't load image from ByteArray")
     )
 }
 
