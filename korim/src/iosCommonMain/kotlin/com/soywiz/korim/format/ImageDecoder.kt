@@ -2,31 +2,40 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.vector.*
-import com.soywiz.korio.file.*
+import com.soywiz.korio.async.*
+import com.soywiz.korio.lang.*
 import kotlinx.cinterop.*
+import kotlin.native.concurrent.*
+
+private val ImageIOWorker by lazy { Worker.start() }
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
-}
+    override suspend fun decode(data: ByteArray): NativeImage = wrapNative(
+        ImageIOWorker.execute(
+            TransferMode.SAFE,
+            { if (data.isFrozen) data else data.copyOf().freeze() },
+            { data ->
+                data.usePinned { dataPin ->
+                    memScoped {
+                        val width = alloc<IntVar>()
+                        val height = alloc<IntVar>()
+                        val comp = alloc<IntVar>()
+                        //val success = stbi_info_from_memory(pin.addressOf(0).reinterpret(), data.size, width.ptr, height.ptr, comp.ptr) != 0
 
-/*
-extension UIImage {
-    func pixelData() -> [UInt8]? {
-        let size = self.size
-        let dataSize = size.width * size.height * 4
-        var pixelData = [UInt8](repeating: 0, count: Int(dataSize))
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let context = CGContext(data: &pixelData,
-                                width: Int(size.width),
-                                height: Int(size.height),
-                                bitsPerComponent: 8,
-                                bytesPerRow: 4 * Int(size.width),
-                                space: colorSpace,
-                                bitmapInfo: CGImageAlphaInfo.noneSkipLast.rawValue)
-        guard let cgImage = self.cgImage else { return nil }
-        context?.draw(cgImage, in: CGRect(x: 0, y: 0, width: size.width, height: size.height))
-
-        return pixelData
-    }
+                        val pixelsPtr = stb_image.stbi_load_from_memory(dataPin.addressOf(0).reinterpret(), data.size, width.ptr, height.ptr, comp.ptr, 4)
+                        if (pixelsPtr != null) {
+                            val bmp = Bitmap32(width.value, height.value)
+                            bmp.data.array.usePinned { pixelsPin ->
+                                memcpy(pixelsPin.addressOf(0), pixelsPtr, (width.value * height.value * comp.value).convert())
+                            }
+                            stb_image.stbi_image_free(pixelsPtr)
+                            bmp
+                        } else {
+                            null
+                        }
+                    }
+                } ?: throw IOException("Failed to decode image using stbi_load_from_memory")
+            }
+        ).await()
+    )
 }
- */
