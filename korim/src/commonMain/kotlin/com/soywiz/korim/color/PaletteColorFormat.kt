@@ -1,12 +1,9 @@
 package com.soywiz.korim.color
 
-class PaletteColorFormat(val palette: IntArray) : ColorFormat(8) {
-	override fun getR(v: Int): Int = RGBA.getFastR(palette[v])
-	override fun getG(v: Int): Int = RGBA.getFastG(palette[v])
-	override fun getB(v: Int): Int = RGBA.getFastB(palette[v])
-	override fun getA(v: Int): Int = RGBA.getFastA(palette[v])
-
-	override fun pack(r: Int, g: Int, b: Int, a: Int): Int {
-		TODO("Not implemented. Must locate best color in palette")
-	}
+class PaletteColorFormat(val palette: RgbaArray) : ColorFormat(8) {
+	override fun getR(v: Int): Int = palette[v].r
+	override fun getG(v: Int): Int = palette[v].g
+	override fun getB(v: Int): Int = palette[v].b
+	override fun getA(v: Int): Int = palette[v].a
+	override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA(r, g, b, a).rgba
 }
