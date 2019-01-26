@@ -5,3 +5,22 @@
 
 dependencies {
 }
+
+// @TODO: Move to kortemplate
+subprojects {
+    afterEvaluate {
+        jvmTest {
+            jvmArgs += ["-Djava.awt.headless=true"]
+        }
+
+        kotlin {
+            sourceSets {
+                iosCommonMain
+                iosCommonTest
+
+                configure([iosX64Main, iosArm32Main, iosArm64Main]) { dependsOn iosCommonMain }
+                configure([iosX64Test, iosArm32Test, iosArm64Test]) { dependsOn iosCommonTest }
+            }
+        }
+    }
+}

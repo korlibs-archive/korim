@@ -7,5 +7,4 @@
 *.ipr
 *.iws
 *.iml
-.DS_Store
-
+/local.properties

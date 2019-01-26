@@ -1,6 +1,23 @@
 dependencies {
-    commonMainApi "com.soywiz:korio:$korioVersion"
+    if (hasAndroid) {
+        androidMainApi "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
+        androidTestImplementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:$coroutinesVersion"
+    }
+    commonMainApi "com.soywiz:klock:$klockVersion"
+    commonMainApi "com.soywiz:kds:$kdsVersion"
+    commonMainApi "com.soywiz:kmem:$kmemVersion"
+    commonMainApi "com.soywiz:kmem:$kmemVersion"
+    commonMainApi("com.soywiz:korio:$korioVersion") {
+        transitive = true
+    }
     commonMainApi "com.soywiz:korma:$kormaVersion"
+
+    commonTestApi "com.soywiz:klock:$klockVersion"
+    commonTestApi "com.soywiz:kds:$kdsVersion"
+    commonTestApi "com.soywiz:kmem:$kmemVersion"
+    commonTestApi "com.soywiz:kmem:$kmemVersion"
+    commonTestApi "com.soywiz:korio:$korioVersion"
+    commonTestApi "com.soywiz:korma:$kormaVersion"
 }
 
 //kotlin.targets.linuxX64.compilations.main.cinterops {
