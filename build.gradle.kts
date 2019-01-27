@@ -403,3 +403,13 @@ subprojects {
 if (project.file("build.project.gradle.kts").exists()) {
 	apply(from = project.file("build.project.gradle.kts"))
 }
+
+subprojects {
+    val installJsCanvas = tasks.create<NpmTask>("installJsCanvas") {
+        onlyIf { (File(node.nodeModulesDir, "canvas")).exists() }
+        setArgs(arrayListOf("install", "canvas@2.2.0"))
+    }
+
+    tasks.getByName("jsTestNode").dependsOn(installJsCanvas)
+}
+
