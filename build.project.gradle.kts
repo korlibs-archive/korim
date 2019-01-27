@@ -59,8 +59,8 @@ subprojects {
 					add("commonTestImplementation", dep.commonName)
 				}
 				if (dep.project != null) {
-					add("commonMainApi", project(dep.project))
-					add("commonTestImplementation", project(dep.project))
+					add("commonMainApi", rootProject.project(dep.project))
+					add("commonTestImplementation", rootProject.project(dep.project))
 				}
 				dep.register?.invoke(this)
 			}
