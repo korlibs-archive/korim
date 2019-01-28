@@ -31,7 +31,7 @@ abstract class BitmapIndexed(
 		datau[i] = datau[i].insert(color, bpp * index_m(x, y), bpp)
 	}
 
-	override fun get32Int(x: Int, y: Int): Int = palette.ints[this[x, y]]
+	override fun getRgba(x: Int, y: Int): RGBA = palette[this[x, y]]
 	fun index_d(x: Int, y: Int) = index(x, y) / n8_dbpp
 	fun index_m(x: Int, y: Int) = index(x, y) % n8_dbpp
 

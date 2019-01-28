@@ -112,7 +112,6 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 
 	companion object {
 		fun decodeRGB656(v: Int): RGBA = BGR_565.toRGBA(v)
-		fun decodeRGB656Int(v: Int): Int = BGR_565.toRGBAInt(v)
 
 		//fun blendComponent(l: Int, r: Int, num: Int, den: Int): Int {
 		//	return l + ((r - l) * num / den)
@@ -134,27 +133,27 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 		fun decodeDxt1ColorCond(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
 			val c0 = data.readU16LE(dataOffset + 0)
 			val c1 = data.readU16LE(dataOffset + 2)
-			val ccArray = cc.ints
+			val ccArray = cc
 
-			ccArray[0] = decodeRGB656Int(c0)
-			ccArray[1] = decodeRGB656Int(c1)
+			ccArray[0] = decodeRGB656(c0)
+			ccArray[1] = decodeRGB656(c1)
 			if (c0 > c1) {
-				ccArray[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_2_3)
-				ccArray[3] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_3)
+				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
+				ccArray[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
 				//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
 				//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 			} else {
-				ccArray[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_2)
+				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_1_2)
 				//cc[2] = blendRGBA(cc[0], cc[1], 1, 2)
-				ccArray[3] = Colors.TRANSPARENT_BLACK.rgba
+				ccArray[3] = Colors.TRANSPARENT_BLACK
 			}
 		}
 
 		fun decodeDxt1Color(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
-			cc.ints[0] = decodeRGB656Int(data.readU16LE(dataOffset + 0))
-			cc.ints[1] = decodeRGB656Int(data.readU16LE(dataOffset + 2))
-			cc.ints[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_2_3)
-			cc.ints[3] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_3)
+			cc[0] = decodeRGB656(data.readU16LE(dataOffset + 0))
+			cc[1] = decodeRGB656(data.readU16LE(dataOffset + 2))
+			cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
+			cc[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
 			//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
 			//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 		}

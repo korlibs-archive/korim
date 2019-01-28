@@ -26,7 +26,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                         val pixelsPtr = stb_image.stbi_load_from_memory(dataPin.addressOf(0).reinterpret(), data.size, width.ptr, height.ptr, comp.ptr, 4)
                         if (pixelsPtr != null) {
                             val bmp = Bitmap32(width.value, height.value)
-                            bmp.data.array.usePinned { pixelsPin ->
+                            bmp.data.ints.usePinned { pixelsPin ->
                                 memcpy(pixelsPin.addressOf(0), pixelsPtr, (width.value * height.value * comp.value).convert())
                             }
                             stb_image.stbi_image_free(pixelsPtr)

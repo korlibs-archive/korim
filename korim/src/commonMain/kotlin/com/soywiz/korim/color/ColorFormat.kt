@@ -31,40 +31,28 @@ interface ColorFormatBase {
 	}
 }
 
+fun ColorFormatBase.toRGBA(v: Int): RGBA = RGBA(getR(v), getG(v), getB(v), getA(v))
+fun ColorFormatBase.packRGBA(c: RGBA): Int = pack(c.r, c.g, c.b, c.a)
+
+fun ColorFormatBase.getRf(v: Int): Float = getR(v).toFloat() / 255f
+fun ColorFormatBase.getGf(v: Int): Float = getG(v).toFloat() / 255f
+fun ColorFormatBase.getBf(v: Int): Float = getB(v).toFloat() / 255f
+fun ColorFormatBase.getAf(v: Int): Float = getA(v).toFloat() / 255f
+
+fun ColorFormatBase.getRd(v: Int): Double = getR(v).toDouble() / 255.0
+fun ColorFormatBase.getGd(v: Int): Double = getG(v).toDouble() / 255.0
+fun ColorFormatBase.getBd(v: Int): Double = getB(v).toDouble() / 255.0
+fun ColorFormatBase.getAd(v: Int): Double = getA(v).toDouble() / 255.0
+
+fun ColorFormatBase.unpackToRGBA(packed: Int): RGBA = RGBA(getR(packed), getG(packed), getB(packed), getA(packed))
+
 abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	val bytesPerPixel = bpp / 8
 
-	fun getRf(v: Int): Float = getR(v).toFloat() / 255f
-	fun getGf(v: Int): Float = getG(v).toFloat() / 255f
-	fun getBf(v: Int): Float = getB(v).toFloat() / 255f
-	fun getAf(v: Int): Float = getA(v).toFloat() / 255f
-
-	fun getRd(v: Int): Double = getR(v).toDouble() / 255.0
-	fun getGd(v: Int): Double = getG(v).toDouble() / 255.0
-	fun getBd(v: Int): Double = getB(v).toDouble() / 255.0
-	fun getAd(v: Int): Double = getA(v).toDouble() / 255.0
-
-	//fun clamp0_FF(a: Int): Int = Math.min(Math.max(a, 0), 255)
-	//fun clampFF(a: Int): Int = Math.min(a, 255)
-
-	fun toRGBA(v: Int): RGBA = RGBA(getR(v), getG(v), getB(v), getA(v))
-	fun toRGBAInt(v: Int): Int = RGBA.packFast(getR(v), getG(v), getB(v), getA(v))
-
-	fun packRGBA(c: RGBA): Int = pack(c.r, c.g, c.b, c.a)
-	fun packRGBAInt(c: Int): Int = pack(getR(c), getG(c), getB(c), getA(c))
-
-	fun unpackToRGBA(packed: Int): RGBA = RGBA(getR(packed), getG(packed), getB(packed), getA(packed))
-	fun unpackToRGBAInt(packed: Int): Int = unpackToRGBA(packed).rgba
 
 	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
 		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
 	)
-
-	companion object {
-		fun clamp0_FF(v: Int) = if (v < 0x00) 0x00 else if (v > 0xFF) 0xFF else v
-		fun clampf01(v: Float) = if (v < 0f) 0f else if (v > 1f) 1f else v
-		fun clampFF(a: Int): Int = min(a, 255)
-	}
 
 	inline fun decodeInternal(
 		data: ByteArray,

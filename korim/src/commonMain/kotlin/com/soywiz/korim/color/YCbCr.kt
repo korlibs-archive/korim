@@ -1,7 +1,7 @@
 package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
-import com.soywiz.korio.*
+import com.soywiz.korim.internal.clamp0_255
 
 // https://en.wikipedia.org/wiki/YCbCr
 object YCbCr : ColorFormat32() {
@@ -16,12 +16,12 @@ object YCbCr : ColorFormat32() {
 
 	override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA.pack(r, g, b, a)
 
-	fun getY(r: Int, g: Int, b: Int): Int = clamp0_FF((0 + (0.299 * r) + (0.587 * g) + (0.114 * b)).toInt())
-	fun getCb(r: Int, g: Int, b: Int): Int = clamp0_FF((128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)).toInt())
-	fun getCr(r: Int, g: Int, b: Int): Int = clamp0_FF((128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)).toInt())
-	fun getR(y: Int, cb: Int, cr: Int): Int = clamp0_FF((y + 1.402 * (cr - 128)).toInt())
-	fun getG(y: Int, cb: Int, cr: Int): Int = clamp0_FF((y - 0.34414 * (cb - 128) - 0.71414 * (cr - 128)).toInt())
-	fun getB(y: Int, cb: Int, cr: Int): Int = clamp0_FF((y + 1.772 * (cb - 128)).toInt())
+	fun getY(r: Int, g: Int, b: Int): Int = ((0 + (0.299 * r) + (0.587 * g) + (0.114 * b)).toInt()).clamp0_255()
+	fun getCb(r: Int, g: Int, b: Int): Int = ((128 - (0.168736 * r) - (0.331264 * g) + (0.5 * b)).toInt()).clamp0_255()
+	fun getCr(r: Int, g: Int, b: Int): Int = ((128 + (0.5 * r) - (0.418688 * g) - (0.081312 * b)).toInt()).clamp0_255()
+	fun getR(y: Int, cb: Int, cr: Int): Int = ((y + 1.402 * (cr - 128)).toInt()).clamp0_255()
+	fun getG(y: Int, cb: Int, cr: Int): Int = ((y - 0.34414 * (cb - 128) - 0.71414 * (cr - 128)).toInt()).clamp0_255()
+	fun getB(y: Int, cb: Int, cr: Int): Int = ((y + 1.772 * (cb - 128)).toInt()).clamp0_255()
 
 	fun rgbaToYCbCr(c: RGBA): Int = rgbaToYCbCrInt(c.rgba)
 

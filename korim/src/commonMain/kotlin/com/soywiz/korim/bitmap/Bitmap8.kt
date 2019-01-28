@@ -12,7 +12,7 @@ class Bitmap8(
 
 	override fun setInt(x: Int, y: Int, color: Int) = Unit.apply { datau[index(x, y)] = color }
 	override fun getInt(x: Int, y: Int): Int = datau[index(x, y)]
-	override fun get32Int(x: Int, y: Int): Int = palette.ints[get(x, y)]
+	override fun getRgba(x: Int, y: Int): RGBA = palette[get(x, y)]
 
 	override fun toString(): String = "Bitmap8($width, $height, palette=${palette.size})"
 }

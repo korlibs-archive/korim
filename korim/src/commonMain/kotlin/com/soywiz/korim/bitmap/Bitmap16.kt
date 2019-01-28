@@ -19,9 +19,9 @@ class Bitmap16(
 	override fun setInt(x: Int, y: Int, color: Int) = Unit.apply { data[index(x, y)] = color.toShort() }
 	override fun getInt(x: Int, y: Int): Int = data[index(x, y)].toInt() and 0xFFFF
 
-	override fun set32Int(x: Int, y: Int, v: Int) = Unit.apply { data[index(x, y)] = format.packRGBAInt(v).toShort() }
+	override fun setRgba(x: Int, y: Int, v: RGBA) = setInt(x, y, format.packRGBA(v))
 
-	override fun get32Int(x: Int, y: Int): Int = format.unpackToRGBAInt(data[index(x, y)].toInt())
+	override fun getRgba(x: Int, y: Int): RGBA = format.unpackToRGBA(data[index(x, y)].toInt())
 
 	override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		val src = this

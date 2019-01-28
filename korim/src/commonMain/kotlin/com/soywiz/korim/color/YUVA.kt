@@ -1,7 +1,7 @@
 package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
-import com.soywiz.korio.*
+import com.soywiz.korim.internal.clamp0_255
 
 // https://en.wikipedia.org/wiki/YUV
 object YUVA : ColorFormat32() {
@@ -30,12 +30,12 @@ object YUVA : ColorFormat32() {
 	//private const val Umax = 0.436
 	//private const val Vmax = 0.615
 
-	fun getY(r: Int, g: Int, b: Int): Int = clamp0_FF(((0.299 * r) + (0.587 * g) + (0.114 * b)).toInt())
-	fun getU(r: Int, g: Int, b: Int): Int = clamp0_FF((0.492 * (b * getY(r, g, b))).toInt())
-	fun getV(r: Int, g: Int, b: Int): Int = clamp0_FF((0.877 * (r * getY(r, g, b))).toInt())
-	fun getR(y: Int, u: Int, v: Int): Int = clamp0_FF((y + 1.14 * v).toInt())
-	fun getG(y: Int, u: Int, v: Int): Int = clamp0_FF((y - 0.395 * u - 0.581 * v).toInt())
-	fun getB(y: Int, u: Int, v: Int): Int = clamp0_FF((y + 2.033 * u).toInt())
+	fun getY(r: Int, g: Int, b: Int): Int = (((0.299 * r) + (0.587 * g) + (0.114 * b)).toInt()).clamp0_255()
+	fun getU(r: Int, g: Int, b: Int): Int = ((0.492 * (b * getY(r, g, b))).toInt()).clamp0_255()
+	fun getV(r: Int, g: Int, b: Int): Int = ((0.877 * (r * getY(r, g, b))).toInt()).clamp0_255()
+	fun getR(y: Int, u: Int, v: Int): Int = ((y + 1.14 * v).toInt()).clamp0_255()
+	fun getG(y: Int, u: Int, v: Int): Int = ((y - 0.395 * u - 0.581 * v).toInt()).clamp0_255()
+	fun getB(y: Int, u: Int, v: Int): Int = ((y + 2.033 * u).toInt()).clamp0_255()
 
 	fun YUVtoRGB(out: IntArray, outPos: Int, inY: ByteArray, inU: ByteArray, inV: ByteArray, inPos: Int, count: Int) {
 		var opos = outPos
@@ -44,9 +44,9 @@ object YUVA : ColorFormat32() {
 			val y = (inY[ipos].toInt() and 255)
 			val u = (inU[ipos].toInt() and 255) - 128
 			val v = (inV[ipos].toInt() and 255) - 128
-			val r = clamp0_FF(y + (32768 + v * 91881 shr 16))
-			val g = clamp0_FF(y + (32768 - v * 46802 - u * 22554 shr 16))
-			val b = clamp0_FF(y + (32768 + u * 116130 shr 16))
+			val r = (y + (32768 + v * 91881 shr 16)).clamp0_255()
+			val g = (y + (32768 - v * 46802 - u * 22554 shr 16)).clamp0_255()
+			val b = (y + (32768 + u * 116130 shr 16)).clamp0_255()
 			out[opos++] = RGBA.packFast(r, g, b, 0xFF)
 			ipos++
 		}

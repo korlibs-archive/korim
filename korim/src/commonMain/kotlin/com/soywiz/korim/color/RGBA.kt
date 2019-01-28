@@ -3,6 +3,8 @@ package com.soywiz.korim.color
 import com.soywiz.kds.GenericListIterator
 import com.soywiz.kds.GenericSubList
 import com.soywiz.kmem.*
+import com.soywiz.korim.internal.clamp0_255
+import com.soywiz.korim.internal.clamp255
 import com.soywiz.korio.lang.*
 import com.soywiz.korma.interpolation.*
 
@@ -82,11 +84,6 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
             }
 		}
 
-		fun Double.clampf1() = if (this > 1.0) 1.0 else this
-		fun Int.clamp0_255() = clamp(0, 255)
-		fun Int.clamp255() = if (this > 255) 255 else this
-
-		
 		fun depremultiplyFast(v: RGBA): RGBA = RGBA(depremultiplyFastInt(v.rgba))
 
 		fun depremultiplyFastInt(v: Int): Int {
@@ -133,6 +130,7 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 		fun packRGB_A(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 		fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
 		fun blendRGB(c1: Int, c2: Int, factor256: Int): Int = (256 - factor256).let { f1 -> ((((((c1 and 0xFF00FF) * f1) + ((c2 and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or ((((c1 and 0x00FF00) * f1) + ((c2 and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8 }
+        fun blendRGB(c1: RGBA, c2: RGBA, factor256: Int): RGBA = RGBA(blendRGB(c1.rgba, c2.rgba, factor256))
 		fun blendRGB(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, (factor * 256).toInt())
 		fun blendRGBAInt(c1: Int, c2: Int, factor: Double): Int = blendRGBA(RGBA(c1), RGBA(c2), factor).rgba
 		fun blendRGBA(c1: RGBA, c2: RGBA, factor: Double): RGBA {
@@ -146,8 +144,8 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 			((v shl 16) and 0x00FF0000) or ((v shr 16) and 0x000000FF) or (v and 0xFF00FF00.toInt())
 
 		
-		private fun d2i(v: Double): Int = (ColorFormat.clampf01(v.toFloat()) * 255).toInt()
-		private fun f2i(v: Float): Int = (ColorFormat.clampf01(v) * 255).toInt()
+		private fun d2i(v: Double): Int = ((v.toFloat()).clamp01() * 255).toInt()
+		private fun f2i(v: Float): Int = ((v).clamp01() * 255).toInt()
 		fun packf(r: Double, g: Double, b: Double, a: Double): Int = packFast(d2i(r), d2i(g), d2i(b), d2i(a))
 		fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
 		fun packf(rgb: Int, a: Float): Int = packRGB_A(rgb, f2i(a))
@@ -168,10 +166,10 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
         )
 
 		fun multiply(c1: RGBA, c2: RGBA): RGBA = RGBA(
-            clamp0_FF((c1.r * c2.r) / 0xFF),
-            clamp0_FF((c1.g * c2.g) / 0xFF),
-            clamp0_FF((c1.b * c2.b) / 0xFF),
-            clamp0_FF((c1.a * c2.a) / 0xFF)
+            ((c1.r * c2.r) / 0xFF).clamp0_255(),
+            ((c1.g * c2.g) / 0xFF).clamp0_255(),
+            ((c1.b * c2.b) / 0xFF).clamp0_255(),
+            ((c1.a * c2.a) / 0xFF).clamp0_255()
         )
 
 		fun blendRGBAFastAlreadyPremultiplied_05(c1: Int, c2: Int): Int {

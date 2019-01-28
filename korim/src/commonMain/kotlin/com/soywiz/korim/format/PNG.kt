@@ -164,29 +164,13 @@ object PNG : ImageFormat("png") {
 				for (y in 0 until height) {
 					out.write8(pos++, 0) // no filter
 					val index = bmp.index(0, y)
-					if (bmp.premult) {
-						for (x in 0 until width) {
-							//out.write32LE(pos, RGBA.depremultiplyFastInt(bmp.data.array[index + x]))
-							//pos += 4
-
-                            val c = RGBA.depremultiplyFast(bmp.data[index + x])
-                            out.write8(pos++, c.r)
-                            out.write8(pos++, c.g)
-                            out.write8(pos++, c.b)
-                            out.write8(pos++, c.a)
-                        }
-					} else {
-						for (x in 0 until width) {
-							//out.write32LE(pos, bmp.data.array[index + x])
-							//pos += 4
-
-                            val c = bmp.data[index + x]
-                            out.write8(pos++, c.r)
-                            out.write8(pos++, c.g)
-                            out.write8(pos++, c.b)
-                            out.write8(pos++, c.a)
-						}
-					}
+                    for (x in 0 until width) {
+                        val c = if (bmp.premult) RGBA.depremultiplyFast(bmp.data[index + x]) else bmp.data[index + x]
+                        out.write8(pos++, c.r)
+                        out.write8(pos++, c.g)
+                        out.write8(pos++, c.b)
+                        out.write8(pos++, c.a)
+                    }
 				}
 
 				writeChunk("IDAT", compress(out))

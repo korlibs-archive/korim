@@ -24,7 +24,7 @@ class TtfFontTest {
     @Ignore
     fun name() = ttfTest {
         val font = TtfFont(root["Comfortaa-Regular.ttf"].readAll().openSync())
-        showImageAndWait(NativeImage(512, 128).apply {
+        NativeImage(512, 128).apply {
             getContext2d()
                 .fillText(
                     font,
@@ -35,6 +35,6 @@ class TtfFontTest {
                     color = Colors.RED,
                     origin = TtfFont.Origin.TOP
                 )
-        })
+        }.showImageAndWait()
     }
 }

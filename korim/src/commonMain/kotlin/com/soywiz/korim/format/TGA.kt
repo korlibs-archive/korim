@@ -5,18 +5,14 @@ import com.soywiz.korim.color.*
 import com.soywiz.korio.stream.*
 
 object TGA : ImageFormat("tga") {
-	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
-		return try {
-			val h = readHeader(s)
-			ImageInfo().apply {
-				this.width = h.width
-				this.height = h.height
-				this.bitsPerPixel = h.bitsPerPixel
-			}
-		} catch (t: Throwable) {
-			null
-		}
-	}
+	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? = kotlin.runCatching {
+        ImageInfo().apply {
+            val h = readHeader(s)
+            width = h.width
+            height = h.height
+            bitsPerPixel = h.bitsPerPixel
+        }
+    }.getOrNull()
 
 	class Info(
 		val width: Int,

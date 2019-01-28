@@ -12,7 +12,7 @@ fun Bitmap.matchContentsDistinctCount(that: Bitmap): Int {
 	var count = 0
 	for (y in 0 until height) {
 		for (x in 0 until width) {
-			if (l.get32(x, y) != r.get32(x, y)) count++
+			if (l.getRgba(x, y) != r.getRgba(x, y)) count++
 		}
 	}
 	return count

@@ -21,17 +21,13 @@ abstract class Bitmap(
 	fun index(x: Int, y: Int) = y * width + x
 	override val size: Size get() = Size(width, height)
 
-	fun set32(x: Int, y: Int, v: RGBA): Unit = set32Int(x, y, v.rgba)
-	fun get32(x: Int, y: Int): RGBA = RGBA(get32Int(x, y))
-
-	open fun set32Int(x: Int, y: Int, v: Int): Unit = TODO()
-	open fun get32Int(x: Int, y: Int): Int = 0
+	open fun setRgba(x: Int, y: Int, v: RGBA): Unit = TODO()
+    open fun getRgba(x: Int, y: Int): RGBA = Colors.TRANSPARENT_BLACK
 
 	open fun setInt(x: Int, y: Int, color: Int): Unit = Unit
 	open fun getInt(x: Int, y: Int): Int = 0
 
-	fun get32Clamped(x: Int, y: Int): RGBA = RGBA(get32ClampedInt(x, y))
-	fun get32ClampedInt(x: Int, y: Int): Int = if (inBounds(x, y)) get32Int(x, y) else Colors.TRANSPARENT_BLACK.rgba
+	fun get32Clamped(x: Int, y: Int): RGBA = if (inBounds(x, y)) getRgba(x, y) else Colors.TRANSPARENT_BLACK
 
 	fun get32Sampled(x: Double, y: Double): RGBA {
 		if (x < 0.0 || x >= width.toDouble() || y < 0.0 || y >= height.toDouble()) return Colors.TRANSPARENT_BLACK
@@ -98,7 +94,7 @@ abstract class Bitmap(
 			var n = 0
 			for (y in 0 until height) {
 				for (x in 0 until width) {
-					array[n++] = get32(x, y)
+					array[n++] = getRgba(x, y)
 				}
 			}
 		}

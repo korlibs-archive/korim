@@ -2,7 +2,6 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.color.RGBA.Companion
 import com.soywiz.korim.vector.*
 import kotlin.math.*
 
@@ -53,12 +52,15 @@ class Bitmap32(
 			dstIndex += dstAdd
 		}
 	}
-	operator fun set(x: Int, y: Int, color: RGBA) = run { data[index(x, y)] = color }
+
+    operator fun set(x: Int, y: Int, color: RGBA) = run { data[index(x, y)] = color }
 	operator fun get(x: Int, y: Int): RGBA = data[index(x, y)]
+
 	override fun setInt(x: Int, y: Int, color: Int) = run { data[index(x, y)] = RGBA(color) }
 	override fun getInt(x: Int, y: Int): Int = data.ints[index(x, y)]
-	override fun get32Int(x: Int, y: Int): Int = data.ints[index(x, y)]
-	override fun set32Int(x: Int, y: Int, v: Int): Unit = run { data.ints[index(x, y)] = v }
+
+    override fun getRgba(x: Int, y: Int): RGBA = data[index(x, y)]
+	override fun setRgba(x: Int, y: Int, v: RGBA): Unit = run { data[index(x, y)] = v }
 
 	fun setRow(y: Int, row: IntArray) {
 		arraycopy(row, 0, data.ints, index(0, y), width)
@@ -151,9 +153,9 @@ class Bitmap32(
 		for (y in 0 until height) {
 			val dstOffset = dst.index(dx, dy + y)
 			if (mix) {
-				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], src.get32(sleft + x, stop + y))
+				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], src.getRgba(sleft + x, stop + y))
 			} else {
-				for (x in 0 until width) dstData[dstOffset + x] = src.get32(sleft + x, stop + y)
+				for (x in 0 until width) dstData[dstOffset + x] = src.getRgba(sleft + x, stop + y)
 			}
 		}
 	}
@@ -377,47 +379,6 @@ class Bitmap32(
 		}
 	}
 
-	/*
-	// @TODO: Optimize memory usage
-	private fun mipmapInplace(levels: Int): Bitmap32 {
-		var cwidth = width
-		var cheight = height
-		for (level in 0 until levels) {
-			cwidth /= 2
-			for (y in 0 until cheight) {
-				RGBA.downScaleBy2AlreadyPremultiplied(
-					data, index(0, y), 1,
-					data, index(0, y), 1,
-					cwidth
-				)
-			}
-			cheight /= 2
-			for (x in 0 until cwidth) {
-				RGBA.downScaleBy2AlreadyPremultiplied(
-					data, index(x, 0), width,
-					data, index(x, 0), width,
-					cheight
-				)
-			}
-		}
-
-		return this
-	}
-
-	fun mipmap(levels: Int): Bitmap32 {
-		val divide = Math.pow(2.0, levels.toDouble()).toInt()
-		//val owidth =
-		val temp = Bitmap32(width, height, this.data.copyOf(), this.premultiplied)
-		val out = Bitmap32(width / divide, height / divide, premultiplied = true)
-		temp.premultiplyInplace()
-		temp.mipmapInplace(levels)
-		Bitmap32.copyRect(temp, 0, 0, out, 0, 0, out.width, out.height)
-		out.depremultiplyInplace()
-		//return temp
-		return out
-	}
-	*/
-
 	fun mipmap(levels: Int): Bitmap32 {
 		val temp = this.clone()
 		temp.premultiplyInplace()
@@ -444,10 +405,9 @@ class Bitmap32(
 				}
 			}
 		}
-		val out = Bitmap32(twidth, theight, premult = true)
-		Bitmap32.copyRect(temp, 0, 0, out, 0, 0, twidth, theight)
-		//out.depremultiplyInplace()
-		return out
+		return Bitmap32(twidth, theight, premult = true).also {
+            Bitmap32.copyRect(temp, 0, 0, it, 0, 0, twidth, theight)
+        }
 	}
 
 	override fun iterator(): Iterator<RGBA> = data.iterator()
@@ -479,7 +439,7 @@ class Bitmap32(
 	fun writeComponent(dstCmp: BitmapChannel, from: Bitmap32, srcCmp: BitmapChannel) {
 		val fdata = from.data
 		for (n in 0 until area) {
-			data.ints[n] = dstCmp.insertInt(data.ints[n], srcCmp.extractInt(fdata.ints[n]))
+			data[n] = dstCmp.insert(data[n], srcCmp.extract(fdata[n]))
 		}
 	}
 
@@ -496,16 +456,4 @@ class Bitmap32(
 		for (n in 0 until data.size) hash += data.ints[n]
 		return hash
 	}
-}
-
-fun Bitmap32Int(width: Int, height: Int, premult: Boolean = false, generator: (x: Int, y: Int) -> Int): Bitmap32 {
-	val out = Bitmap32(width, height, Colors.TRANSPARENT_BLACK, premult)
-	val aout = out.data.ints
-	var n = 0
-	for (y in 0 until height) {
-		for (x in 0 until width) {
-			aout[n++] = generator(x, y)
-		}
-	}
-	return out
 }
