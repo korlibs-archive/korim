@@ -6,16 +6,16 @@ import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
 
-abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplied: Boolean) :
-	Bitmap(width, height, 32, premultiplied, null) {
+abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplied: Boolean) : Bitmap(width, height, 32, premultiplied, null) {
 	open val name: String = "NativeImage"
-	abstract fun toNonNativeBmp(): Bitmap
-	override fun swapRows(y0: Int, y1: Int) = throw UnsupportedOperationException()
-	fun toBmp32(): Bitmap32 = toNonNativeBmp().toBMP32()
-	open fun toUri(): String = "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
-	override fun createWithThisFormat(width: Int, height: Int): Bitmap = NativeImage(width, height)
+    open fun toUri(): String = "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
 
-	override fun toString(): String = "$name($width, $height)"
+	abstract fun toNonNativeBmp(): Bitmap
+
+	override fun swapRows(y0: Int, y1: Int) = throw UnsupportedOperationException()
+	override fun createWithThisFormat(width: Int, height: Int): Bitmap = NativeImage(width, height)
+    override fun toBMP32(): Bitmap32 = toNonNativeBmp().toBMP32()
+    override fun toString(): String = "$name($width, $height)"
 }
 
 fun Bitmap.mipmap(levels: Int): NativeImage = nativeImageFormatProvider.mipmap(this, levels)
@@ -47,9 +47,8 @@ fun NativeImage(
 	return bmp
 }
 
-fun NativeImage(d: Context2d.SizedDrawable, scaleX: Double = 1.0, scaleY: Double = scaleX): NativeImage {
-	return NativeImage((d.width * scaleX).toInt(), (d.height * scaleY).toInt(), d, scaleX, scaleY)
-}
+fun NativeImage(d: Context2d.SizedDrawable, scaleX: Double = 1.0, scaleY: Double = scaleX): NativeImage =
+    NativeImage((d.width * scaleX).toInt(), (d.height * scaleY).toInt(), d, scaleX, scaleY)
 
 fun Bitmap.ensureNative() = when (this) {
 	is NativeImage -> this

@@ -37,7 +37,7 @@ object YUVA : ColorFormat32() {
 	fun getG(y: Int, u: Int, v: Int): Int = ((y - 0.395 * u - 0.581 * v).toInt()).clamp0_255()
 	fun getB(y: Int, u: Int, v: Int): Int = ((y + 2.033 * u).toInt()).clamp0_255()
 
-	fun YUVtoRGB(out: IntArray, outPos: Int, inY: ByteArray, inU: ByteArray, inV: ByteArray, inPos: Int, count: Int) {
+	fun YUVtoRGB(out: RgbaArray, outPos: Int, inY: ByteArray, inU: ByteArray, inV: ByteArray, inPos: Int, count: Int) {
 		var opos = outPos
 		var ipos = inPos
 		for (n in 0 until count) {
@@ -47,7 +47,7 @@ object YUVA : ColorFormat32() {
 			val r = (y + (32768 + v * 91881 shr 16)).clamp0_255()
 			val g = (y + (32768 - v * 46802 - u * 22554 shr 16)).clamp0_255()
 			val b = (y + (32768 + u * 116130 shr 16)).clamp0_255()
-			out[opos++] = RGBA.packFast(r, g, b, 0xFF)
+			out[opos++] = RGBA(r, g, b, 0xFF)
 			ipos++
 		}
 	}

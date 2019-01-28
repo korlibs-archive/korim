@@ -181,7 +181,7 @@ class TtfFont private constructor(val s: SyncStream) {
 				else -> invalidOp
 			}
 		}
-		println("locs: ${locs.toList()}")
+		//println("locs: ${locs.toList()}")
 	}
 
 	fun readHead() = runTableUnit("head") {
@@ -204,10 +204,10 @@ class TtfFont private constructor(val s: SyncStream) {
 		indexToLocFormat = readS16BE() // 0=Int16, 1=Int32
 		glyphDataFormat = readS16BE()
 
-		println("unitsPerEm: $unitsPerEm")
-		println("created: ${DateTime(created) - 76.years}")
-		println("modified: ${DateTime(modified) - 76.years}")
-		println("bounds: ($xMin, $yMin)-($xMax, $yMax)")
+		//println("unitsPerEm: $unitsPerEm")
+		//println("created: ${DateTime(created) - 76.years}")
+		//println("modified: ${DateTime(modified) - 76.years}")
+		//println("bounds: ($xMin, $yMin)-($xMax, $yMax)")
 	}
 
 	fun readMaxp() = runTableUnit("maxp") {
@@ -332,10 +332,10 @@ class TtfFont private constructor(val s: SyncStream) {
 
 					}
 				}
-				println("cmap.table.format: $format")
+				//println("cmap.table.format: $format")
 			}
 		}
-		println(tables)
+		//println(tables)
 	}
 
 	fun getCharIndexFromCodePoint(codePoint: Int): Int? = characterMaps[codePoint]

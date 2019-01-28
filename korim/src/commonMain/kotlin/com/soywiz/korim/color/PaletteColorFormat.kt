@@ -1,6 +1,7 @@
 package com.soywiz.korim.color
 
-class PaletteColorFormat(val palette: RgbaArray) : ColorFormat(8) {
+class PaletteColorFormat(val palette: RgbaArray) : ColorFormat {
+    override val bpp = 8
 	override fun getR(v: Int): Int = palette[v].r
 	override fun getG(v: Int): Int = palette[v].g
 	override fun getB(v: Int): Int = palette[v].b

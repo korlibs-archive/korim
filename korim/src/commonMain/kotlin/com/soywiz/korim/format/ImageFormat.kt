@@ -1,5 +1,6 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
@@ -61,3 +62,17 @@ abstract class ImageFormat(vararg exts: String) {
 
 	override fun toString(): String = "ImageFormat($extensions)"
 }
+
+data class ImageDecodingProps(
+    val filename: String = "unknown",
+    val width: Int? = null,
+    val height: Int? = null,
+    override var extra: LinkedHashMap<String, Any?>? = null
+) : Extra
+
+data class ImageEncodingProps(
+    val filename: String = "",
+    val quality: Double = 0.81,
+    override var extra: LinkedHashMap<String, Any?>? = null
+) : Extra
+

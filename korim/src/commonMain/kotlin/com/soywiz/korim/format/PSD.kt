@@ -36,7 +36,7 @@ object PSD : ImageFormat("psd") {
                 val g = gchannel[pos].unsigned
                 val b = bchannel[pos].unsigned
                 val a = achannel[pos].unsigned
-                out.data.ints[pos] = RGBA.packFast(r, g, b, a)
+                out.data[pos] = RGBA(r, g, b, a)
                 pos++
             }
         }

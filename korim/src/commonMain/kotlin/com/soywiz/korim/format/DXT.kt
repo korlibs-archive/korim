@@ -24,7 +24,7 @@ open class DXT1Base(format: String, premult: Boolean) : DXT(format, premult = tr
 		for (y in 0 until 4) {
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
-				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, 0xFF)
+				bmp[pos + x] = RGBA(RGBA(cc.ints[c]).rgb, 0xFF)
 				n++
 			}
 			pos += bmpStride
@@ -44,7 +44,7 @@ open class DXT2_3(format: String, premult: Boolean) : DXT(format, premult = prem
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
 				val a = ((adata ushr n * 3) and 0b111).toInt()
-				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, aa[a])
+				bmp[pos + x] = RGBA(RGBA(cc.ints[c]).rgb, aa[a])
 				n++
 			}
 			pos += bmpStride
@@ -64,7 +64,7 @@ open class DXT4_5(format: String, premult: Boolean) : DXT(format, premult, block
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
 				val a = ((adata ushr n * 3) and 0b111).toInt()
-				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, aa[a])
+				bmp[pos + x] = RGBA(RGBA(cc.ints[c]).rgb, aa[a])
 				n++
 			}
 			pos += bmpStride
@@ -113,19 +113,6 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 	companion object {
 		fun decodeRGB656(v: Int): RGBA = BGR_565.toRGBA(v)
 
-		//fun blendComponent(l: Int, r: Int, num: Int, den: Int): Int {
-		//	return l + ((r - l) * num / den)
-		//}
-		//
-		//fun blendRGBA(l: Int, r: Int, num: Int, den: Int): Int {
-		//	return RGBA.packFast(
-		//			blendComponent(RGBA.getFastR(l), RGBA.getFastR(r), num, den),
-		//			blendComponent(RGBA.getFastG(l), RGBA.getFastG(r), num, den),
-		//			blendComponent(RGBA.getFastB(l), RGBA.getFastB(r), num, den),
-		//			blendComponent(RGBA.getFastA(l), RGBA.getFastA(r), num, den)
-		//	)
-		//}
-
 		const val FACT_2_3: Int = ((2.0 / 3.0) * 256).toInt()
 		const val FACT_1_3: Int = ((1.0 / 3.0) * 256).toInt()
 		const val FACT_1_2: Int = ((1.0 / 2.0) * 256).toInt()
@@ -140,11 +127,8 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 			if (c0 > c1) {
 				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
 				ccArray[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
-				//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
-				//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 			} else {
 				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_1_2)
-				//cc[2] = blendRGBA(cc[0], cc[1], 1, 2)
 				ccArray[3] = Colors.TRANSPARENT_BLACK
 			}
 		}
@@ -154,8 +138,6 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 			cc[1] = decodeRGB656(data.readU16LE(dataOffset + 2))
 			cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
 			cc[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
-			//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
-			//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 		}
 
 		fun decodeDxt5Alpha(data: ByteArray, dataOffset: Int, aa: IntArray) {

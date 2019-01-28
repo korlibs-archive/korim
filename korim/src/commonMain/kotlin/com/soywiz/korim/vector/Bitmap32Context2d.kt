@@ -130,9 +130,9 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 				val bmpX = fillTrans.transformX(x + n, y)
 				val bmpY = fillTrans.transformY(y + n, y)
 				if (antialiasing) {
-					data[offset + n] = fill.bitmap.get32Sampled(bmpX, bmpY)
+					data[offset + n] = fill.bitmap.getRgbaSampled(bmpX, bmpY)
 				} else {
-					data[offset + n] = fill.bitmap.get32Clamped(bmpX.toInt(), bmpY.toInt())
+					data[offset + n] = fill.bitmap.getRgbaClamped(bmpX.toInt(), bmpY.toInt())
 				}
 			}
 		}

@@ -17,12 +17,10 @@ object BitmapFontGenerator {
 	val LATIN_BASIC = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥PÉáíóúñÑª°¿¬½¼¡«»ßµø±÷°·.²"
 	val LATIN_ALL = SPACE + UPPERCASE + LOWERCASE + NUMBERS + PUNCTUATION + LATIN_BASIC
 
-	fun generate(fontName: String, fontSize: Int, chars: String): BitmapFont =
-		generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray())
+	fun generate(fontName: String, fontSize: Int, chars: String, mipmaps: Boolean = true): BitmapFont =
+		generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps)
 
-	fun generate(fontName: String, fontSize: Int, chars: IntArray): BitmapFont {
-		println("BitmapFontGenerator.generate($fontName, $fontSize, $chars)...")
-
+	fun generate(fontName: String, fontSize: Int, chars: IntArray, mipmaps: Boolean = true): BitmapFont {
 		val result = measureTimeWithResult {
 			val bni = NativeImage(1, 1)
 			val bnictx = bni.getContext2d()
@@ -32,13 +30,6 @@ object BitmapFontGenerator {
 			val widths: List<Int> = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
 			val widthsSum = widths.map { it + 2 }.sum()
 			val ni = NativeImage(widthsSum, bitmapHeight)
-
-			//println("BitmapFont:")
-			//println("bitmapHeight=$bitmapHeight")
-			//for ((index, width) in widths.withIndex()) {
-			//	val char = chars[index]
-			//	println("$index: $char: width=$width")
-			//}
 
 			class GlyphInfo(val char: Int, val rect: RectangleInt, val width: Int)
 
@@ -68,8 +59,6 @@ object BitmapFontGenerator {
 				IntMap()
 			)
 		}
-
-		println("   --> generated in ${result.time}")
 
 		return result.result
 	}

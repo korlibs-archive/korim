@@ -27,9 +27,9 @@ abstract class Bitmap(
 	open fun setInt(x: Int, y: Int, color: Int): Unit = Unit
 	open fun getInt(x: Int, y: Int): Int = 0
 
-	fun get32Clamped(x: Int, y: Int): RGBA = if (inBounds(x, y)) getRgba(x, y) else Colors.TRANSPARENT_BLACK
+	fun getRgbaClamped(x: Int, y: Int): RGBA = if (inBounds(x, y)) getRgba(x, y) else Colors.TRANSPARENT_BLACK
 
-	fun get32Sampled(x: Double, y: Double): RGBA {
+	fun getRgbaSampled(x: Double, y: Double): RGBA {
 		if (x < 0.0 || x >= width.toDouble() || y < 0.0 || y >= height.toDouble()) return Colors.TRANSPARENT_BLACK
 		val x0 = x.toIntFloor()
 		val x1 = x.toIntCeil()
@@ -37,18 +37,18 @@ abstract class Bitmap(
 		val y1 = y.toIntCeil()
 		val xratio = x % 1
 		val yratio = y % 1
-		val c00 = get32Clamped(x0, y0)
-		val c10 = if (inBounds(x1, y0)) get32Clamped(x1, y0) else c00
-		val c01 = if (inBounds(x1, y1)) get32Clamped(x0, y1) else c00
-		val c11 = if (inBounds(x1, y1)) get32Clamped(x1, y1) else c01
+		val c00 = getRgbaClamped(x0, y0)
+		val c10 = if (inBounds(x1, y0)) getRgbaClamped(x1, y0) else c00
+		val c01 = if (inBounds(x1, y1)) getRgbaClamped(x0, y1) else c00
+		val c11 = if (inBounds(x1, y1)) getRgbaClamped(x1, y1) else c01
 		val c1 = RGBA.blendRGBA(c00, c10, xratio)
 		val c2 = RGBA.blendRGBA(c01, c11, xratio)
 		return RGBA.blendRGBA(c1, c2, yratio)
 	}
 
-    fun get32Sampled(x: Double, y: Double, count: Int, row: RgbaArray) {
+    fun getRgbaSampled(x: Double, y: Double, count: Int, row: RgbaArray) {
         for (n in 0 until count) {
-            row[n] = get32Sampled(x + n, y)
+            row[n] = getRgbaSampled(x + n, y)
         }
     }
 
@@ -82,23 +82,19 @@ abstract class Bitmap(
 	}
 
 	open fun getContext2d(antialiasing: Boolean = true): Context2d =
-		throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage instead")
+		throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage or Bitmap32 instead")
 
 	open fun createWithThisFormat(width: Int, height: Int): Bitmap = invalidOp("Unsupported createWithThisFormat ($this)")
 
-	open fun toBMP32(): Bitmap32 = when (this) {
-		is Bitmap32 -> this
-		is NativeImage -> this.toBmp32()
-		else -> Bitmap32(width, height, premult = premult).also { out ->
-			val array = out.data
-			var n = 0
-			for (y in 0 until height) {
-				for (x in 0 until width) {
-					array[n++] = getRgba(x, y)
-				}
-			}
-		}
-	}
+	open fun toBMP32(): Bitmap32 = Bitmap32(width, height, premult = premult).also { out ->
+        val array = out.data
+        var n = 0
+        for (y in 0 until height) {
+            for (x in 0 until width) {
+                array[n++] = getRgba(x, y)
+            }
+        }
+    }
 }
 
 fun <T : Bitmap> T.createWithThisFormatTyped(width: Int, height: Int): T = this.createWithThisFormat(width, height) as T

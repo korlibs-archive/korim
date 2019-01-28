@@ -2,9 +2,10 @@ package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
-import kotlin.math.*
 
-interface ColorFormatBase {
+interface ColorFormat {
+    val bpp: Int
+
 	fun getR(v: Int): Int
 	fun getG(v: Int): Int
 	fun getB(v: Int): Int
@@ -12,11 +13,12 @@ interface ColorFormatBase {
 	fun pack(r: Int, g: Int, b: Int, a: Int): Int
 
 	class Mixin(
+        override val bpp: Int,
 		val rOffset: Int, val rSize: Int,
 		val gOffset: Int, val gSize: Int,
 		val bOffset: Int, val bSize: Int,
 		val aOffset: Int, val aSize: Int
-	) : ColorFormatBase {
+	) : ColorFormat {
 		override fun getR(v: Int): Int = v.extractScaledFF(rOffset, rSize)
 		override fun getG(v: Int): Int = v.extractScaledFF(gOffset, gSize)
 		override fun getB(v: Int): Int = v.extractScaledFF(bOffset, bSize)
@@ -31,127 +33,155 @@ interface ColorFormatBase {
 	}
 }
 
-fun ColorFormatBase.toRGBA(v: Int): RGBA = RGBA(getR(v), getG(v), getB(v), getA(v))
-fun ColorFormatBase.packRGBA(c: RGBA): Int = pack(c.r, c.g, c.b, c.a)
+interface ColorFormat16 : ColorFormat
 
-fun ColorFormatBase.getRf(v: Int): Float = getR(v).toFloat() / 255f
-fun ColorFormatBase.getGf(v: Int): Float = getG(v).toFloat() / 255f
-fun ColorFormatBase.getBf(v: Int): Float = getB(v).toFloat() / 255f
-fun ColorFormatBase.getAf(v: Int): Float = getA(v).toFloat() / 255f
+abstract class ColorFormat24 : ColorFormat {
+    override val bpp = 24
+}
 
-fun ColorFormatBase.getRd(v: Int): Double = getR(v).toDouble() / 255.0
-fun ColorFormatBase.getGd(v: Int): Double = getG(v).toDouble() / 255.0
-fun ColorFormatBase.getBd(v: Int): Double = getB(v).toDouble() / 255.0
-fun ColorFormatBase.getAd(v: Int): Double = getA(v).toDouble() / 255.0
+abstract class ColorFormat32 : ColorFormat {
+    override val bpp = 32
+}
 
-fun ColorFormatBase.unpackToRGBA(packed: Int): RGBA = RGBA(getR(packed), getG(packed), getB(packed), getA(packed))
+fun ColorFormat.numberOfBytes(pixels: Int): Int = (pixels * bpp) / 8
+val ColorFormat.bytesPerPixel: Double get() = bpp.toDouble() / 8
 
-abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
-	val bytesPerPixel = bpp / 8
+fun ColorFormat.toRGBA(v: Int): RGBA = RGBA(getR(v), getG(v), getB(v), getA(v))
+fun ColorFormat.packRGBA(c: RGBA): Int = pack(c.r, c.g, c.b, c.a)
 
+fun ColorFormat.getRf(v: Int): Float = getR(v).toFloat() / 255f
+fun ColorFormat.getGf(v: Int): Float = getG(v).toFloat() / 255f
+fun ColorFormat.getBf(v: Int): Float = getB(v).toFloat() / 255f
+fun ColorFormat.getAf(v: Int): Float = getA(v).toFloat() / 255f
 
-	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
-		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
-	)
+fun ColorFormat.getRd(v: Int): Double = getR(v).toDouble() / 255.0
+fun ColorFormat.getGd(v: Int): Double = getG(v).toDouble() / 255.0
+fun ColorFormat.getBd(v: Int): Double = getB(v).toDouble() / 255.0
+fun ColorFormat.getAd(v: Int): Double = getA(v).toDouble() / 255.0
 
-	inline fun decodeInternal(
-		data: ByteArray,
-		dataOffset: Int,
-		out: RgbaArray,
-		outOffset: Int,
-		size: Int,
-		read: (data: ByteArray, io: Int) -> Int
-	) {
-		var io = dataOffset
-		var oo = outOffset
-		val bytesPerPixel = this.bytesPerPixel
-		val outdata = out.ints
+fun ColorFormat.unpackToRGBA(packed: Int): RGBA = RGBA(getR(packed), getG(packed), getB(packed), getA(packed))
 
-		for (n in 0 until size) {
-			val c = read(data, io)
-			io += bytesPerPixel
-			outdata[oo++] = RGBA.packFast(getR(c), getG(c), getB(c), getA(c))
-		}
-	}
+fun ColorFormat.convertTo(color: Int, target: ColorFormat): Int = target.pack(
+    this.getR(color), this.getG(color), this.getB(color), this.getA(color)
+)
 
-	open fun decode(
-		data: ByteArray,
-		dataOffset: Int,
-		out: RgbaArray,
-		outOffset: Int,
-		size: Int,
-		littleEndian: Boolean = true
-	) {
-		val readFunc = when (bpp) {
-			16 -> if (littleEndian) ByteArray::readU16LE else ByteArray::readU16BE
-			24 -> if (littleEndian) ByteArray::readU24LE else ByteArray::readU24BE
-			32 -> if (littleEndian) ByteArray::readS32LE else ByteArray::readS32BE
-			else -> throw IllegalArgumentException("Unsupported bpp $bpp")
-		}
-        decodeInternal(data, dataOffset, out, outOffset, size, readFunc)
+inline fun ColorFormat.decodeInternal(
+    data: ByteArray,
+    dataOffset: Int,
+    out: RgbaArray,
+    outOffset: Int,
+    size: Int,
+    read: (data: ByteArray, io: Int) -> Int
+) {
+    var io = dataOffset
+    var oo = outOffset
+    val bytesPerPixel = this.bytesPerPixel
+    val outdata = out
+    val Bpp = bytesPerPixel.toInt()
+
+    for (n in 0 until size) {
+        val c = read(data, io)
+        io += Bpp
+        outdata[oo++] = RGBA(getR(c), getG(c), getB(c), getA(c))
     }
+}
 
-	open fun decode(
-		data: ByteArray,
-		dataOffset: Int = 0,
-		size: Int = data.size / bytesPerPixel,
-		littleEndian: Boolean = true
-	): RgbaArray {
-		val out = RgbaArray(size)
-		decode(data, dataOffset, out, 0, size, littleEndian)
-		return out
-	}
+fun ColorFormat.decode(
+    data: ByteArray,
+    dataOffset: Int,
+    out: RgbaArray,
+    outOffset: Int,
+    size: Int,
+    littleEndian: Boolean = true
+) {
+    val readFunc = when (bpp) {
+        16 -> if (littleEndian) ByteArray::readU16LE else ByteArray::readU16BE
+        24 -> if (littleEndian) ByteArray::readU24LE else ByteArray::readU24BE
+        32 -> if (littleEndian) ByteArray::readS32LE else ByteArray::readS32BE
+        else -> throw IllegalArgumentException("Unsupported bpp $bpp")
+    }
+    decodeInternal(data, dataOffset, out, outOffset, size, readFunc)
+}
 
-	open fun decodeToBitmap32(
-		width: Int,
-		height: Int,
-		data: ByteArray,
-		dataOffset: Int = 0,
-		littleEndian: Boolean = true
-	): Bitmap32 {
-		return Bitmap32(width, height, decode(data, dataOffset, width * height, littleEndian))
-	}
+fun ColorFormat.decode(
+    data: ByteArray,
+    dataOffset: Int = 0,
+    size: Int = (data.size / bytesPerPixel).toInt(),
+    littleEndian: Boolean = true
+): RgbaArray {
+    val out = RgbaArray(size)
+    decode(data, dataOffset, out, 0, size, littleEndian)
+    return out
+}
 
-	open fun decodeToBitmap32(
-		bmp: Bitmap32,
-		data: ByteArray,
-		dataOffset: Int = 0,
-		littleEndian: Boolean = true
-	): Bitmap32 {
-		return bmp.apply { decode(data, dataOffset, this.data, 0, bmp.area) }
-	}
+fun ColorFormat.decodeToBitmap32(
+    width: Int,
+    height: Int,
+    data: ByteArray,
+    dataOffset: Int = 0,
+    littleEndian: Boolean = true
+): Bitmap32 {
+    return Bitmap32(width, height, decode(data, dataOffset, width * height, littleEndian))
+}
 
-	open fun encode(
-		colors: RgbaArray,
-		colorsOffset: Int,
-		out: ByteArray,
-		outOffset: Int,
-		size: Int,
-		littleEndian: Boolean = true
-	) {
-		var io = colorsOffset
-		var oo = outOffset
-		for (n in 0 until size) {
-			val c = colors.ints[io++]
-			val ec = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
-			when (bpp) {
-				16 -> if (littleEndian) out.write16LE(oo, ec) else out.write16BE(oo, ec)
-				24 -> if (littleEndian) out.write24LE(oo, ec) else out.write24BE(oo, ec)
-				32 -> if (littleEndian) out.write32LE(oo, ec) else out.write32BE(oo, ec)
-				else -> throw IllegalArgumentException("Unsupported bpp $bpp")
-			}
-			oo += bytesPerPixel
-		}
-	}
+fun ColorFormat.decodeToBitmap32(
+    bmp: Bitmap32,
+    data: ByteArray,
+    dataOffset: Int = 0,
+    littleEndian: Boolean = true
+): Bitmap32 {
+    return bmp.apply { decode(data, dataOffset, this.data, 0, bmp.area) }
+}
 
-	open fun encode(
-		colors: RgbaArray,
-		colorsOffset: Int = 0,
-		size: Int = colors.size,
-		littleEndian: Boolean = true
-	): ByteArray {
-		val out = ByteArray(size * bytesPerPixel)
-		encode(colors, colorsOffset, out, 0, size, littleEndian)
-		return out
-	}
+fun ColorFormat.encode(
+    colors: RgbaArray,
+    colorsOffset: Int,
+    out: ByteArray,
+    outOffset: Int,
+    size: Int,
+    littleEndian: Boolean = true
+) {
+    var io = colorsOffset
+    var oo = outOffset
+    val Bpp = bytesPerPixel.toInt()
+    for (n in 0 until size) {
+        val c = colors.ints[io++]
+        val ec = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
+        when (bpp) {
+            16 -> if (littleEndian) out.write16LE(oo, ec) else out.write16BE(oo, ec)
+            24 -> if (littleEndian) out.write24LE(oo, ec) else out.write24BE(oo, ec)
+            32 -> if (littleEndian) out.write32LE(oo, ec) else out.write32BE(oo, ec)
+            else -> throw IllegalArgumentException("Unsupported bpp $bpp")
+        }
+        oo += Bpp
+    }
+}
+
+fun ColorFormat.encode(
+    colors: RgbaArray,
+    colorsOffset: Int = 0,
+    size: Int = colors.size,
+    littleEndian: Boolean = true
+): ByteArray {
+    val out = ByteArray((size * bytesPerPixel).toInt())
+    encode(colors, colorsOffset, out, 0, size, littleEndian)
+    return out
+}
+
+fun ColorFormat16.encode(colors: IntArray, colorsOffset: Int, out: ShortArray, outOffset: Int, size: Int): Unit {
+    var io = colorsOffset
+    var oo = outOffset
+    for (n in 0 until size) {
+        val c = colors[io++]
+        out[oo++] = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c)).toShort()
+    }
+}
+
+fun ColorFormat32.encode(colors: IntArray, colorsOffset: Int, out: IntArray, outOffset: Int, size: Int): Unit {
+    var io = colorsOffset
+    var oo = outOffset
+    for (n in 0 until size) {
+        val c = colors[io++]
+        out[oo++] = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
+    }
 }

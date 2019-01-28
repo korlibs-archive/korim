@@ -4,11 +4,11 @@ import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
 
 class Bitmap16(
-	width: Int,
-	height: Int,
-	val data: ShortArray = ShortArray(width * height),
-	val format: ColorFormat = RGBA_4444,
-	premult: Boolean = false
+    width: Int,
+    height: Int,
+    val data: ShortArray = ShortArray(width * height),
+    val format: ColorFormat = RGBA_4444,
+    premult: Boolean = false
 ) : Bitmap(width, height, 16, premult, data) {
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap =
 		Bitmap16(width, height, format = format, premult = premult)

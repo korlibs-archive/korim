@@ -46,8 +46,9 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
     override operator fun compareTo(other: RGBA): Int = this.rgba.compareTo(other.rgba)
 
 	companion object : ColorFormat32() {
-        fun fast(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
-		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = fast(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), a.clamp0_255())
+        fun unchecked(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
+		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = unchecked(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), a.clamp0_255())
+        operator fun invoke(r: Int, g: Int, b: Int): RGBA = unchecked(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), 0xFF)
 		operator fun invoke(rgb: Int, a: Int): RGBA = RGBA((rgb and 0xFFFFFF) or (a shl 24))
 		override fun getR(v: Int): Int = RGBA(v).r
 		override fun getG(v: Int): Int = RGBA(v).g
@@ -60,7 +61,7 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 		fun premultiplyAccurate(v: Int): Int {
 			val a1 = RGBA(v).a
 			val af = a1.toFloat() / 255f
-			return packFast((RGBA(v).r * af).toInt(), (RGBA(v).g * af).toInt(), (RGBA(v).b * af).toInt(), a1)
+			return RGBA.unchecked((RGBA(v).r * af).toInt(), (RGBA(v).g * af).toInt(), (RGBA(v).b * af).toInt(), a1).rgba
 		}
 
 		fun premultiplyFast(v: RGBA): RGBA {
@@ -84,22 +85,19 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
             }
 		}
 
-		fun depremultiplyFast(v: RGBA): RGBA = RGBA(depremultiplyFastInt(v.rgba))
-
-		fun depremultiplyFastInt(v: Int): Int {
-			val A = RGBA(v).a
-			val alpha = A.toDouble() / 255.0
-			if (alpha == 0.0) return 0
-			val ialpha = 1.0 / alpha
-			val R = (RGBA(v).r * ialpha).toInt().clamp255()
-			val G = (RGBA(v).g * ialpha).toInt().clamp255()
-			val B = (RGBA(v).b * ialpha).toInt().clamp255()
-			return RGBA.packFast(R, G, B, A)
-		}
+		fun depremultiplyFast(v: RGBA): RGBA {
+            val A = v.a
+            val alpha = A.toDouble() / 255.0
+            if (alpha == 0.0) return Colors.TRANSPARENT_BLACK
+            val ialpha = 1.0 / alpha
+            val R = (v.r * ialpha).toInt().clamp255()
+            val G = (v.g * ialpha).toInt().clamp255()
+            val B = (v.b * ialpha).toInt().clamp255()
+            return RGBA.unchecked(R, G, B, A)
+        }
 
 		fun depremultiplyFast(data: RgbaArray, start: Int = 0, end: Int = data.size): RgbaArray = data.apply {
-			val array = data.ints
-			for (n in start until end) array[n] = depremultiplyFastInt(array[n])
+			for (n in start until end) data[n] = depremultiplyFast(data[n])
 		}
 
 		fun premultiplyFast(data: RgbaArray, start: Int = 0, end: Int = data.size): RgbaArray = data.apply {
@@ -113,7 +111,7 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 			val R = ((((v ushr 0) and 0xFF) shl 8) / A1) and 0xFF
 			val G = ((((v ushr 8) and 0xFF) shl 8) / A1) and 0xFF
 			val B = ((((v ushr 16) and 0xFF) shl 8) / A1) and 0xFF
-			return packFast(R, G, B, A)
+			return RGBA(R, G, B, A).rgba
 		}
 
 		fun depremultiplyFastest(v: Int): Int {
@@ -124,8 +122,6 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 			return (v and 0x00FFFFFF.inv()) or B or G or R
 		}
 
-		fun packFast(r: Int, g: Int, b: Int, a: Int) = (r shl 0) or (g shl 8) or (b shl 16) or (a shl 24)
-		fun packFast(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 		fun packfFast(r: Float, g: Float, b: Float, a: Float): Int = ((r * 0xFF).toInt() shl 0) or ((g * 0xFF).toInt() shl 8) or ((b * 0xFF).toInt() shl 16) or ((a * 0xFF).toInt() shl 24)
 		fun packRGB_A(rgb: Int, a: Int): Int = (rgb and 0xFFFFFF) or (a shl 24)
 		fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
@@ -146,8 +142,8 @@ inline class RGBA(val rgba: Int) : Comparable<RGBA> {
 		
 		private fun d2i(v: Double): Int = ((v.toFloat()).clamp01() * 255).toInt()
 		private fun f2i(v: Float): Int = ((v).clamp01() * 255).toInt()
-		fun packf(r: Double, g: Double, b: Double, a: Double): Int = packFast(d2i(r), d2i(g), d2i(b), d2i(a))
-		fun packf(r: Float, g: Float, b: Float, a: Float): Int = packFast(f2i(r), f2i(g), f2i(b), f2i(a))
+		fun packf(r: Double, g: Double, b: Double, a: Double): RGBA = RGBA.unchecked(d2i(r), d2i(g), d2i(b), d2i(a))
+		fun packf(r: Float, g: Float, b: Float, a: Float): Int = RGBA(f2i(r), f2i(g), f2i(b), f2i(a)).rgba
 		fun packf(rgb: Int, a: Float): Int = packRGB_A(rgb, f2i(a))
 		fun mix(dst: RGBA, src: RGBA): RGBA {
             val srcA = src.a

@@ -74,7 +74,7 @@ class Context2dTest {
 		assertTrue(
 			Bitmap32.matches(
 				resourcesVfs["c2dreference.png"].readBitmap(PNG).toBMP32().depremultiplied(),
-				img.toBmp32().depremultiplied()
+				img.toBMP32().depremultiplied()
 			)
 		)
 

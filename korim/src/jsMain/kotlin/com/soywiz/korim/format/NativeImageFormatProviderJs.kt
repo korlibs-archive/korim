@@ -175,7 +175,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
 							val color = this.colors[n]
-							grad.addColorStop(stop, Colors.toHtmlStringSimple(color))
+							grad.addColorStop(stop, RGBA(color).htmlStringSimple)
 						}
 						grad
 					}
@@ -184,7 +184,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
 							val color = this.colors[n]
-							grad.addColorStop(stop, Colors.toHtmlStringSimple(color))
+							grad.addColorStop(stop, RGBA(color).htmlStringSimple)
 						}
 						grad
 					}

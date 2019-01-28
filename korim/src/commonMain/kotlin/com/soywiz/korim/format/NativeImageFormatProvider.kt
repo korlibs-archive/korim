@@ -22,4 +22,4 @@ abstract class NativeImageFormatProvider {
 
 suspend fun Bitmap.showImageAndWait(kind: Int = 0) = nativeImageFormatProvider.display(this, kind)
 suspend fun ImageData.showImagesAndWait(kind: Int = 0) = run { for (frame in frames) frame.bitmap.showImageAndWait(kind) }
-suspend fun Context2d.SizedDrawable.showImageAndWait(kind: Int = 0) = this.render().toBmp32().showImageAndWait(kind)
+suspend fun Context2d.SizedDrawable.showImageAndWait(kind: Int = 0) = this.render().toBMP32().showImageAndWait(kind)

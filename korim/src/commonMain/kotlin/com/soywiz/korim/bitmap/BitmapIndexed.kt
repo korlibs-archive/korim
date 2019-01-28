@@ -46,7 +46,7 @@ abstract class BitmapIndexed(
 	fun setWhitescalePalette() = this.apply {
 		for (n in 0 until palette.size) {
 			val col = ((n.toFloat() / palette.size.toFloat()) * 255).toInt()
-			palette.ints[n] = RGBA.packFast(col, col, col, 0xFF)
+			palette[n] = RGBA(col, col, col, 0xFF)
 		}
 		return this
 	}

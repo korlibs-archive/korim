@@ -360,9 +360,8 @@ class Bitmap32(
 	fun depremultiplyInplace(): Bitmap32 {
 		if (!premult) return this
 		premult = false
-		val array = data.ints
-		for (n in 0 until array.size) array[n] = RGBA.depremultiplyFastInt(array[n])
-		//for (n in 0 until data.size) data[n] = RGBA.depremultiplyAccurate(data[n])
+		val array = data
+		for (n in 0 until array.size) array[n] = RGBA.depremultiplyFast(array[n])
 		return this
 	}
 
@@ -456,4 +455,6 @@ class Bitmap32(
 		for (n in 0 until data.size) hash += data.ints[n]
 		return hash
 	}
+
+    override fun toBMP32(): Bitmap32 = this
 }
