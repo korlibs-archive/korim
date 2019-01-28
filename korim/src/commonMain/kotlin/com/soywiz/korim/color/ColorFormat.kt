@@ -145,8 +145,8 @@ fun ColorFormat.encode(
     var oo = outOffset
     val Bpp = bytesPerPixel.toInt()
     for (n in 0 until size) {
-        val c = colors.ints[io++]
-        val ec = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
+        val c = colors[io++]
+        val ec = pack(c.r, c.g, c.b, c.a)
         when (bpp) {
             16 -> if (littleEndian) out.write16LE(oo, ec) else out.write16BE(oo, ec)
             24 -> if (littleEndian) out.write24LE(oo, ec) else out.write24BE(oo, ec)

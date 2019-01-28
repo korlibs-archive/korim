@@ -115,7 +115,7 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) :
     override fun toNonNativeBmp(): Bitmap {
         val out = RgbaArray(width * height)
         androidBitmap.getPixels(out.ints, 0, width, 0, 0, width, height)
-        return Bitmap32(width, height, out, premult = premult)
+        return Bitmap32(width, height, out, premultiplied = premultiplied)
     }
 
     override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))

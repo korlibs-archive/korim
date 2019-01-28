@@ -31,8 +31,6 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 	fun withA(v: Int) = RGBA((value and (0xFF shl 24).inv()) or ((v and 0xFF) shl 16))
 	fun withRGB(rgb: Int) = RGBA(rgb, a)
 
-	fun toInt(): Int = value
-
 	val hexString: String get() ="#%02x%02x%02x%02x".format(r, g, b, a)
 	val htmlColor: String get() = "rgba($r, $g, $b, $af)"
 	val htmlStringSimple: String get() = "#%02x%02x%02x".format(r, g, b)
@@ -67,26 +65,27 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 		override fun getA(v: Int): Int = RGBA(v).a
 		override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA(r, g, b, a).value
 
-		fun mutliplyByAlpha(v: Int, alpha: Double): Int = com.soywiz.korim.color.RGBA.pack(RGBA(v).r, RGBA(v).g, RGBA(v).b, (RGBA(v).a * alpha).toInt())
-		fun depremultiply(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
+		//fun mutliplyByAlpha(v: Int, alpha: Double): Int = com.soywiz.korim.color.RGBA.pack(RGBA(v).r, RGBA(v).g, RGBA(v).b, (RGBA(v).a * alpha).toInt())
+		//fun depremultiply(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
 
-		fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
-		fun blendRGB(c1: Int, c2: Int, factor256: Int): Int = (256 - factor256).let { f1 -> ((((((c1 and 0xFF00FF) * f1) + ((c2 and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or ((((c1 and 0x00FF00) * f1) + ((c2 and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8 }
-        fun blendRGB(c1: RGBA, c2: RGBA, factor256: Int): RGBA = RGBA(blendRGB(c1.value, c2.value, factor256))
-		fun blendRGB(c1: Int, c2: Int, factor: Double): Int = blendRGB(c1, c2, (factor * 256).toInt())
-		fun blendRGBAInt(c1: Int, c2: Int, factor: Double): Int = blendRGBA(RGBA(c1), RGBA(c2), factor).value
-		fun blendRGBA(c1: RGBA, c2: RGBA, factor: Double): RGBA {
-			val RGB = blendRGB(c1.value and 0xFFFFFF, c2.value and 0xFFFFFF, (factor * 256).toInt())
-			val A = blendComponent(c1.a, c2.a, factor)
-			return RGBA(RGB, A)
-		}
+        fun mixRgbFactor256(c1: RGBA, c2: RGBA, factor256: Int): RGBA = RGBA((256 - factor256).let { ifactor256 ->
+            ((((((c1.value and 0xFF00FF) * ifactor256) +
+                ((c2.value and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or
+                ((((c1.value and 0x00FF00) * ifactor256) + ((c2.value and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8
+        })
+		fun mixRgb(c1: RGBA, c2: RGBA, factor: Double): RGBA = mixRgbFactor256(c1, c2, (factor * 256).toInt())
 
-		fun mix(dst: RGBA, src: RGBA): RGBA {
+        fun mixRgba(c1: RGBA, c2: RGBA, factor: Double): RGBA =
+            RGBA(mixRgb(c1, c2, factor).rgb, blendComponent(c1.a, c2.a, factor))
+
+        private fun blendComponent(c1: Int, c2: Int, factor: Double): Int = (c1 * (1.0 - factor) + c2 * factor).toInt() and 0xFF
+
+        fun mix(dst: RGBA, src: RGBA): RGBA {
             val srcA = src.a
             return when (srcA) {
                 0x000 -> dst
                 0xFF -> src
-                else -> RGBA(blendRGB(dst.rgb, src.rgb, srcA + 1), dst.a + srcA)
+                else -> RGBA(mixRgbFactor256(dst, src, srcA + 1).rgb, dst.a + srcA)
             }
         }
 
@@ -225,7 +224,7 @@ inline class RgbaArray(val ints: IntArray) : List<RGBA> {
     override fun toString(): String = "RgbaArray($size)"
 }
 
-fun RGBA.mix(other: RGBA, ratio: Double) = RGBA.blendRGBA(this, other, ratio)
+fun RGBA.mix(other: RGBA, ratio: Double) = RGBA.mixRgba(this, other, ratio)
 
 fun List<RGBA>.toRgbaArray(): RgbaArray = RgbaArray(IntArray(this.size) { this@toRgbaArray[it].value })
 

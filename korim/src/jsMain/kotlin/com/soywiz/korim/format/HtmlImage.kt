@@ -23,13 +23,13 @@ object HtmlImage {
 		val idataData = idata.data
 		var m = 0
 		for (n in 0 until pixelCount) {
-			val c = bmpData.ints[n]
+			val c = bmpData[n]
 
 			// @TODO: Kotlin.JS bug Clamped Array should be int inst@TODO: Kotlin.JS bug Clamped Array should be int instead of Byte
-			idataData[m++] = RGBA.getR(c).asDynamic()
-			idataData[m++] = RGBA.getG(c).asDynamic()
-			idataData[m++] = RGBA.getB(c).asDynamic()
-			idataData[m++] = RGBA.getA(c).asDynamic()
+			idataData[m++] = c.r.asDynamic()
+			idataData[m++] = c.g.asDynamic()
+			idataData[m++] = c.b.asDynamic()
+			idataData[m++] = c.a.asDynamic()
 		}
 		ctx.putImageData(idata, 0.0, 0.0)
 		return canvas

@@ -75,7 +75,7 @@ abstract class BitmapIndexed(
 		}
 	}
 
-	override fun toBMP32(): Bitmap32 = Bitmap32(width, height, premult = premult).also { outBmp ->
+	override fun toBMP32(): Bitmap32 = Bitmap32(width, height, premultiplied = premultiplied).also { outBmp ->
 		val out = outBmp.data.ints
 		val inp = this@BitmapIndexed.data
 		val pal = this@BitmapIndexed.palette.ints

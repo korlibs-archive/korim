@@ -19,7 +19,7 @@ class ShapeTest {
 			},
 			clip = null,
 			//paint = Context2d.Color(Colors.GREEN),
-			paint = Context2d.BitmapPaint(Bitmap32(100, 100, Colors.RED, premult = false), Matrix()),
+			paint = Context2d.BitmapPaint(Bitmap32(100, 100, Colors.RED, premultiplied = false), Matrix()),
 			transform = Matrix()
 		)
 		assertEquals(

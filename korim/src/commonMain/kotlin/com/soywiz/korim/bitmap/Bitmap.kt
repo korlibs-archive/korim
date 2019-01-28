@@ -8,11 +8,11 @@ import com.soywiz.korio.lang.*
 import com.soywiz.korma.geom.*
 
 abstract class Bitmap(
-	val width: Int,
-	val height: Int,
-	val bpp: Int,
-	var premult: Boolean,
-	val backingArray: Any?
+    val width: Int,
+    val height: Int,
+    val bpp: Int,
+    var premultiplied: Boolean,
+    val backingArray: Any?
 ) : Sizeable, Extra by Extra.Mixin() {
 	var texture: Any? = null
 
@@ -41,9 +41,9 @@ abstract class Bitmap(
 		val c10 = if (inBounds(x1, y0)) getRgbaClamped(x1, y0) else c00
 		val c01 = if (inBounds(x1, y1)) getRgbaClamped(x0, y1) else c00
 		val c11 = if (inBounds(x1, y1)) getRgbaClamped(x1, y1) else c01
-		val c1 = RGBA.blendRGBA(c00, c10, xratio)
-		val c2 = RGBA.blendRGBA(c01, c11, xratio)
-		return RGBA.blendRGBA(c1, c2, yratio)
+		val c1 = RGBA.mixRgba(c00, c10, xratio)
+		val c2 = RGBA.mixRgba(c01, c11, xratio)
+		return RGBA.mixRgba(c1, c2, yratio)
 	}
 
     fun getRgbaSampled(x: Double, y: Double, count: Int, row: RgbaArray) {
@@ -81,12 +81,21 @@ abstract class Bitmap(
 		}
 	}
 
-	open fun getContext2d(antialiasing: Boolean = true): Context2d =
+    inline fun forEach(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (n: Int, x: Int, y: Int) -> Unit) {
+        for (y in sy until sy + height) {
+            var n = index(sx, sy + y)
+            for (x in sx until sx + width) {
+                callback(n++, x, y)
+            }
+        }
+    }
+
+    open fun getContext2d(antialiasing: Boolean = true): Context2d =
 		throw UnsupportedOperationException("Not implemented context2d on Bitmap, please use NativeImage or Bitmap32 instead")
 
 	open fun createWithThisFormat(width: Int, height: Int): Bitmap = invalidOp("Unsupported createWithThisFormat ($this)")
 
-	open fun toBMP32(): Bitmap32 = Bitmap32(width, height, premult = premult).also { out ->
+	open fun toBMP32(): Bitmap32 = Bitmap32(width, height, premultiplied = premultiplied).also { out ->
         val array = out.data
         var n = 0
         for (y in 0 until height) {

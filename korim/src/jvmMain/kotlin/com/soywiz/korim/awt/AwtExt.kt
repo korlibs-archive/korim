@@ -17,7 +17,7 @@ fun Bitmap32.toAwt(
 	out: BufferedImage = BufferedImage(
 		width,
 		height,
-		if (this.premult) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
+		if (this.premultiplied) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
 	)
 ): BufferedImage {
 	transferTo(out)
@@ -28,7 +28,7 @@ fun Bitmap.toAwt(
 	out: BufferedImage = BufferedImage(
 		width,
 		height,
-		if (this.premult) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
+		if (this.premultiplied) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
 	)
 ): BufferedImage = this.toBMP32().toAwt(out)
 

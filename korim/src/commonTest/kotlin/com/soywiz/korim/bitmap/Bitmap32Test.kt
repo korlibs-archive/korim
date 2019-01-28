@@ -15,7 +15,7 @@ class Bitmap32Test {
 
 	@Test
 	fun constructGen() {
-		val c = Bitmap32(1, 1, Colors.BLUE, premult = false)
+		val c = Bitmap32(1, 1, Colors.BLUE, premultiplied = false)
 		assertTrue(c.all { it == Colors.BLUE })
 	}
 

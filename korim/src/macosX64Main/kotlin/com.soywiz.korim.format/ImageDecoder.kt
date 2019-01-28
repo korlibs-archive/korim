@@ -3,7 +3,6 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korio.async.*
-import com.soywiz.korio.lang.*
 import kotlinx.cinterop.*
 import platform.AppKit.*
 import platform.CoreGraphics.*
@@ -49,7 +48,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                                     memcpy(outStart + width * n, pixels.reinterpret<ByteVar>() + bytesPerRow * n, (width * 4).convert())
                                 }
                             }
-                            Bitmap32(width, height, RgbaArray(out), premult = true)
+                            Bitmap32(width, height, RgbaArray(out), premultiplied = true)
                         } finally {
                             NSGraphicsContext.setCurrentContext(null)
                         }

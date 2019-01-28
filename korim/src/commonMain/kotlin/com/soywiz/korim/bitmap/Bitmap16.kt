@@ -8,10 +8,10 @@ class Bitmap16(
     height: Int,
     val data: ShortArray = ShortArray(width * height),
     val format: ColorFormat = RGBA_4444,
-    premult: Boolean = false
-) : Bitmap(width, height, 16, premult, data) {
+    premultiplied: Boolean = false
+) : Bitmap(width, height, 16, premultiplied, data) {
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap =
-		Bitmap16(width, height, format = format, premult = premult)
+		Bitmap16(width, height, format = format, premultiplied = premultiplied)
 
 	operator fun set(x: Int, y: Int, color: Int) = setInt(x, y, color)
 	operator fun get(x: Int, y: Int): Int = getInt(x, y)

@@ -3,8 +3,6 @@ package com.soywiz.korim.format
 import com.soywiz.korio.async.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.vector.*
-import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import kotlinx.cinterop.*
 import platform.posix.*
@@ -65,7 +63,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     GdipDisposeImage(pimage[0])
 
                     //println(out.toList())
-                    Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premult = false)
+                    Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premultiplied = false)
                 }
             }
         ).await() ?: throw IOException("Can't load image from ByteArray")

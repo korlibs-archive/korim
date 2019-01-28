@@ -8,14 +8,14 @@ import com.soywiz.korio.stream.*
 import kotlin.math.*
 
 // https://en.wikipedia.org/wiki/S3_Texture_Compression
-object DXT1 : DXT1Base("dxt1", premult = true)
+object DXT1 : DXT1Base("dxt1", premultiplied = true)
 
-object DXT2 : DXT2_3("dxt2", premult = true)
-object DXT3 : DXT2_3("dxt3", premult = false)
-object DXT4 : DXT4_5("dxt4", premult = true)
-object DXT5 : DXT4_5("dxt5", premult = false)
+object DXT2 : DXT2_3("dxt2", premultiplied = true)
+object DXT3 : DXT2_3("dxt3", premultiplied = false)
+object DXT4 : DXT4_5("dxt4", premultiplied = true)
+object DXT5 : DXT4_5("dxt5", premultiplied = false)
 
-open class DXT1Base(format: String, premult: Boolean) : DXT(format, premult = true, blockSize = 8) {
+open class DXT1Base(format: String, premultiplied: Boolean) : DXT(format, premultiplied = true, blockSize = 8) {
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt1ColorCond(data, dataOffset + 0, cc)
 		val cdata = data.readS32LE(dataOffset + 4)
@@ -32,7 +32,7 @@ open class DXT1Base(format: String, premult: Boolean) : DXT(format, premult = tr
 	}
 }
 
-open class DXT2_3(format: String, premult: Boolean) : DXT(format, premult = premult, blockSize = 16) {
+open class DXT2_3(format: String, premultiplied: Boolean) : DXT(format, premultiplied = premultiplied, blockSize = 16) {
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt5Alpha(data, dataOffset + 0, aa)
 		decodeDxt1Color(data, dataOffset + 8, cc)
@@ -52,7 +52,7 @@ open class DXT2_3(format: String, premult: Boolean) : DXT(format, premult = prem
 	}
 }
 
-open class DXT4_5(format: String, premult: Boolean) : DXT(format, premult, blockSize = 16) {
+open class DXT4_5(format: String, premultiplied: Boolean) : DXT(format, premultiplied, blockSize = 16) {
 	override fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray) {
 		decodeDxt5Alpha(data, dataOffset + 0, aa)
 		decodeDxt1ColorCond(data, dataOffset + 8, cc)
@@ -72,7 +72,7 @@ open class DXT4_5(format: String, premult: Boolean) : DXT(format, premult, block
 	}
 }
 
-abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int) : ImageFormat(format) {
+abstract class DXT(val format: String, val premultiplied: Boolean, val blockSize: Int) : ImageFormat(format) {
 	abstract fun decodeRow(data: ByteArray, dataOffset: Int, bmp: RgbaArray, bmpOffset: Int, bmpStride: Int, aa: IntArray, cc: RgbaArray)
 
 	override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
@@ -84,7 +84,7 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 	}
 
 	fun decodeBitmap(bytes: ByteArray, width: Int, height: Int): Bitmap32 {
-		val out = Bitmap32(width, height, premult = premult)
+		val out = Bitmap32(width, height, premultiplied = premultiplied)
 		val blockWidth = out.width / 4
 		val blockHeight = out.height / 4
 		var offset = 0
@@ -125,10 +125,10 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 			ccArray[0] = decodeRGB656(c0)
 			ccArray[1] = decodeRGB656(c1)
 			if (c0 > c1) {
-				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
-				ccArray[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
+				ccArray[2] = RGBA.mixRgbFactor256(cc[0], cc[1], FACT_2_3)
+				ccArray[3] = RGBA.mixRgbFactor256(cc[0], cc[1], FACT_1_3)
 			} else {
-				ccArray[2] = RGBA.blendRGB(cc[0], cc[1], FACT_1_2)
+				ccArray[2] = RGBA.mixRgbFactor256(cc[0], cc[1], FACT_1_2)
 				ccArray[3] = Colors.TRANSPARENT_BLACK
 			}
 		}
@@ -136,8 +136,8 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 		fun decodeDxt1Color(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
 			cc[0] = decodeRGB656(data.readU16LE(dataOffset + 0))
 			cc[1] = decodeRGB656(data.readU16LE(dataOffset + 2))
-			cc[2] = RGBA.blendRGB(cc[0], cc[1], FACT_2_3)
-			cc[3] = RGBA.blendRGB(cc[0], cc[1], FACT_1_3)
+			cc[2] = RGBA.mixRgbFactor256(cc[0], cc[1], FACT_2_3)
+			cc[3] = RGBA.mixRgbFactor256(cc[0], cc[1], FACT_1_3)
 		}
 
 		fun decodeDxt5Alpha(data: ByteArray, dataOffset: Int, aa: IntArray) {

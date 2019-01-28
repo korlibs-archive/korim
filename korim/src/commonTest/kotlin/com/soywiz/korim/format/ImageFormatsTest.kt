@@ -14,7 +14,7 @@ class ImageFormatsTest {
 	//fun demo1() = imageTest {
 	//  val tempVfs = LocalVfs("c:/temp/")
 	//	tempVfs["1.png"].readBitmap().writeTo(tempVfs["1.out.png"])
-	//	Bitmap32(32, 32, premult = true) { x, y -> if ((x + y) % 2 == 0) Colors.RED else Colors.BLUE }.writeTo(tempVfs["red.png"])
+	//	Bitmap32(32, 32, premultiplied = true) { x, y -> if ((x + y) % 2 == 0) Colors.RED else Colors.BLUE }.writeTo(tempVfs["red.png"])
 	//	//println("ResourcesVfs.absolutePath:" + ResourcesVfs.absolutePath)
 	//}
 
