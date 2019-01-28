@@ -1,7 +1,6 @@
 package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
-import com.soywiz.korio.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.interpolation.*
 
@@ -38,13 +37,13 @@ data class ColorTransform(
 
 	private var dirty = true
 
-	private var _colorMulInt: Int = Colors.WHITE.rgba
+	private var _colorMulInt: Int = Colors.WHITE.value
 	private var _colorAdd: Int = 0
 
 	private fun computeColors() = this.apply {
 		if (dirty) {
 			dirty = false
-			_colorMulInt = RGBA(RGBA.packf(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat())).rgba
+			_colorMulInt = RGBA(RGBA.packf(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat())).value
 			_colorAdd = ColorAdd.pack(_aR, _aG, _aB, _aA)
 		}
 	}
@@ -61,7 +60,7 @@ data class ColorTransform(
 
 	var colorMul: RGBA
 		get() = RGBA(colorMulInt)
-		set(v) = run { colorMulInt = v.rgba }
+		set(v) = run { colorMulInt = v.value }
 
 	var colorAdd: Int
 		get() {

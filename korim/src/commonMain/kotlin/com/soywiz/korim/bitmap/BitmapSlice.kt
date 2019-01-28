@@ -4,8 +4,6 @@ import com.soywiz.kds.*
 import com.soywiz.kmem.*
 import com.soywiz.korma.geom.*
 
-typealias Tex = BmpSlice
-
 interface BmpSlice : Extra {
 	val name: String
 	var parent: Any?

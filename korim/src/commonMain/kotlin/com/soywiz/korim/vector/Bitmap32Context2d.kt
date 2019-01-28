@@ -108,7 +108,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 
 	class ColorFiller : Filler<Context2d.Color>() {
 		override fun fill(data: RgbaArray, offset: Int, x: Int, y: Int, count: Int) {
-			val c = fill.color.rgba
+			val c = fill.color.value
 			for (n in 0 until count) {
 				data.ints[offset + n] = c
 			}

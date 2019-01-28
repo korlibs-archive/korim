@@ -1,12 +1,21 @@
 package com.soywiz.korim.color
 
-object CMYK {
-    fun cmykToRgb(c: Int, m: Int, y: Int, k: Int): RGBA = RGBA(
-        255 - clampTo8bit(c * (1 - k / 255) + k),
-        255 - clampTo8bit(m * (1 - k / 255) + k),
-        255 - clampTo8bit(y * (1 - k / 255) + k),
-        0xFF
-    )
+import com.soywiz.kmem.*
+import com.soywiz.korim.internal.*
 
-    private fun clampTo8bit(a: Int): Int = if (a < 0) 0 else if (a > 255) 255 else a
+inline class CMYK(val value: Int) {
+    val c: Int get() = value.extract8(0)
+    val m: Int get() = value.extract8(8)
+    val y: Int get() = value.extract8(16)
+    val k: Int get() = value.extract8(24)
+
+    companion object {
+    }
 }
+
+fun CMYK.toRGBA() = RGBA(
+    255 - (c * (1 - k / 255) + k).clamp0_255(),
+    255 - (m * (1 - k / 255) + k).clamp0_255(),
+    255 - (y * (1 - k / 255) + k).clamp0_255(),
+    0xFF
+)

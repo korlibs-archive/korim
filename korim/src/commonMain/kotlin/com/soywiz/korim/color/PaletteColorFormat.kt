@@ -6,5 +6,5 @@ class PaletteColorFormat(val palette: RgbaArray) : ColorFormat {
 	override fun getG(v: Int): Int = palette[v].g
 	override fun getB(v: Int): Int = palette[v].b
 	override fun getA(v: Int): Int = palette[v].a
-	override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA(r, g, b, a).rgba
+	override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA(r, g, b, a).value
 }

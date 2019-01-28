@@ -31,7 +31,7 @@ object AndroidNativeImageFormatProvider : NativeImageFormatProvider() {
             val ll1 = LinearLayout(ctx)
 
             val iv = ImageView(ctx)
-            iv.setBackgroundColor(Colors.BLACK.rgba)
+            iv.setBackgroundColor(Colors.BLACK.value)
             iv.setImageBitmap(androidBitmap)
             val lp = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,

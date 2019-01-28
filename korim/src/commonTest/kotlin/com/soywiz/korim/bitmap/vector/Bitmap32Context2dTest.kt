@@ -6,7 +6,6 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
-import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
@@ -30,7 +29,7 @@ class Bitmap32Context2dTest {
                             32.0, 32.0, 1.0,
                             //32.0, 8.0, 1.0,
                             stops = DoubleArrayList(0.0, 1.0),
-                            colors = IntArrayList(Colors.BLUE.rgba, Colors.RED.rgba),
+                            colors = IntArrayList(Colors.BLUE.value, Colors.RED.value),
                             transform = Matrix().scale(2.0, 0.75)
                         )
                     )

@@ -4,7 +4,6 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import java.awt.*
 import java.awt.Rectangle
@@ -288,10 +287,10 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 						}
 					}
 				}
-				else -> java.awt.Color(Colors.BLACK.rgba)
+				else -> java.awt.Color(Colors.BLACK.value)
 			}
 		}
-		else -> java.awt.Color(Colors.BLACK.rgba)
+		else -> java.awt.Color(Colors.BLACK.value)
 	}
 
 	fun Context2d.LineCap.toAwt() = when (this) {

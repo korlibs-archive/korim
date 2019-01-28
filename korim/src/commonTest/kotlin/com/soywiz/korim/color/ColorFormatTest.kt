@@ -2,13 +2,12 @@ package com.soywiz.korim.color
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korio.lang.*
-import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
 import kotlin.test.*
 
 class ColorFormatTest {
 	//fun bmp() = Bitmap32(3, 1, arrayOf(Colors.RED, Colors.GREEN, Colors.BLUE).toRgbaArray())
-	fun bmp() = Bitmap32(3, 1, RgbaArray(intArrayOf(Colors.RED.rgba, Colors.GREEN.rgba, Colors.BLUE.rgba)))
+	fun bmp() = Bitmap32(3, 1, RgbaArray(intArrayOf(Colors.RED.value, Colors.GREEN.value, Colors.BLUE.value)))
 	fun ByteArray.toHexChunks(size: Int) = this.hex.splitInChunks(size).joinToString("-").toLowerCase()
 
 	@Test

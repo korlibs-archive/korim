@@ -3,10 +3,8 @@ package com.soywiz.korim.format
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korio.*
 import com.soywiz.korio.compression.*
 import com.soywiz.korio.compression.deflate.*
-import com.soywiz.korio.util.*
 import com.soywiz.korio.util.checksum.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
@@ -261,7 +259,7 @@ object PNG : ImageFormat("png") {
 						rgbPalette[it * 3 + 1],
 						rgbPalette[it * 3 + 2],
 						aPalette[it]
-					).rgba
+					).value
 				}.toIntArray())
 			)
 			else -> Bitmap32(width, height)
