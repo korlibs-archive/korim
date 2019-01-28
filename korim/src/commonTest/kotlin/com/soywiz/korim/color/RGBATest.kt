@@ -5,40 +5,30 @@ import kotlin.test.*
 class RGBATest {
 	@Test
 	fun premultiply() {
-		assertEquals("#7f7f7f7f", RGBA.premultiply(RGBA(0xFF, 0xFF, 0xFF, 0x7F)).hexString)
-		assertEquals("#7f7f7f7f", RGBA.premultiplyFast(RGBA(0xFF, 0xFF, 0xFF, 0x7F)).hexString)
-		assertEquals("#ffffffff", RGBA.premultiplyFast(RGBA(0xFF, 0xFF, 0xFF, 0xFF)).hexString)
-		assertEquals("#0000007f", RGBA.premultiplyFast(RGBA(0x00, 0x00, 0x00, 0x7F)).hexString)
-		assertEquals("#3f3f3f7f", RGBA.premultiplyFast(RGBA(0x7F, 0x7F, 0x7F, 0x7F)).hexString)
-		assertEquals("#001f3f7f", RGBA.premultiplyFast(RGBA(0x00, 0x3F, 0x7F, 0x7F)).hexString)
+		assertEquals("#7f7f7f7f", RGBA(0xFF, 0xFF, 0xFF, 0x7F).premultiplied.hexString)
+		assertEquals("#7f7f7f7f", RGBA(0xFF, 0xFF, 0xFF, 0x7F).premultiplied.hexString)
+		assertEquals("#ffffffff", RGBA(0xFF, 0xFF, 0xFF, 0xFF).premultiplied.hexString)
+		assertEquals("#0000007f", RGBA(0x00, 0x00, 0x00, 0x7F).premultiplied.hexString)
+		assertEquals("#3f3f3f7f", RGBA(0x7F, 0x7F, 0x7F, 0x7F).premultiplied.hexString)
+		assertEquals("#001f3f7f", RGBA(0x00, 0x3F, 0x7F, 0x7F).premultiplied.hexString)
 	}
 
 	@Test
 	fun depremultiply() {
-		assertEquals("#007fffff", RGBA.depremultiplyAccurate(Colors["#007fffff"]).hexString)
-		assertEquals("#007fffff", RGBA.depremultiplyFast(Colors["#007fffff"]).hexString)
-		assertEquals("#007fffff", RGBA.depremultiplyFaster(Colors["#007fffff"]).hexString)
-		assertEquals("#007fffff", RGBA.depremultiplyFastest(Colors["#007fffff"]).hexString)
+		assertEquals("#007fffff", Colors["#007fffff"].asPremultiplied().depremultipliedAccurate.hexString)
+		assertEquals("#007fffff", Colors["#007fffff"].asPremultiplied().depremultiplied.hexString)
 
-		assertEquals("#2666ff7f", RGBA.depremultiplyAccurate(Colors["#13337f7f"]).hexString)
-		assertEquals("#2666ff7f", RGBA.depremultiplyFast(Colors["#13337f7f"]).hexString)
-		assertEquals("#2666fe7f", RGBA.depremultiplyFaster(Colors["#13337f7f"]).hexString)
-		assertEquals("#2066fe7f", RGBA.depremultiplyFastest(Colors["#13337f7f"]).hexString)
+		assertEquals("#2666ff7f", Colors["#13337f7f"].asPremultiplied().depremultipliedAccurate.hexString)
+		assertEquals("#2666fe7f", Colors["#13337f7f"].asPremultiplied().depremultiplied.hexString)
 
-		assertEquals("#00ffff7f", RGBA.depremultiplyAccurate(Colors["#007fff7f"]).hexString)
-		assertEquals("#00ffff7f", RGBA.depremultiplyFast(Colors["#007fff7f"]).hexString)
-		assertEquals("#00fefe7f", RGBA.depremultiplyFaster(Colors["#007fff7f"]).hexString)
-		assertEquals("#00fefe7f", RGBA.depremultiplyFastest(Colors["#007fff7f"]).hexString)
+		assertEquals("#00ffff7f", Colors["#007fff7f"].asPremultiplied().depremultipliedAccurate.hexString)
+		assertEquals("#00fefe7f", Colors["#007fff7f"].asPremultiplied().depremultiplied.hexString)
 
-		assertEquals("#00ffff3f", RGBA.depremultiplyAccurate(Colors["#007fff3f"]).hexString)
-		assertEquals("#00ffff3f", RGBA.depremultiplyFast(Colors["#007fff3f"]).hexString)
-		assertEquals("#00fcfc3f", RGBA.depremultiplyFaster(Colors["#007fff3f"]).hexString)
-		assertEquals("#00fcfc3f", RGBA.depremultiplyFastest(Colors["#007fff3f"]).hexString)
+		assertEquals("#00ffff3f", Colors["#007fff3f"].asPremultiplied().depremultipliedAccurate.hexString)
+		assertEquals("#00fcfc3f", Colors["#007fff3f"].asPremultiplied().depremultiplied.hexString)
 
-		assertEquals("#00000000", RGBA.depremultiplyAccurate(Colors["#007fff00"]).hexString)
-		assertEquals("#00000000", RGBA.depremultiplyFast(Colors["#007fff00"]).hexString)
-		assertEquals("#00000000", RGBA.depremultiplyFaster(Colors["#007fff00"]).hexString)
-		assertEquals("#00000000", RGBA.depremultiplyFastest(Colors["#007fff00"]).hexString)
+		assertEquals("#00000000", Colors["#007fff00"].asPremultiplied().depremultipliedAccurate.hexString)
+		assertEquals("#00000000", Colors["#007fff00"].asPremultiplied().depremultiplied.hexString)
 	}
 
 	@Test
@@ -54,6 +44,15 @@ class RGBATest {
 		assertEquals("#77777700", Colors["#7770"].hexString)
 		assertEquals("#ffffff00", Colors["#FFF0"].hexString)
 	}
+
+    @Test
+    fun with() {
+        assertEquals(Colors.RED, Colors.BLACK.withR(0xFF))
+        assertEquals(Colors.FUCHSIA, Colors.RED.withB(0xFF))
+        assertEquals(Colors.YELLOW, Colors.RED.withG(0xFF))
+        assertEquals(Colors.TRANSPARENT_BLACK, Colors.BLACK.withA(0))
+        assertEquals(Colors.TRANSPARENT_WHITE, Colors.WHITE.withA(0))
+    }
 
 	val colors = intArrayOf(RGBA.pack(0xFF, 0xFF, 0xFF, 0x7F), RGBA.pack(0x7F, 0x6F, 0x33, 0x90))
 

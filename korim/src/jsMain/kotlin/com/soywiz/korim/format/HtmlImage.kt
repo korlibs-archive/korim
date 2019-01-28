@@ -35,14 +35,8 @@ object HtmlImage {
 		return canvas
 	}
 
-	fun renderToHtmlCanvas(bmp: Bitmap32, canvas: HTMLCanvasElementLike): HTMLCanvasElementLike {
-		val data = if (bmp.premult) {
-			RGBA.depremultiplyFast(RgbaArray(bmp.data.ints.copyOf()))
-		} else {
-			bmp.data
-		}
-		return renderToHtmlCanvas(data, bmp.width, bmp.height, canvas)
-	}
+	fun renderToHtmlCanvas(bmp: Bitmap32, canvas: HTMLCanvasElementLike): HTMLCanvasElementLike =
+        renderToHtmlCanvas(bmp.depremultipliedIfRequired().data, bmp.width, bmp.height, canvas)
 
 	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElementLike, out: RgbaArray): Unit {
 		val width = canvas.width

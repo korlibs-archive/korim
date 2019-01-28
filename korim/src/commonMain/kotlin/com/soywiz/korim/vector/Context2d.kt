@@ -431,9 +431,9 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 
 		val numberOfStops = stops.size
 
-		fun addColorStop(stop: Double, color: Int): Gradient {
+		fun addColorStop(stop: Double, color: RGBA): Gradient {
 			stops += stop
-			colors += color
+			colors += color.value
 			return this
 		}
 

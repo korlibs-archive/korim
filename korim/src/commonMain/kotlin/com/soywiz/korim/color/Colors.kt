@@ -2,7 +2,6 @@ package com.soywiz.korim.color
 
 import com.soywiz.korio.lang.*
 
-// Colors are in RGBAInt for easy transition to inline classes
 @Suppress("MemberVisibilityCanBePrivate")
 object Colors {
 	val WHITE = RGBA(0xFF, 0xFF, 0xFF, 0xFF)
@@ -12,7 +11,7 @@ object Colors {
 	val BLUE = RGBA(0x00, 0x00, 0xFF, 0xFF)
 
 	val TRANSPARENT_BLACK = RGBA(0x00, 0x00, 0x00, 0x00)
-	val TRANSPARENT_WHITE = RGBA(0x00, 0x00, 0x00, 0x00)
+	val TRANSPARENT_WHITE = RGBA(0xFF, 0xFF, 0xFF, 0x00)
 
 	val ALICEBLUE = RGBA(240, 248, 255)
 	val ANTIQUEWHITE = RGBA(250, 235, 215)

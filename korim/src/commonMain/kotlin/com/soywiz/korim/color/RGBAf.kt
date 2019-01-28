@@ -24,12 +24,12 @@ class RGBAf(
         dirty = true
     }
 
-    private var _rgba: Int = -1
-    val rgba: Int
+    private var _rgba: RGBA = RGBA(-1)
+    val rgba: RGBA
         get() {
             if (dirty) {
                 dirty = false
-                _rgba = RGBA.packfFast(_r, _g, _b, _a)
+                _rgba = RGBA.float(_r, _g, _b, _a)
             }
             return _rgba
         }

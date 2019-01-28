@@ -43,7 +43,7 @@ data class ColorTransform(
 	private fun computeColors() = this.apply {
 		if (dirty) {
 			dirty = false
-			_colorMulInt = RGBA(RGBA.packf(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat())).value
+			_colorMulInt = RGBA.float(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat()).value
 			_colorAdd = ColorAdd.pack(_aR, _aG, _aB, _aA)
 		}
 	}

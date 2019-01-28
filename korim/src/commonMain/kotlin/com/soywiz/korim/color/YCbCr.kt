@@ -33,5 +33,11 @@ inline class YCbCr(val value: Int) {
     }
 }
 
+inline class YCbCrArray(val ints: IntArray) {
+    val size get() = ints.size
+    operator fun get(index: Int): YCbCr = YCbCr(ints[index])
+    operator fun set(index: Int, color: YCbCr) = run { ints[index] = color.value }
+}
+
 fun RGBA.toYCbCr(): YCbCr = YCbCr(YCbCr.getY(r, g, b), YCbCr.getCb(r, g, b), YCbCr.getCr(r, g, b), a)
 fun YCbCr.toRGBA(): RGBA = RGBA(YCbCr.getR(y, cb, cr), YCbCr.getG(y, cb, cr), YCbCr.getB(y, cb, cr), a)

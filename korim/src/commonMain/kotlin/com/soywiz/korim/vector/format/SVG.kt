@@ -52,13 +52,13 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 
-	fun parseStops(xml: Xml): List<Pair<Double, Int>> {
-		val out = arrayListOf<Pair<Double, Int>>()
+	fun parseStops(xml: Xml): List<Pair<Double, RGBA>> {
+		val out = arrayListOf<Pair<Double, RGBA>>()
 		for (stop in xml.children("stop")) {
 			val offset = parsePercent(stop.str("offset"))
 			val colorStop = Colors.Default[stop.str("stop-color")]
 			val alphaStop = stop.double("stop-opacity", 1.0)
-			out += Pair(offset, RGBA.packRGB_A(colorStop.rgb, (alphaStop * 255).toInt()))
+			out += Pair(offset, RGBA(colorStop.rgb, (alphaStop * 255).toInt()))
 		}
 		return out
 	}

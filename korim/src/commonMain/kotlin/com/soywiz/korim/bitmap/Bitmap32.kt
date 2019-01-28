@@ -207,14 +207,14 @@ class Bitmap32(
 	fun premultiplyInplace(): Bitmap32 {
 		if (premult) return this
 		premult = true
-        updateColors { it.premultiplied }
+        updateColors { it.premultiplied.asNonPremultiplied() }
 		return this
 	}
 
 	fun depremultiplyInplace(): Bitmap32 {
 		if (!premult) return this
 		premult = false
-        updateColors { it.depremultiplied }
+        updateColors { it.asPremultiplied().depremultiplied }
 		return this
 	}
 
@@ -232,7 +232,7 @@ class Bitmap32(
 	fun mipmap(levels: Int): Bitmap32 {
 		val temp = this.clone()
 		temp.premultiplyInplace()
-		val dst = temp.data
+		val dst = temp.data.asPremultiplied()
 
 		var twidth = width
 		var theight = height
@@ -245,11 +245,11 @@ class Bitmap32(
 				var m = temp.index(0, y * 2)
 
 				for (x in 0 until twidth) {
-					val c1 = dst.ints[m]
-					val c2 = dst.ints[m + 1]
-					val c3 = dst.ints[m + width]
-					val c4 = dst.ints[m + width + 1]
-					dst[n] = RGBA(RGBA.blendRGBAFastAlreadyPremultiplied_05(c1, c2, c3, c4))
+					val c1 = dst[m]
+					val c2 = dst[m + 1]
+					val c3 = dst[m + width]
+					val c4 = dst[m + width + 1]
+					dst[n] = RGBAPremultiplied.blend(c1, c2, c3, c4)
 					m += 2
 					n++
 				}
@@ -399,17 +399,11 @@ class Bitmap32(
             //showImageAndWait(a32)
             //showImageAndWait(b32)
             for (n in 0 until out.area) {
-                val c1 = RGBA.premultiplyFast(RGBA(a32.data.ints[n])).value
-                val c2 = RGBA.premultiplyFast(RGBA(b32.data.ints[n])).value
-
-                val dr = abs(RGBA.getR(c1) - RGBA.getR(c2))
-                val dg = abs(RGBA.getG(c1) - RGBA.getG(c2))
-                val db = abs(RGBA.getB(c1) - RGBA.getB(c2))
-                val da = abs(RGBA.getA(c1) - RGBA.getA(c2))
-                //val da = 0
+                val c1 = a32.data[n].premultiplied
+                val c2 = b32.data[n].premultiplied
 
                 //println("%02X, %02X, %02X".format(RGBA.getR(c1), RGBA.getR(c2), dr))
-                out.data[n] = RGBA(dr, dg, db, da)
+                out.data[n] = RGBA(abs(c1.r - c2.r), abs(c1.g - c2.g), abs(c1.b - c2.b), abs(c1.a - c2.a))
 
                 //println("$dr, $dg, $db, $da : ${out.data[n]}")
             }

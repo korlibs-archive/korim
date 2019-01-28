@@ -75,7 +75,7 @@ fun awtConvertImageIfRequired(image: BufferedImage): BufferedImage =
 fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 	val ints = (out.raster.dataBuffer as DataBufferInt).data
 	arraycopy(this.data.ints, 0, ints, 0, this.width * this.height)
-	for (n in 0 until area) ints[n] = RGBA.rgbaToBgra(ints[n])
+	for (n in 0 until area) ints[n] = BGRA.rgbaToBgra(ints[n])
 	out.flush()
 	return out
 }
@@ -87,7 +87,7 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 	val image = awtConvertImageIfRequired(this)
 	val ints = (image.raster.dataBuffer as DataBufferInt).data
 	val area = image.width * image.height
-	for (n in 0 until area) ints[n] = RGBA.rgbaToBgra(ints[n])
+	for (n in 0 until area) ints[n] = BGRA.rgbaToBgra(ints[n])
 	return Bitmap32(image.width, image.height, RgbaArray(ints), premultiplied)
 }
 
