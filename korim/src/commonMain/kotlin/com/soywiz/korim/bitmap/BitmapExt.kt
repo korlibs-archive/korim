@@ -21,7 +21,7 @@ fun Bitmap.matchContentsDistinctCount(that: Bitmap): Int {
 fun Bitmap.matchContents(that: Bitmap): Boolean = matchContentsDistinctCount(that) == 0
 
 fun Bitmap32.setAlpha(value: Int) {
-	for (n in 0 until this.data.size) this.data.array[n] = RGBA.packRGB_A(RGBA.getRGB(this.data.array[n]), value)
+	for (n in 0 until this.data.size) this.data.ints[n] = RGBA.packRGB_A(RGBA(this.data.ints[n]).rgb, value)
 }
 
 fun <T : Bitmap> T.putWithBorder(x: Int, y: Int, bmp: T, border: Int = 1) {

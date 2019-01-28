@@ -33,26 +33,28 @@ abstract class Bitmap(
 	fun get32Clamped(x: Int, y: Int): RGBA = RGBA(get32ClampedInt(x, y))
 	fun get32ClampedInt(x: Int, y: Int): Int = if (inBounds(x, y)) get32Int(x, y) else Colors.TRANSPARENT_BLACK.rgba
 
-	// @TODO: super-slow, optimize this! and probably expose some API to read several sampled pixels at once, to reuse computations as much as possible
-
-	fun get32Sampled(x: Double, y: Double): RGBA = RGBA(get32SampledInt(x, y))
-
-	fun get32SampledInt(x: Double, y: Double): Int {
-		if (x < 0.0 || x >= width.toDouble() || y < 0.0 || y >= height.toDouble()) return Colors.TRANSPARENT_BLACK.rgba
+	fun get32Sampled(x: Double, y: Double): RGBA {
+		if (x < 0.0 || x >= width.toDouble() || y < 0.0 || y >= height.toDouble()) return Colors.TRANSPARENT_BLACK
 		val x0 = x.toIntFloor()
 		val x1 = x.toIntCeil()
 		val y0 = y.toIntFloor()
 		val y1 = y.toIntCeil()
 		val xratio = x % 1
 		val yratio = y % 1
-		val c00 = get32ClampedInt(x0, y0)
-		val c10 = if (inBounds(x1, y0)) get32ClampedInt(x1, y0) else c00
-		val c01 = if (inBounds(x1, y1)) get32ClampedInt(x0, y1) else c00
-		val c11 = if (inBounds(x1, y1)) get32ClampedInt(x1, y1) else c01
-		val c1 = RGBA.blendRGBAInt(c00, c10, xratio)
-		val c2 = RGBA.blendRGBAInt(c01, c11, xratio)
-		return RGBA.blendRGBAInt(c1, c2, yratio)
+		val c00 = get32Clamped(x0, y0)
+		val c10 = if (inBounds(x1, y0)) get32Clamped(x1, y0) else c00
+		val c01 = if (inBounds(x1, y1)) get32Clamped(x0, y1) else c00
+		val c11 = if (inBounds(x1, y1)) get32Clamped(x1, y1) else c01
+		val c1 = RGBA.blendRGBA(c00, c10, xratio)
+		val c2 = RGBA.blendRGBA(c01, c11, xratio)
+		return RGBA.blendRGBA(c1, c2, yratio)
 	}
+
+    fun get32Sampled(x: Double, y: Double, count: Int, row: RgbaArray) {
+        for (n in 0 until count) {
+            row[n] = get32Sampled(x + n, y)
+        }
+    }
 
 	open fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		for (y in 0 until height) {
@@ -92,11 +94,11 @@ abstract class Bitmap(
 		is Bitmap32 -> this
 		is NativeImage -> this.toBmp32()
 		else -> Bitmap32(width, height, premult = premult).also { out ->
-			val array = out.data.array
+			val array = out.data
 			var n = 0
 			for (y in 0 until height) {
 				for (x in 0 until width) {
-					array[n++] = get32Int(x, y)
+					array[n++] = get32(x, y)
 				}
 			}
 		}

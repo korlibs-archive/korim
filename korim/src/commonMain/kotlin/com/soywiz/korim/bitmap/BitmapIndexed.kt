@@ -31,7 +31,7 @@ abstract class BitmapIndexed(
 		datau[i] = datau[i].insert(color, bpp * index_m(x, y), bpp)
 	}
 
-	override fun get32Int(x: Int, y: Int): Int = palette.array[this[x, y]]
+	override fun get32Int(x: Int, y: Int): Int = palette.ints[this[x, y]]
 	fun index_d(x: Int, y: Int) = index(x, y) / n8_dbpp
 	fun index_m(x: Int, y: Int) = index(x, y) % n8_dbpp
 
@@ -46,7 +46,7 @@ abstract class BitmapIndexed(
 	fun setWhitescalePalette() = this.apply {
 		for (n in 0 until palette.size) {
 			val col = ((n.toFloat() / palette.size.toFloat()) * 255).toInt()
-			palette.array[n] = RGBA.packFast(col, col, col, 0xFF)
+			palette.ints[n] = RGBA.packFast(col, col, col, 0xFF)
 		}
 		return this
 	}
@@ -76,9 +76,9 @@ abstract class BitmapIndexed(
 	}
 
 	override fun toBMP32(): Bitmap32 = Bitmap32(width, height, premult = premult).also { outBmp ->
-		val out = outBmp.data.array
+		val out = outBmp.data.ints
 		val inp = this@BitmapIndexed.data
-		val pal = this@BitmapIndexed.palette.array
+		val pal = this@BitmapIndexed.palette.ints
 		for (n in 0 until min(out.size, inp.size)) out[n] = pal[inp[n].unsigned]
 	}
 }

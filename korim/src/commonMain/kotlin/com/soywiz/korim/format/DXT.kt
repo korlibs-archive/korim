@@ -24,7 +24,7 @@ open class DXT1Base(format: String, premult: Boolean) : DXT(format, premult = tr
 		for (y in 0 until 4) {
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
-				bmp.array[pos + x] = RGBA.packFast(RGBA.getRGB(cc.array[c]), 0xFF)
+				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, 0xFF)
 				n++
 			}
 			pos += bmpStride
@@ -44,7 +44,7 @@ open class DXT2_3(format: String, premult: Boolean) : DXT(format, premult = prem
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
 				val a = ((adata ushr n * 3) and 0b111).toInt()
-				bmp.array[pos + x] = RGBA.packFast(RGBA.getRGB(cc.array[c]), aa[a])
+				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, aa[a])
 				n++
 			}
 			pos += bmpStride
@@ -64,7 +64,7 @@ open class DXT4_5(format: String, premult: Boolean) : DXT(format, premult, block
 			for (x in 0 until 4) {
 				val c = (cdata ushr n * 2) and 0b11
 				val a = ((adata ushr n * 3) and 0b111).toInt()
-				bmp.array[pos + x] = RGBA.packFast(RGBA.getRGB(cc.array[c]), aa[a])
+				bmp.ints[pos + x] = RGBA.packFast(RGBA(cc.ints[c]).rgb, aa[a])
 				n++
 			}
 			pos += bmpStride
@@ -134,27 +134,27 @@ abstract class DXT(val format: String, val premult: Boolean, val blockSize: Int)
 		fun decodeDxt1ColorCond(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
 			val c0 = data.readU16LE(dataOffset + 0)
 			val c1 = data.readU16LE(dataOffset + 2)
-			val ccArray = cc.array
+			val ccArray = cc.ints
 
 			ccArray[0] = decodeRGB656Int(c0)
 			ccArray[1] = decodeRGB656Int(c1)
 			if (c0 > c1) {
-				ccArray[2] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_2_3)
-				ccArray[3] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_1_3)
+				ccArray[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_2_3)
+				ccArray[3] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_3)
 				//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
 				//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 			} else {
-				ccArray[2] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_1_2)
+				ccArray[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_2)
 				//cc[2] = blendRGBA(cc[0], cc[1], 1, 2)
 				ccArray[3] = Colors.TRANSPARENT_BLACK.rgba
 			}
 		}
 
 		fun decodeDxt1Color(data: ByteArray, dataOffset: Int, cc: RgbaArray) {
-			cc.array[0] = decodeRGB656Int(data.readU16LE(dataOffset + 0))
-			cc.array[1] = decodeRGB656Int(data.readU16LE(dataOffset + 2))
-			cc.array[2] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_2_3)
-			cc.array[3] = RGBA.blendRGB(cc.array[0], cc.array[1], FACT_1_3)
+			cc.ints[0] = decodeRGB656Int(data.readU16LE(dataOffset + 0))
+			cc.ints[1] = decodeRGB656Int(data.readU16LE(dataOffset + 2))
+			cc.ints[2] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_2_3)
+			cc.ints[3] = RGBA.blendRGB(cc.ints[0], cc.ints[1], FACT_1_3)
 			//cc[2] = blendRGBA(cc[0], cc[1], 2, 3)
 			//cc[3] = blendRGBA(cc[0], cc[1], 1, 3)
 		}

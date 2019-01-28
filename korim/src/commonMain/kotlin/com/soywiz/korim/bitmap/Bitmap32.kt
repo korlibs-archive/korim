@@ -2,8 +2,8 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.color.RGBA.Companion
 import com.soywiz.korim.vector.*
-import com.soywiz.korio.util.*
 import kotlin.math.*
 
 class Bitmap32(
@@ -48,34 +48,34 @@ class Bitmap32(
 		val dstAdd = dst.width
 
 		for (y in 0 until height) {
-			arraycopy(srcArray.array, srcIndex, dstArray.array, dstIndex, width)
+			arraycopy(srcArray.ints, srcIndex, dstArray.ints, dstIndex, width)
 			srcIndex += srcAdd
 			dstIndex += dstAdd
 		}
 	}
 	operator fun set(x: Int, y: Int, color: RGBA) = run { data[index(x, y)] = color }
 	operator fun get(x: Int, y: Int): RGBA = data[index(x, y)]
-	override fun setInt(x: Int, y: Int, color: Int) = run { data.array[index(x, y)] = RGBAInt(color) }
-	override fun getInt(x: Int, y: Int): Int = data.array[index(x, y)]
-	override fun get32Int(x: Int, y: Int): Int = data.array[index(x, y)]
-	override fun set32Int(x: Int, y: Int, v: Int): Unit = run { data.array[index(x, y)] = v }
+	override fun setInt(x: Int, y: Int, color: Int) = run { data[index(x, y)] = RGBA(color) }
+	override fun getInt(x: Int, y: Int): Int = data.ints[index(x, y)]
+	override fun get32Int(x: Int, y: Int): Int = data.ints[index(x, y)]
+	override fun set32Int(x: Int, y: Int, v: Int): Unit = run { data.ints[index(x, y)] = v }
 
 	fun setRow(y: Int, row: IntArray) {
-		arraycopy(row, 0, data.array, index(0, y), width)
+		arraycopy(row, 0, data.ints, index(0, y), width)
 	}
 
 	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
 		val dst = this
 		val width = sright - sleft
 		val height = sbottom - stop
-		val dstData = dst.data.array
-		val srcData = src.data.array
+		val dstData = dst.data
+		val srcData = src.data
 		for (y in 0 until height) {
 			val dstOffset = dst.index(dx, dy + y)
 			val srcOffset = src.index(sleft, stop + y)
 			if (mix) {
 				for (x in 0 until width) dstData[dstOffset + x] =
-						RGBA.mixInt(dstData[dstOffset + x], srcData[srcOffset + x])
+						RGBA.mix(dstData[dstOffset + x], srcData[srcOffset + x])
 			} else {
 				// System.arraycopy
 				arraycopy(srcData, srcOffset, dstData, dstOffset, width)
@@ -147,13 +147,13 @@ class Bitmap32(
 		val dst = this
 		val width = sright - sleft
 		val height = sbottom - stop
-		val dstData = dst.data.array
+		val dstData = dst.data
 		for (y in 0 until height) {
 			val dstOffset = dst.index(dx, dy + y)
 			if (mix) {
-				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mixInt(dstData[dstOffset + x], src.get32Int(sleft + x, stop + y))
+				for (x in 0 until width) dstData[dstOffset + x] = RGBA.mix(dstData[dstOffset + x], src.get32(sleft + x, stop + y))
 			} else {
-				for (x in 0 until width) dstData[dstOffset + x] = src.get32Int(sleft + x, stop + y)
+				for (x in 0 until width) dstData[dstOffset + x] = src.get32(sleft + x, stop + y)
 			}
 		}
 	}
@@ -193,8 +193,8 @@ class Bitmap32(
 		val thisData = this.data
 		val inputData = input.data
 		for (n in 0 until area) {
-			val c = (inputData.array[n] ushr sourceShift) and 0xFF
-			thisData.array[n] = RGBAInt((thisData.array[n] and destClear) or (c shl destShift))
+			val c = (inputData.ints[n] ushr sourceShift) and 0xFF
+			thisData[n] = RGBA((thisData.ints[n] and destClear) or (c shl destShift))
 		}
 	}
 
@@ -203,7 +203,7 @@ class Bitmap32(
 		val destClear = (0xFF shl destShift).inv()
 		for (n in 0 until area) {
 			val c = input.data[n].toInt() and 0xFF
-			this.data.array[n] = RGBAInt((this.data.array[n] and destClear) or (c shl destShift))
+			this.data[n] = RGBA((this.data.ints[n] and destClear) or (c shl destShift))
 		}
 	}
 
@@ -214,7 +214,7 @@ class Bitmap32(
 		for (y in 0 until height) {
 			for (x in 0 until width) {
 				val c = gen(x, y) and 0xFF
-				this.data.array[n] = RGBAInt((this.data.array[n] and destClear) or (c shl destShift))
+				this.data[n] = RGBA((this.data.ints[n] and destClear) or (c shl destShift))
 				n++
 			}
 		}
@@ -225,7 +225,7 @@ class Bitmap32(
 		val destClear = (0xFF shl destShift).inv()
 		for (n in 0 until area) {
 			val c = gen(n) and 0xFF
-			this.data.array[n] = RGBAInt((this.data.array[n] and destClear) or (c shl destShift))
+			this.data[n] = RGBA((this.data.ints[n] and destClear) or (c shl destShift))
 		}
 	}
 
@@ -233,7 +233,7 @@ class Bitmap32(
 		val out = Bitmap8(width, height)
 		val shift = channel.shift
 		for (n in 0 until area) {
-			out.data[n] = ((data.array[n] ushr shift) and 0xFF).toByte()
+			out.data[n] = ((data.ints[n] ushr shift) and 0xFF).toByte()
 		}
 		return out
 	}
@@ -297,8 +297,8 @@ class Bitmap32(
 			//showImageAndWait(a32)
 			//showImageAndWait(b32)
 			for (n in 0 until out.area) {
-				val c1 = RGBA.premultiplyFastInt(a32.data.array[n])
-				val c2 = RGBA.premultiplyFastInt(b32.data.array[n])
+				val c1 = RGBA.premultiplyFast(RGBA(a32.data.ints[n])).rgba
+				val c2 = RGBA.premultiplyFast(RGBA(b32.data.ints[n])).rgba
 
 				val dr = abs(RGBA.getR(c1) - RGBA.getR(c2))
 				val dg = abs(RGBA.getG(c1) - RGBA.getG(c2))
@@ -307,7 +307,7 @@ class Bitmap32(
 				//val da = 0
 
 				//println("%02X, %02X, %02X".format(RGBA.getR(c1), RGBA.getR(c2), dr))
-				out.data.array[n] = RGBAInt(dr, dg, db, da)
+				out.data[n] = RGBA(dr, dg, db, da)
 
 				//println("$dr, $dg, $db, $da : ${out.data[n]}")
 			}
@@ -319,7 +319,7 @@ class Bitmap32(
 	fun invert() = xor(RGBA(255, 255, 255, 0))
 
 	fun xor(value: RGBA) {
-		for (n in 0 until area) data.array[n] = RGBAInt(data.array[n] xor value.rgba)
+		for (n in 0 until area) data[n] = RGBA(data.ints[n] xor value.rgba)
 	}
 
 	override fun toString(): String = "Bitmap32($width, $height)"
@@ -339,7 +339,7 @@ class Bitmap32(
 
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(Bitmap32Context2d(this, antialiasing))
 
-	fun clone() = Bitmap32(width, height, RgbaArray(this.data.array.copyOf()), premult)
+	fun clone() = Bitmap32(width, height, RgbaArray(this.data.ints.copyOf()), premult)
 
 	fun premultipliedIfRequired(): Bitmap32 = if (this.premult) this else premultiplied()
 	fun depremultipliedIfRequired(): Bitmap32 = if (!this.premult) this else depremultiplied()
@@ -349,7 +349,7 @@ class Bitmap32(
 	fun premultiplyInplace(): Bitmap32 {
 		if (premult) return this
 		premult = true
-		val array = data.array
+		val array = data.ints
 		//for (n in 0 until array.size) array[n] = RGBA.premultiplyFastInt(array[n])
 		for (n in 0 until array.size) array[n] = RGBA.premultiplyAccurate(array[n])
 		return this
@@ -358,7 +358,7 @@ class Bitmap32(
 	fun depremultiplyInplace(): Bitmap32 {
 		if (!premult) return this
 		premult = false
-		val array = data.array
+		val array = data.ints
 		for (n in 0 until array.size) array[n] = RGBA.depremultiplyFastInt(array[n])
 		//for (n in 0 until data.size) data[n] = RGBA.depremultiplyAccurate(data[n])
 		return this
@@ -372,8 +372,8 @@ class Bitmap32(
 		val B = IntArray(256) { ((it * ct.mB) + ct.aB).toInt().clamp(0x00, 0xFF) }
 		val A = IntArray(256) { ((it * ct.mA) + ct.aA).toInt().clamp(0x00, 0xFF) }
 		for (n in 0 until data.size) {
-			val c = data.array[n]
-			data.array[n] = RGBAInt(R[RGBA.getR(c)], G[RGBA.getG(c)], B[RGBA.getB(c)], A[RGBA.getA(c)])
+			val c = data.ints[n]
+			data[n] = RGBA(R[RGBA.getR(c)], G[RGBA.getG(c)], B[RGBA.getB(c)], A[RGBA.getA(c)])
 		}
 	}
 
@@ -434,11 +434,11 @@ class Bitmap32(
 				var m = temp.index(0, y * 2)
 
 				for (x in 0 until twidth) {
-					val c1 = dst.array[m]
-					val c2 = dst.array[m + 1]
-					val c3 = dst.array[m + width]
-					val c4 = dst.array[m + width + 1]
-					dst.array[n] = RGBAInt(RGBA.blendRGBAFastAlreadyPremultiplied_05(c1, c2, c3, c4))
+					val c1 = dst.ints[m]
+					val c2 = dst.ints[m + 1]
+					val c3 = dst.ints[m + width]
+					val c4 = dst.ints[m + width + 1]
+					dst[n] = RGBA(RGBA.blendRGBAFastAlreadyPremultiplied_05(c1, c2, c3, c4))
 					m += 2
 					n++
 				}
@@ -458,7 +458,7 @@ class Bitmap32(
 		} else {
 			var m = index(x, y)
 			for (n in 0 until width) {
-				this.data.array[m] = data.array[n]
+				this.data.ints[m] = data.ints[n]
 				m += increment
 			}
 		}
@@ -479,28 +479,28 @@ class Bitmap32(
 	fun writeComponent(dstCmp: BitmapChannel, from: Bitmap32, srcCmp: BitmapChannel) {
 		val fdata = from.data
 		for (n in 0 until area) {
-			data.array[n] = dstCmp.insertInt(data.array[n], srcCmp.extractInt(fdata.array[n]))
+			data.ints[n] = dstCmp.insertInt(data.ints[n], srcCmp.extractInt(fdata.ints[n]))
 		}
 	}
 
 	fun rgbaToYCbCr(): Bitmap32 = Bitmap32(width, height).apply {
-		for (n in 0 until area) this.data.array[n] = RGBAInt(YCbCr.rgbaToYCbCrInt(this@Bitmap32.data.array[n]))
+		for (n in 0 until area) this.data[n] = RGBA(YCbCr.rgbaToYCbCrInt(this@Bitmap32.data.ints[n]))
 	}
 
 	fun yCbCrToRgba(): Bitmap32 = Bitmap32(width, height).apply {
-		for (n in 0 until area) this.data.array[n] = YCbCr.yCbCrToRgbaInt(this@Bitmap32.data.array[n])
+		for (n in 0 until area) this.data[n] = YCbCr.yCbCrToRgba(this@Bitmap32.data.ints[n])
 	}
 
 	fun computeHash(): Int {
 		var hash = 0
-		for (n in 0 until data.size) hash += data.array[n]
+		for (n in 0 until data.size) hash += data.ints[n]
 		return hash
 	}
 }
 
 fun Bitmap32Int(width: Int, height: Int, premult: Boolean = false, generator: (x: Int, y: Int) -> Int): Bitmap32 {
 	val out = Bitmap32(width, height, Colors.TRANSPARENT_BLACK, premult)
-	val aout = out.data.array
+	val aout = out.data.ints
 	var n = 0
 	for (y in 0 until height) {
 		for (x in 0 until width) {

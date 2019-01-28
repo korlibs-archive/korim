@@ -23,7 +23,7 @@ object HtmlImage {
 		val idataData = idata.data
 		var m = 0
 		for (n in 0 until pixelCount) {
-			val c = bmpData.array[n]
+			val c = bmpData.ints[n]
 
 			// @TODO: Kotlin.JS bug Clamped Array should be int inst@TODO: Kotlin.JS bug Clamped Array should be int instead of Byte
 			idataData[m++] = RGBA.getR(c).asDynamic()
@@ -37,7 +37,7 @@ object HtmlImage {
 
 	fun renderToHtmlCanvas(bmp: Bitmap32, canvas: HTMLCanvasElementLike): HTMLCanvasElementLike {
 		val data = if (bmp.premult) {
-			RGBA.depremultiplyFast(RgbaArray(bmp.data.array.copyOf()))
+			RGBA.depremultiplyFast(RgbaArray(bmp.data.ints.copyOf()))
 		} else {
 			bmp.data
 		}
@@ -57,7 +57,7 @@ object HtmlImage {
 			val g = ddata[m++].toInt() and 0xFF
 			val b = ddata[m++].toInt() and 0xFF
 			val a = ddata[m++].toInt() and 0xFF
-			out.array[n] = RGBA.packFast(r, g, b, a)
+			out.ints[n] = RGBA.packFast(r, g, b, a)
 		}
 		//console.log(out);
 	}

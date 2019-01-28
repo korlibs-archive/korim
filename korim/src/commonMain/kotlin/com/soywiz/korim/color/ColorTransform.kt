@@ -44,7 +44,7 @@ data class ColorTransform(
 	private fun computeColors() = this.apply {
 		if (dirty) {
 			dirty = false
-			_colorMulInt = RGBAInt(RGBA.packf(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat()))
+			_colorMulInt = RGBA(RGBA.packf(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat())).rgba
 			_colorAdd = ColorAdd.pack(_aR, _aG, _aB, _aA)
 		}
 	}
@@ -69,10 +69,10 @@ data class ColorTransform(
 			return computeColors()._colorAdd
 		}
 		set(v) {
-			_aR = ColorAdd.unpackComponent(RGBA.getFastR(v))
-			_aG = ColorAdd.unpackComponent(RGBA.getFastG(v))
-			_aB = ColorAdd.unpackComponent(RGBA.getFastB(v))
-			_aA = ColorAdd.unpackComponent(RGBA.getFastA(v))
+			_aR = ColorAdd.unpackComponent(RGBA(v).r)
+			_aG = ColorAdd.unpackComponent(RGBA(v).g)
+			_aB = ColorAdd.unpackComponent(RGBA(v).b)
+			_aA = ColorAdd.unpackComponent(RGBA(v).a)
 			dirty = true
 		}
 
@@ -179,10 +179,10 @@ data class ColorTransform(
 	fun setToIdentity() = setTo(1.0, 1.0, 1.0, 1.0, 0, 0, 0, 0)
 
 	fun applyToColor(color: Int): Int {
-		val r = ((RGBA.getFastR(color) * mR) + aR).toInt()
-		val g = ((RGBA.getFastG(color) * mG) + aG).toInt()
-		val b = ((RGBA.getFastB(color) * mB) + aB).toInt()
-		val a = ((RGBA.getFastA(color) * mA) + aA).toInt()
+		val r = ((RGBA(color).r * mR) + aR).toInt()
+		val g = ((RGBA(color).g * mG) + aG).toInt()
+		val b = ((RGBA(color).b * mB) + aB).toInt()
+		val a = ((RGBA(color).a * mA) + aA).toInt()
 		return RGBA.pack(r, g, b, a)
 	}
 }

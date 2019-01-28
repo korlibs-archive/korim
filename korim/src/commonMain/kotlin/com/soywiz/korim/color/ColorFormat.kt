@@ -2,7 +2,6 @@ package com.soywiz.korim.color
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korio.*
 import kotlin.math.*
 
 interface ColorFormatBase {
@@ -55,7 +54,7 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 	fun packRGBAInt(c: Int): Int = pack(getR(c), getG(c), getB(c), getA(c))
 
 	fun unpackToRGBA(packed: Int): RGBA = RGBA(getR(packed), getG(packed), getB(packed), getA(packed))
-	fun unpackToRGBAInt(packed: Int): Int = RGBAInt(getR(packed), getG(packed), getB(packed), getA(packed))
+	fun unpackToRGBAInt(packed: Int): Int = unpackToRGBA(packed).rgba
 
 	fun convertTo(color: Int, target: ColorFormat): Int = target.pack(
 		this.getR(color), this.getG(color), this.getB(color), this.getA(color)
@@ -78,7 +77,7 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		var io = dataOffset
 		var oo = outOffset
 		val bytesPerPixel = this.bytesPerPixel
-		val outdata = out.array
+		val outdata = out.ints
 
 		for (n in 0 until size) {
 			val c = read(data, io)
@@ -145,7 +144,7 @@ abstract class ColorFormat(val bpp: Int) : ColorFormatBase {
 		var io = colorsOffset
 		var oo = outOffset
 		for (n in 0 until size) {
-			val c = colors.array[io++]
+			val c = colors.ints[io++]
 			val ec = pack(RGBA.getR(c), RGBA.getG(c), RGBA.getB(c), RGBA.getA(c))
 			when (bpp) {
 				16 -> if (littleEndian) out.write16LE(oo, ec) else out.write16BE(oo, ec)

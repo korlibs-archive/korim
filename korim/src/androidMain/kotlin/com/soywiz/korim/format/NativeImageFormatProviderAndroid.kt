@@ -99,7 +99,7 @@ fun Bitmap.toAndroidBitmap(): android.graphics.Bitmap {
     if (this is AndroidNativeImage) return this.androidBitmap
     val bmp32 = this.toBMP32()
     return android.graphics.Bitmap.createBitmap(
-        bmp32.data.array,
+        bmp32.data.ints,
         0,
         bmp32.width,
         bmp32.width,
@@ -114,7 +114,7 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) :
 
     override fun toNonNativeBmp(): Bitmap {
         val out = RgbaArray(width * height)
-        androidBitmap.getPixels(out.array, 0, width, 0, 0, width, height)
+        androidBitmap.getPixels(out.ints, 0, width, 0, 0, width, height)
         return Bitmap32(width, height, out, premult = premult)
     }
 

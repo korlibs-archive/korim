@@ -1,10 +1,8 @@
 package com.soywiz.korim.vector
 
-import com.soywiz.kds.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.shape.*
 import com.soywiz.korma.geom.vector.*
@@ -112,7 +110,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 		override fun fill(data: RgbaArray, offset: Int, x: Int, y: Int, count: Int) {
 			val c = fill.color.rgba
 			for (n in 0 until count) {
-				data.array[offset + n] = c
+				data.ints[offset + n] = c
 			}
 		}
 	}
@@ -132,9 +130,9 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 				val bmpX = fillTrans.transformX(x + n, y)
 				val bmpY = fillTrans.transformY(y + n, y)
 				if (antialiasing) {
-					data.array[offset + n] = fill.bitmap.get32SampledInt(bmpX, bmpY)
+					data[offset + n] = fill.bitmap.get32Sampled(bmpX, bmpY)
 				} else {
-					data.array[offset + n] = fill.bitmap.get32ClampedInt(bmpX.toInt(), bmpY.toInt())
+					data[offset + n] = fill.bitmap.get32Clamped(bmpX.toInt(), bmpY.toInt())
 				}
 			}
 		}
@@ -152,18 +150,18 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 		override fun updated() {
 			stateTrans = state.transform.inverted()
 			fillTrans = fill.transform.inverted()
-			for (n in 0 until stopN(0)) colors.array[n] = RGBAInt(fill.colors.first())
+			for (n in 0 until stopN(0)) colors[n] = RGBA(fill.colors.first())
 			for (n in 0 until fill.numberOfStops - 1) {
 				val stop0 = stopN(n + 0)
 				val stop1 = stopN(n + 1)
-				val color0 = RGBAInt(fill.colors[n + 0])
-				val color1 = RGBAInt(fill.colors[n + 1])
+				val color0 = RGBA(fill.colors[n + 0])
+				val color1 = RGBA(fill.colors[n + 1])
 				for (s in stop0 until stop1) {
 					val ratio = (s - stop0).toDouble() / (stop1 - stop0).toDouble()
-					colors.array[s] = RGBA.interpolateInt(color0, color1, ratio)
+					colors[s] = RGBA.interpolate(color0, color1, ratio)
 				}
 			}
-			for (n in stopN(fill.numberOfStops - 1) until NCOLORS) colors.array[n] = fill.colors.last()
+			for (n in stopN(fill.numberOfStops - 1) until NCOLORS) colors.ints[n] = fill.colors.last()
 			//println(colors.map { RGBA.toHexString(it) })
 		}
 
@@ -182,7 +180,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 
 			for (n in 0 until count) {
 				val ratio = mat.transformX((x + n).toDouble(), y.toDouble()).clamp01()
-				data.array[offset + n] = colors.array[(ratio * (NCOLORS - 1)).toInt()]
+				data.ints[offset + n] = colors.ints[(ratio * (NCOLORS - 1)).toInt()]
 			}
 		}
 	}

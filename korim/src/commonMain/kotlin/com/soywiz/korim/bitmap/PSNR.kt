@@ -9,7 +9,7 @@ object PSNR {
         val area = a.area
         var sum = 0.0
         for (n in 0 until area) {
-            val v = c.extractInt(a.data.array[n]) - c.extractInt(b.data.array[n])
+            val v = c.extractInt(a.data.ints[n]) - c.extractInt(b.data.ints[n])
             sum += v * v
         }
         return sum / area.toDouble()

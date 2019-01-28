@@ -38,18 +38,16 @@ object YCbCr : ColorFormat32() {
 		return RGBA.pack(Y, Cb, Cr, A)
 	}
 
-	fun yCbCrToRgba(c: Int): RGBA = RGBA(yCbCrToRgbaInt(c))
+	fun yCbCrToRgba(c: Int): RGBA {
+        val Y = RGBA.getR(c)
+        val Cb = RGBA.getG(c)
+        val Cr = RGBA.getB(c)
+        val A = RGBA.getA(c)
 
-	fun yCbCrToRgbaInt(c: Int): Int {
-		val Y = RGBA.getR(c)
-		val Cb = RGBA.getG(c)
-		val Cr = RGBA.getB(c)
-		val A = RGBA.getA(c)
+        val R = getR(Y, Cb, Cr)
+        val G = getG(Y, Cb, Cr)
+        val B = getB(Y, Cb, Cr)
 
-		val R = getR(Y, Cb, Cr)
-		val G = getG(Y, Cb, Cr)
-		val B = getB(Y, Cb, Cr)
-
-		return RGBAInt(R, G, B, A)
-	}
+        return RGBA(R, G, B, A)
+    }
 }
