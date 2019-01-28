@@ -65,12 +65,9 @@ class Bitmap32(
 			val dstOffset = dst.index(dx, dy + y)
 			val srcOffset = src.index(sleft, stop + y)
 			if (mix) {
-				for (x in 0 until width) dstData[dstOffset + x] =
-						RGBA.mix(dstData[dstOffset + x], srcData[srcOffset + x])
+				for (x in 0 until width) dstData[dstOffset + x] = dstData[dstOffset + x] mix srcData[srcOffset + x]
 			} else {
-				// System.arraycopy
 				arraycopy(srcData, srcOffset, dstData, dstOffset, width)
-				//for (x in 0 until width) dstData[dstOffset + x] = srcData[srcOffset + x]
 			}
 		}
 	}
@@ -99,6 +96,13 @@ class Bitmap32(
 
 		_draw(other, dx, dy, sleft, stop, sright, sbottom, mix)
 	}
+
+    fun historiogram(channel: BitmapChannel, out: IntArray = IntArray(256)): IntArray {
+        check(out.size >= 256) { "output array size must be 256" }
+        out.fill(0)
+        forEach { n, _, _ -> out[channel.extract(data[n])]++ }
+        return out
+    }
 
 	fun fill(color: RGBA, x: Int = 0, y: Int = 0, width: Int = this.width - x, height: Int = this.height - y) {
 		val x1 = clampX(x)
@@ -160,13 +164,14 @@ class Bitmap32(
 
 	inline fun all(callback: (RGBA) -> Boolean): Boolean = (0 until area).any { callback(data[it]) }
 
-	inline fun forEach(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (n: Int, x: Int, y: Int) -> Unit) {
+	inline fun forEach(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (n: Int, x: Int, y: Int) -> Unit): Bitmap32 {
 		for (y in sy until sy + height) {
             var n = index(sx, sy + y)
             for (x in sx until sx + width) {
                 callback(n++, x, y)
             }
         }
+        return this
 	}
 
 	inline fun setEach(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (x: Int, y: Int) -> RGBA) = forEach(sx, sy, width, height) { n, x, y -> this.data[n] = callback(x, y) }
@@ -272,24 +277,32 @@ class Bitmap32(
 		}
 	}
 
-	fun extractBytes(): ByteArray = RGBA.encode(data)
+	fun extractBytes(format: ColorFormat = RGBA): ByteArray = format.encode(data)
 
-	fun scaleNearest(sx: Int, sy: Int): Bitmap32 {
-		val out = Bitmap32(width * sx, height * sy)
-		for (y in 0 until out.height) {
-			for (x in 0 until out.width) {
-				out[x, y] = this[x / sx, y / sy]
-			}
-		}
-		return out
-	}
+    //fun scroll(sx: Int, sy: Int) {
+    //    scrollX(sx)
+    //    scrollY(sy)
+    //}
+    //
+    //private fun scrollX(sx: Int) {
+    //    val displacement = sx umod width
+    //    if (displacement == 0) return
+    //    for (y in 0 until height) {
+    //        arraycopy(this.data.ints, index(0, y), temp.ints, 0, width)
+    //        arraycopy(temp.ints, 0, this.data.ints, index(0, y), displacement)
+    //        arraycopy(temp.ints, displacement, this.data.ints, index(displacement, y), width - displacement)
+    //    }
+    //}
+    //
+    //private fun scrollY(sy: Int) {
+    //    arraycopy(this.data.ints, 0, temp.ints, 0, width)
+    //    for (y in 0 until height - 1) {
+    //
+    //    }
+    //}
 
-	fun writeComponent(dstCmp: BitmapChannel, from: Bitmap32, srcCmp: BitmapChannel) {
-		val fdata = from.data
-		for (n in 0 until area) {
-			data[n] = dstCmp.insert(data[n], srcCmp.extract(fdata[n]))
-		}
-	}
+    fun scaleNearest(sx: Int, sy: Int): Bitmap32 = Bitmap32(width * sx, height * sy).setEach { x, y -> this@Bitmap32[x / sx, y / sy] }
+    fun scaleLinear(sx: Double, sy: Double): Bitmap32 = Bitmap32((width * sx).toInt(), (height * sy).toInt()).setEach { x, y -> this@Bitmap32.getRgbaSampled(x / sx, y / sy) }
 
 	fun rgbaToYCbCr(): Bitmap32 = clone().apply { rgbaToYCbCrInline() }
     fun rgbaToYCbCrInline() = updateColors { RGBA(it.toYCbCr().value) }
