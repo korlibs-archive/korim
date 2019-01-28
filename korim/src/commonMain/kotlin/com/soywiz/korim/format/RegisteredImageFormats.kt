@@ -1,12 +1,10 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korio.stream.*
+import kotlin.native.concurrent.*
 
-private var _RegisteredImageFormats_formats = ImageFormats(PNG)
-
-internal var RegisteredImageFormats_formats: ImageFormats
-    get() = _RegisteredImageFormats_formats
-    set(value) = run { _RegisteredImageFormats_formats = value }
+@ThreadLocal
+private var RegisteredImageFormats_formats: ImageFormats = ImageFormats(PNG)
 
 object RegisteredImageFormats : ImageFormat() {
     var formats: ImageFormats
