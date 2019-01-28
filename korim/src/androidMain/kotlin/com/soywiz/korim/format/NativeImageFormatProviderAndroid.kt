@@ -5,7 +5,7 @@ import android.graphics.*
 import android.text.*
 import android.view.*
 import android.widget.*
-import androidContext
+import com.soywiz.korio.android.androidContext
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.*
