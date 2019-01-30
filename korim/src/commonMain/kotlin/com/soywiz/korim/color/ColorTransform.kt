@@ -37,30 +37,26 @@ data class ColorTransform(
 
 	private var dirty = true
 
-	private var _colorMulInt: Int = Colors.WHITE.value
+	private var _colorMul: RGBA = Colors.WHITE
 	private var _colorAdd: Int = 0
 
 	private fun computeColors() = this.apply {
 		if (dirty) {
 			dirty = false
-			_colorMulInt = RGBA.float(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat()).value
+			_colorMul = RGBA.float(_mR.toFloat(), _mG.toFloat(), _mB.toFloat(), _mA.toFloat())
 			_colorAdd = ColorAdd.pack(_aR, _aG, _aB, _aA)
 		}
 	}
 
-	var colorMulInt: Int
-		get() = computeColors()._colorMulInt
-		set(v) {
-			_mR = RGBA.getRd(v)
-			_mG = RGBA.getGd(v)
-			_mB = RGBA.getBd(v)
-			_mA = RGBA.getAd(v)
-			dirty = true
-		}
-
 	var colorMul: RGBA
-		get() = RGBA(colorMulInt)
-		set(v) = run { colorMulInt = v.value }
+		get() = computeColors()._colorMul
+		set(v) = run {
+            _mR = v.rd
+            _mG = v.gd
+            _mB = v.bd
+            _mA = v.ad
+            dirty = true
+        }
 
 	var colorAdd: Int
 		get() {
@@ -150,7 +146,7 @@ data class ColorTransform(
 
 		this.dirty = t.dirty
 		this._colorAdd = t._colorAdd
-		this._colorMulInt = t._colorMulInt
+		this._colorMul = t._colorMul
 
 		return this
 	}
