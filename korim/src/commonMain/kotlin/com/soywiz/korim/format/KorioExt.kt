@@ -138,6 +138,7 @@ suspend fun VfsFile.writeBitmap(
 ) {
 	this.write(format.encode(bitmap, props.copy(filename = this.baseName)))
 }
-//suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat = defaultImageFormats, props: ImageEncodingProps = ImageEncodingProps()) {
+//suspend fun VfsFile.writeBitmap(bitmap: Bitmap, format: ImageFormat =
+// defaultImageFormats, props: ImageEncodingProps = ImageEncodingProps()) {
 //	this.write(format.encodeInWorker(bitmap, this.basename, props))
 //}

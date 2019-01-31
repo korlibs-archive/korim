@@ -4,7 +4,8 @@ import com.soywiz.korio.stream.*
 import kotlin.native.concurrent.*
 
 @ThreadLocal
-private var RegisteredImageFormats_formats: ImageFormats = ImageFormats(PNG)
+//private var RegisteredImageFormats_formats: ImageFormats = ImageFormats(PNG) // Do not register anything to not include inflater if not required
+private var RegisteredImageFormats_formats: ImageFormats = ImageFormats()
 
 object RegisteredImageFormats : ImageFormat() {
     var formats: ImageFormats

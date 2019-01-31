@@ -8,3 +8,5 @@
 *.iws
 *.iml
 /local.properties
+*.hprof
+
