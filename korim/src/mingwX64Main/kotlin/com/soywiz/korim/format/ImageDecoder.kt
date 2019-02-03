@@ -45,7 +45,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                         Height = height.value.toInt()
                     }
                     val bmpData = alloc<BitmapData>()
-                    if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppARGB, bmpData.ptr.reinterpret()).toInt() != 0) {
+                    if (GdipBitmapLockBits(pimage[0], rect.ptr.reinterpret(), ImageLockModeRead, PixelFormat32bppPARGB, bmpData.ptr.reinterpret()).toInt() != 0) {
                         return@execute null
                     }
 
@@ -55,7 +55,10 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     out.usePinned { outp ->
                         val o = outp.addressOf(0)
                         for (y in 0 until bmpHeight) {
-                            memcpy(o.reinterpret<IntVar>() + bmpWidth * y, (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>(), (bmpData.Width * 4.convert()).convert())
+                            val optr = (o.reinterpret<IntVar>() + bmpWidth * y)!!
+                            val iptr = (bmpData.Scan0.toLong() + (bmpData.Stride * y)).toCPointer<IntVar>()!!
+                            memcpy(optr, iptr, (bmpData.Width * 4.convert()).convert())
+                            for (x in 0 until bmpWidth) optr[x] = argbToAbgr(optr[x])
                         }
                     }
 
@@ -63,11 +66,21 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     GdipDisposeImage(pimage[0])
 
                     //println(out.toList())
-                    Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premultiplied = false)
+                    Bitmap32(bmpWidth, bmpHeight, RgbaArray(out), premultiplied = true)
                 }
             }
         ).await() ?: throw IOException("Can't load image from ByteArray")
     )
+}
+
+// val r: Int get() = (value ushr 0) and 0xFF
+// val g: Int get() = (value ushr 8) and 0xFF
+// val b: Int get() = (value ushr 16) and 0xFF
+// val a: Int get() = (value ushr 24) and 0xFF
+private fun argbToAbgr(col: Int): Int {
+    return (col and 0xFF00FF00.toInt()) or // GREEN + ALPHA are in place
+        ((col and 0xFF) shl 16) or // Swap R
+        ((col shr 16) and 0xFF) // Swap B
 }
 
 private var initializedGdiPlus = false
