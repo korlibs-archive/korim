@@ -297,8 +297,12 @@ class Bitmap32(
 	fun yCbCrToRgba(): Bitmap32 = clone().apply { yCbCrToRgbaInline() }
     fun yCbCrToRgbaInline() = updateColors { YCbCr(it.value).toRGBA() }
 
-    override fun equals(other: Any?): Boolean = (other is Bitmap32) && (this.width == other.width) && (this.height == other.height) && data.ints.contentEquals(other.data.ints)
-    override fun hashCode(): Int = (width * 31 + height) + data.ints.contentHashCode() + premultiplied.toInt()
+    fun contentEquals(other: Any?): Boolean = (other is Bitmap32) && (this.width == other.width) && (this.height == other.height) && data.ints.contentEquals(other.data.ints)
+    fun contentHashCode(): Int = (width * 31 + height) + data.ints.contentHashCode() + premultiplied.toInt()
+
+    // @TODO: Can't do this or won't be able to put Bitmaps on hashmaps
+    //override fun equals(other: Any?): Boolean = (other is Bitmap32) && (this.width == other.width) && (this.height == other.height) && data.ints.contentEquals(other.data.ints)
+    //override fun hashCode(): Int = (width * 31 + height) + data.ints.contentHashCode() + premultiplied.toInt()
 
     companion object {
         operator fun invoke(width: Int, height: Int, premultiplied: Boolean = false, generator: (x: Int, y: Int) -> RGBA): Bitmap32 {

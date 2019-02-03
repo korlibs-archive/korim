@@ -33,4 +33,17 @@ class Bitmap32Test {
 	//	val bitmap2 = bmp.mipmap(2)
 	//	//awtShowImage(bitmap2); Thread.sleep(10000L)
 	//}
+
+    @Test
+    fun bitmapsAreNotComparedNorHashedByContent() {
+        val bmp1 = Bitmap32(32, 32)
+        val bmp2 = Bitmap32(32, 32)
+        val hash1 = bmp1.hashCode()
+        val hash2 = bmp2.hashCode()
+        assertNotEquals(bmp1, bmp2)
+        assertNotEquals(hash1, hash2)
+
+        bmp1[0, 0] = Colors.RED
+        assertEquals(bmp1.hashCode(), hash1)
+    }
 }
