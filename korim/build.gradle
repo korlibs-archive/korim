@@ -5,5 +5,5 @@ korlibs {
     dependencyMulti("com.soywiz:korio:$korioVersion")
     dependencyMulti("com.soywiz:korma:$kormaVersion")
     dependencyNodeModule("canvas", "2.2.0")
-    dependencyCInterop("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
+    dependencyCInterops("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
 }
