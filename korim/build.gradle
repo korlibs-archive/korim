@@ -4,13 +4,6 @@ korlibs {
     exposeVersion()
     dependencyMulti("com.soywiz:korio:$korioVersion")
     dependencyMulti("com.soywiz:korma:$kormaVersion")
-}
-
-
-for (target in ["linuxX64", "iosX64", "iosArm32", "iosArm64"]) {
-    kotlin.targets[target].compilations.main {
-        cinterops {
-            stb_image { }
-        }
-    }
+    dependencyNodeModule("canvas", "2.2.0")
+    dependencyCInterop("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
 }

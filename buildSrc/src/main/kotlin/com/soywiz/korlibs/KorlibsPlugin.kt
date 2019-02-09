@@ -1,8 +1,11 @@
 package com.soywiz.korlibs
 
+import com.moowork.gradle.node.NodeExtension
+import com.moowork.gradle.node.npm.NpmTask
 import com.soywiz.korlibs.modules.*
 import com.soywiz.korlibs.targets.*
 import org.gradle.api.*
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeCompilation
 import java.io.*
 
 class KorlibsPlugin : Plugin<Project> {
@@ -74,6 +77,30 @@ class KorlibsExtension(val project: Project) {
     fun dependencyMulti(dependency: String, targets: List<String> = ALL_TARGETS) {
         val (group, name, version) = dependency.split(":", limit = 3)
         return dependencyMulti(group, name, version, targets)
+    }
+
+    @JvmOverloads
+    fun dependencyNodeModule(name: String, version: String) = project {
+        val node = extensions.getByType(NodeExtension::class.java)
+
+        val installNodeModule = tasks.create<NpmTask>("installJs${name.capitalize()}") {
+            onlyIf { !File(node.nodeModulesDir, name).exists() }
+            setArgs(arrayListOf("install", "$name@$version"))
+        }
+
+        tasks.getByName("jsTestNode").dependsOn(installNodeModule)
+    }
+
+    @JvmOverloads
+    fun dependencyCInterops(name: String, targets: List<String>) = project {
+        for (target in targets) {
+            (kotlin.targets[target].compilations["main"] as KotlinNativeCompilation).apply {
+                cinterops.apply {
+                    maybeCreate(name).apply {
+                    }
+                }
+            }
+        }
     }
 
     @JvmOverloads
