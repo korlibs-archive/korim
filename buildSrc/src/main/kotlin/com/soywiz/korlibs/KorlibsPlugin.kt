@@ -50,7 +50,8 @@ class KorlibsExtension(val project: Project) {
         }
     }
 
-    val ALL_TARGETS = listOf("android", "iosArm64", "iosArm32", "iosX64", "js", "jvm", "linuxX64", "macosX64", "mingwX64", "metadata")
+    val ALL_NATIVE_TARGETS = listOf("iosArm64", "iosArm32", "iosX64", "linuxX64", "macosX64", "mingwX64")
+    val ALL_TARGETS = listOf("android", "js", "jvm", "metadata") + ALL_NATIVE_TARGETS
 
     @JvmOverloads
     fun dependencyMulti(group: String, name: String, version: String, targets: List<String> = ALL_TARGETS, suffixCommonRename: Boolean = false, androidIsJvm: Boolean = false) = project {
@@ -91,8 +92,14 @@ class KorlibsExtension(val project: Project) {
         tasks.getByName("jsTestNode").dependsOn(installNodeModule)
     }
 
+    data class CInteropTargets(val name: String, val targets: List<String>)
+
+    val cinterops = arrayListOf<CInteropTargets>()
+
+
     @JvmOverloads
     fun dependencyCInterops(name: String, targets: List<String>) = project {
+        cinterops += CInteropTargets(name, targets)
         for (target in targets) {
             (kotlin.targets[target].compilations["main"] as KotlinNativeCompilation).apply {
                 cinterops.apply {
@@ -101,6 +108,11 @@ class KorlibsExtension(val project: Project) {
                 }
             }
         }
+    }
+
+    @JvmOverloads
+    fun dependencyCInteropsExternal(dependency: String, cinterop: String, targets: List<String> = ALL_NATIVE_TARGETS) {
+        dependencyMulti("$dependency:cinterop-$cinterop@klib", targets)
     }
 
     @JvmOverloads
