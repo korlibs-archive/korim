@@ -91,7 +91,7 @@ fun BufferedImage.toBMP32(): Bitmap32 {
 	return Bitmap32(image.width, image.height, RgbaArray(ints), premultiplied)
 }
 
-fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): BufferedImage {
+fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE_PRE): BufferedImage {
 	return ImageIO.read(s).clone(type = type)
 	//return ImageIO.createImageInputStream(s).use { i ->
 	//	// Get the reader
@@ -121,10 +121,10 @@ fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE): Buff
 }
 
 fun awtReadImage(data: ByteArray): BufferedImage = ImageIOReadFormat(ByteArrayInputStream(data))
-suspend fun awtReadImageInWorker(data: ByteArray): BufferedImage =
-    executeInWorkerJVM {  ImageIOReadFormat(ByteArrayInputStream(data)) }
+suspend fun awtReadImageInWorker(data: ByteArray, premultiplied: Boolean): BufferedImage =
+    executeInWorkerJVM {  ImageIOReadFormat(ByteArrayInputStream(data), if (premultiplied) AWT_INTERNAL_IMAGE_TYPE_PRE else AWT_INTERNAL_IMAGE_TYPE) }
 
-suspend fun awtReadImageInWorker(file: File): BufferedImage =
-    executeInWorkerJVM { FileInputStream(file).use { ImageIOReadFormat(it) } }
+suspend fun awtReadImageInWorker(file: File, premultiplied: Boolean): BufferedImage =
+    executeInWorkerJVM { FileInputStream(file).use { ImageIOReadFormat(it, if (premultiplied) AWT_INTERNAL_IMAGE_TYPE_PRE else AWT_INTERNAL_IMAGE_TYPE) } }
 
 //var image = ImageIO.read(File("/Users/al/some-picture.jpg"))

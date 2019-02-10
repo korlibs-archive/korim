@@ -10,7 +10,7 @@ import kotlin.native.concurrent.*
 private val ImageIOWorker by lazy { Worker.start() }
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray): NativeImage = wrapNative(
+    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = wrapNative(
         ImageIOWorker.execute(
             TransferMode.SAFE,
             { if (data.isFrozen) data else data.copyOf().freeze() },
@@ -37,6 +37,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                 } ?: throw IOException("Failed to decode image using stbi_load_from_memory")
             }
         ).await()
+        , premultiplied
     )
 }
 

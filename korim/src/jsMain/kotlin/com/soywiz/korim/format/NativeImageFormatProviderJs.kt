@@ -47,11 +47,11 @@ open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: In
 }
 
 object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
-	override suspend fun decode(data: ByteArray): NativeImage {
-		return HtmlNativeImage(BrowserImage.decodeToCanvas(data))
+	override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {
+		return HtmlNativeImage(BrowserImage.decodeToCanvas(data, premultiplied))
 	}
 
-	override suspend fun decode(vfs: Vfs, path: String): NativeImage {
+	override suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage {
 		//println("HtmlNativeImageFormatProvider.decode($vfs, '$path')")
 		return when (vfs) {
 			is LocalVfs -> {
@@ -61,11 +61,11 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 			is UrlVfs -> {
 				val jsUrl = vfs.getFullUrl(path)
 				//println("URL: HtmlNativeImageFormatProvider: $vfs, $path : $jsUrl")
-				HtmlNativeImage(BrowserImage.loadImage(jsUrl))
+				HtmlNativeImage(BrowserImage.loadImage(jsUrl, premultiplied))
 			}
 			else -> {
 				//println("OTHER: HtmlNativeImageFormatProvider: $vfs, $path")
-				HtmlNativeImage(BrowserImage.decodeToCanvas(vfs[path].readAll()))
+				HtmlNativeImage(BrowserImage.decodeToCanvas(vfs[path].readAll(), premultiplied))
 			}
 		}
 	}
@@ -106,7 +106,7 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 object BrowserImage {
     private fun toNodeJsBuffer(@Suppress("UNUSED_PARAMETER") ba: ByteArray): dynamic = js("(Buffer.from(ba.buffer))")
 
-	suspend fun decodeToCanvas(bytes: ByteArray): HTMLCanvasElementLike {
+	suspend fun decodeToCanvas(bytes: ByteArray, premultiplied: Boolean = true): HTMLCanvasElementLike {
         if (OS.isJsNodeJs) {
             return (js("(require('canvas'))").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
         } else {
@@ -129,7 +129,7 @@ object BrowserImage {
         return canvas
 	}
 
-	suspend fun loadImage(jsUrl: String): HTMLImageElementLike = suspendCancellableCoroutine { c ->
+	suspend fun loadImage(jsUrl: String, premultiplied: Boolean = true): HTMLImageElementLike = suspendCancellableCoroutine { c ->
 		// Doesn't work with Kotlin.JS
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")

@@ -13,8 +13,11 @@ import kotlin.native.concurrent.*
 private val ImageIOWorker by lazy { Worker.start() }
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray): NativeImage {
-        return wrapNative(ImageIOWorker.execute(TransferMode.SAFE, { if (data.isFrozen) data else data.copyOf().freeze() }, { data ->
+    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {
+        data class Info(val data: ByteArray, val premultiplied: Boolean)
+        return wrapNative(ImageIOWorker.execute(TransferMode.SAFE, { Info(if (data.isFrozen) data else data.copyOf().freeze(), premultiplied) }, { info ->
+            val data = info.data
+            val premultiplied = info.premultiplied
             autoreleasepool {
                 val nsdata: NSData = data.usePinned { dataPin ->
                     NSData.dataWithBytes(dataPin.addressOf(0), data.size.convert())
@@ -30,7 +33,10 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                 try {
                     val ctx = CGBitmapContextCreate(
                         null, iwidth.convert(), iheight.convert(),
-                        8.convert(), 0.convert(), colorSpace, CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+                        8.convert(), 0.convert(), colorSpace, when (premultiplied) {
+                            true -> CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+                            false -> CGImageAlphaInfo.kCGImageAlphaLast.value
+                        }
                     )
                     try {
                         val gctx = NSGraphicsContext.graphicsContextWithCGContext(ctx, flipped = false)
@@ -48,7 +54,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                                     memcpy(outStart + width * n, pixels.reinterpret<ByteVar>() + bytesPerRow * n, (width * 4).convert())
                                 }
                             }
-                            Bitmap32(width, height, RgbaArray(out), premultiplied = true)
+                            Bitmap32(width, height, RgbaArray(out), premultiplied = premultiplied)
                         } finally {
                             NSGraphicsContext.setCurrentContext(null)
                         }
@@ -59,6 +65,6 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     CGColorSpaceRelease(colorSpace)
                 }
             }
-        }).await())
+        }).await(), premultiplied)
     }
 }

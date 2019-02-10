@@ -10,13 +10,13 @@ import com.soywiz.korma.geom.*
 import kotlin.math.*
 
 open class BaseNativeNativeImageFormatProvider : NativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray): NativeImage = wrapNative(RegisteredImageFormats.decode(data))
-    override suspend fun decode(vfs: Vfs, path: String): NativeImage = decode(vfs[path].readBytes())
-    protected fun wrapNative(bmp: Bitmap): BitmapNativeImage {
+    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = wrapNative(RegisteredImageFormats.decode(data), premultiplied)
+    override suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage = decode(vfs[path].readBytes(), premultiplied)
+    protected fun wrapNative(bmp: Bitmap, premultiplied: Boolean): BitmapNativeImage {
         val bmp32: Bitmap32 = bmp.toBMP32()
         //bmp32.premultiplyInPlace()
         //return BitmapNativeImage(bmp32)
-        return BitmapNativeImage(bmp32.premultiplied())
+        return BitmapNativeImage(if (premultiplied) bmp32.premultipliedIfRequired() else bmp32.depremultipliedIfRequired())
     }
     override fun create(width: Int, height: Int): NativeImage = BitmapNativeImage(Bitmap32(width, height))
     override fun copy(bmp: Bitmap): NativeImage = BitmapNativeImage(bmp)

@@ -19,17 +19,17 @@ object AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 		}
 	}
 
-	override suspend fun decode(data: ByteArray): NativeImage = AwtNativeImage(awtReadImageInWorker(data))
+	override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = AwtNativeImage(awtReadImageInWorker(data, premultiplied))
 
-	override suspend fun decode(vfs: Vfs, path: String): NativeImage {
+	override suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage {
 		return when (vfs) {
 			is LocalVfs -> {
 				//println("LOCAL: AwtImageSpecialReader.readSpecial: $vfs, $path")
-				AwtNativeImage(awtReadImageInWorker(File(path)))
+				AwtNativeImage(awtReadImageInWorker(File(path), premultiplied))
 			}
 			else -> {
 				//println("OTHER: AwtImageSpecialReader.readSpecial: $vfs, $path")
-				AwtNativeImage(awtReadImageInWorker(vfs[path].readAll()))
+				AwtNativeImage(awtReadImageInWorker(vfs[path].readAll(), premultiplied))
 			}
 		}
 	}

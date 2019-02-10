@@ -15,8 +15,12 @@ import com.soywiz.korim.format.ios.*
 private val ImageIOWorker by lazy { Worker.start() }
 
 actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray): NativeImage {
-        return wrapNative(ImageIOWorker.execute(TransferMode.SAFE, { if (data.isFrozen) data else data.copyOf().freeze() }, { data ->
+    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {
+        data class Info(val data: ByteArray, val premultiplied: Boolean)
+
+        return wrapNative(ImageIOWorker.execute(TransferMode.SAFE, { Info(if (data.isFrozen) data else data.copyOf().freeze(), premultiplied) }, { info ->
+            val data = info.data
+            val premultiplied = info.premultiplied
             autoreleasepool {
                 memScoped {
                     val nsdata: NSData = data.usePinned { dataPin ->
@@ -38,7 +42,11 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                                     8.convert(),
                                     (width * 4).convert(),
                                     colorSpace,
-                                    CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+                                    when (premultiplied) {
+                                        true -> CGImageAlphaInfo.kCGImageAlphaPremultipliedLast.value
+                                        false -> CGImageAlphaInfo.kCGImageAlphaLast.value
+                                    }
+
                                 )
                                 try {
                                     UIGraphicsPushContext(ctx)
@@ -57,7 +65,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                             }
                         }
 
-                        Bitmap32(width, height, RgbaArray(out), premultiplied = true).apply {
+                        Bitmap32(width, height, RgbaArray(out), premultiplied = premultiplied).apply {
                             //flipY()
                         }
                     } finally {
@@ -65,6 +73,6 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                     }
                 }
             }
-        }).await())
+        }).await(), premultiplied)
     }
 }

@@ -13,12 +13,13 @@ import java.awt.geom.*
 import java.awt.image.*
 import java.nio.*
 
-const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB_PRE
+const val AWT_INTERNAL_IMAGE_TYPE_PRE = BufferedImage.TYPE_INT_ARGB_PRE
+const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB
 
 fun BufferedImage.clone(
 	width: Int = this.width,
 	height: Int = this.height,
-	type: Int = AWT_INTERNAL_IMAGE_TYPE
+	type: Int = AWT_INTERNAL_IMAGE_TYPE_PRE
 ): BufferedImage {
 	val out = BufferedImage(width, height, type)
 	//println("BufferedImage.clone:${this.type} -> ${out.type}")
@@ -28,16 +29,7 @@ fun BufferedImage.clone(
 	return out
 }
 
-//class AwtNativeImageFormatProvider : NativeImageFormatProvider() {
-//	suspend override fun decode(data: ByteArray): AwtNativeImage = AwtNativeImage(awtReadImageInWorker(data))
-//	override fun create(width: Int, height: Int): AwtNativeImage = AwtNativeImage(BufferedImage(Math.max(width, 1), Math.max(height, 1), AWT_INTERNAL_IMAGE_TYPE))
-//	override fun copy(bmp: Bitmap): AwtNativeImage = AwtNativeImage(bmp.toAwt())
-//	override suspend fun display(bitmap: Bitmap): Unit = awtShowImageAndWait(bitmap)
-//
-//	override fun mipmap(bmp: Bitmap, levels: Int): NativeImage = bmp.toBMP32().mipmap(levels).ensureNative()
-//}
-
-class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE) {
+class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, premultiplied = (awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE)) {
 	override val name: String = "AwtNativeImage"
 	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
