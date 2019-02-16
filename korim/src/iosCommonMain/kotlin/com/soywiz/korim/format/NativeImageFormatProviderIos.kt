@@ -9,8 +9,13 @@ import kotlinx.cinterop.*
 import platform.CoreGraphics.*
 import platform.Foundation.*
 import platform.UIKit.*
+import com.soywiz.korim.format.cg.*
 import kotlin.native.concurrent.*
-import com.soywiz.korim.format.ios.*
+import com.soywiz.korim.format.*
+import com.soywiz.korim.vector.*
+import com.soywiz.korio.lang.*
+import com.soywiz.korio.util.*
+import com.soywiz.korio.util.encoding.*
 
 private val ImageIOWorker by lazy { Worker.start() }
 

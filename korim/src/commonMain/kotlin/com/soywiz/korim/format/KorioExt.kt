@@ -96,13 +96,17 @@ suspend fun VfsFile.readBitmapOptimized(formats: ImageFormat = RegisteredImageFo
 suspend fun VfsFile.readBitmap(
     formats: ImageFormat = RegisteredImageFormats,
     props: ImageDecodingProps = ImageDecodingProps()
-): Bitmap = try {
-    when {
-        nativeImageLoadingEnabled -> nativeImageFormatProvider.decode(this)
-        else -> formats.decode(this.read(), props.copy(filename = this.baseName))
+): Bitmap = when {
+    nativeImageLoadingEnabled -> {
+        try {
+            nativeImageFormatProvider.decode(this)
+        } catch (e: Throwable) {
+            println("Couldn't read native image: $e")
+            e.printStackTrace()
+            formats.decode(this.read(), props.copy(filename = this.baseName))
+        }
     }
-} catch (t: Throwable) {
-    formats.decode(this.read(), props.copy(filename = this.baseName))
+    else -> formats.decode(this.read(), props.copy(filename = this.baseName))
 }
 
 suspend fun VfsFile.readBitmapSlice(formats: ImageFormat = RegisteredImageFormats): BitmapSlice<Bitmap> = readBitmapOptimized().slice()

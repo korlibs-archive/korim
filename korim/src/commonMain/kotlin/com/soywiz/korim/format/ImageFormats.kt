@@ -33,7 +33,7 @@ class ImageFormats(formats: Iterable<ImageFormat>) : ImageFormat("") {
 		}
 		//if (format != null) return format.readImage(s.sliceStart(), props)
 		throw UnsupportedOperationException(
-			"Not suitable image format : MAGIC:" + s.sliceStart().readString(4, ASCII) +
+			"No suitable image format : MAGIC:" + s.sliceStart().readString(4, ASCII) +
 					"(" + s.sliceStart().readBytes(4).hex + ") (" + s.sliceStart().readBytes(4).toString(ASCII) + ")"
 		)
 	}

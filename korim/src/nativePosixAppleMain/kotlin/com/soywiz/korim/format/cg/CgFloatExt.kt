@@ -1,4 +1,4 @@
-package com.soywiz.korim.format.ios
+package com.soywiz.korim.format.cg
 
 import platform.CoreGraphics.*
 
