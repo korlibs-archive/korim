@@ -52,6 +52,41 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		}
 	}
 
+    inline fun <T> buffering(callback: () -> T): T {
+        renderer.bufferingStart()
+        try {
+            return callback()
+        } finally {
+            renderer.bufferingEnd()
+        }
+    }
+
+    abstract class BufferedRenderer : Renderer() {
+        abstract fun flushCommands()
+
+        data class RenderCommand(
+            val state: Context2d.State,
+            val fill: Boolean,
+            val font: Context2d.Font? = null,
+            val text: String? = null,
+            val x: Double = 0.0,
+            val y: Double = 0.0
+        )
+        protected val commands = arrayListOf<RenderCommand>()
+
+        final override fun render(state: Context2d.State, fill: Boolean) {
+            commands += RenderCommand(state.clone(), fill)
+            if (!isBuffering()) flush()
+        }
+
+        final override fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
+            commands += RenderCommand(state.clone(), fill, font, text, x, y)
+            if (!isBuffering()) flush()
+        }
+
+        final override fun flush() = flushCommands()
+    }
+
 	abstract class Renderer {
 		companion object {
 			val DUMMY = object : Renderer() {
@@ -63,6 +98,25 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		abstract val width: Int
 		abstract val height: Int
 
+        inline fun <T> buffering(callback: () -> T): T {
+            bufferingStart()
+            try {
+                return callback()
+            } finally {
+                bufferingEnd()
+            }
+        }
+
+        private var bufferingLevel = 0
+        protected fun isBuffering() = bufferingLevel > 0
+        open protected fun flush() = Unit
+        fun bufferingStart() = bufferingLevel++
+        fun bufferingEnd() {
+            bufferingLevel--
+            if (bufferingLevel == 0) {
+                flush()
+            }
+        }
 		open fun render(state: State, fill: Boolean): Unit = Unit
 		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
 		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit =
@@ -86,6 +140,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		}
 
 		open fun dispose(): Unit {
+            flush()
 		}
 	}
 
@@ -108,7 +163,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		NONE(false, false), HORIZONTAL(true, false), VERTICAL(false, true), NORMAL(true, true);
 	}
 
-	data class State(
+	data class State constructor(
 		var transform: Matrix = Matrix(),
 		var clip: GraphicsPath? = null,
 		var path: GraphicsPath = GraphicsPath(),
@@ -137,6 +192,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	var lineScaleMode: ScaleMode by { state::lineScaleMode }.redirected()
 	var lineWidth: Double by { state::lineWidth }.redirected()
 	var lineCap: LineCap by { state::lineCap }.redirected()
+    var lineJoin: LineJoin by { state::lineJoin }.redirected()
 	var strokeStyle: Paint by { state::strokeStyle }.redirected()
 	var fillStyle: Paint by { state::fillStyle }.redirected()
 	var font: Font by { state::font }.redirected()

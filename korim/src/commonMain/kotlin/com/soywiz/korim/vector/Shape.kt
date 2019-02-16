@@ -278,13 +278,39 @@ data class PolylineShape(
 	val scaleMode: Context2d.ScaleMode,
 	val startCaps: Context2d.LineCap,
 	val endCaps: Context2d.LineCap,
-	val joints: String?,
+	val lineJoin: Context2d.LineJoin,
 	val miterLimit: Double
 ) : StyledShape {
+    @Suppress("unused")
+    @Deprecated("Use lineJoin instead", replaceWith = ReplaceWith("lineJoin.name"))
+    val joints: String? = lineJoin.name
+
+    @Deprecated("Use constructor with lineJoin: Context2d.LineJoin")
+    constructor(
+        path: GraphicsPath,
+        clip: GraphicsPath?,
+        paint: Context2d.Paint,
+        transform: Matrix,
+        thickness: Double,
+        pixelHinting: Boolean,
+        scaleMode: Context2d.ScaleMode,
+        startCaps: Context2d.LineCap,
+        endCaps: Context2d.LineCap,
+        joints: String?,
+        miterLimit: Double
+    ) : this(path, clip, paint, transform, thickness, pixelHinting, scaleMode, startCaps, endCaps, when (joints) {
+        null -> Context2d.LineJoin.MITER
+        "MITER", "miter" -> Context2d.LineJoin.MITER
+        "BEVEL", "bevel" -> Context2d.LineJoin.BEVEL
+        "ROUND", "round" -> Context2d.LineJoin.ROUND
+        else -> Context2d.LineJoin.MITER
+    }, miterLimit)
+
 	override fun drawInternal(c: Context2d) {
 		c.lineScaleMode = scaleMode
 		c.lineWidth = thickness
 		c.lineCap = endCaps
+        c.lineJoin = lineJoin
 		c.stroke(paint)
 	}
 
@@ -305,7 +331,7 @@ class CompoundShape(
 	val components: List<Shape>
 ) : Shape {
 	override fun addBounds(bb: BoundsBuilder) = run { for (component in components) component.addBounds(bb) }
-	override fun draw(c: Context2d) = run { for (component in components) component.draw(c) }
+	override fun draw(c: Context2d) = c.buffering { for (component in components) component.draw(c) }
 	override fun buildSvg(svg: SvgBuilder) = run { for (component in components) component.buildSvg(svg) }
 	override fun containsPoint(x: Double, y: Double): Boolean {
 		return components.any { it.containsPoint(x, y) }
