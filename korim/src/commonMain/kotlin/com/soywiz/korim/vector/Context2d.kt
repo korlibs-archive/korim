@@ -171,7 +171,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		var lineWidth: Double = 1.0,
 		var lineCap: LineCap = LineCap.BUTT,
 		var lineJoin: LineJoin = LineJoin.MITER,
-		var miterLimit: Double = 10.0,
+		var miterLimit: Double = 4.0,
 		var strokeStyle: Paint = Color(Colors.BLACK),
 		var fillStyle: Paint = Color(Colors.BLACK),
 		var font: Font = Font("sans-serif", 10.0),
@@ -542,7 +542,18 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 			}
 		}
 	}
+
+    data class StrokeInfo(
+        val thickness: Double = 1.0, val pixelHinting: Boolean = false,
+        val scaleMode: Context2d.ScaleMode = Context2d.ScaleMode.NORMAL,
+        val startCap: Context2d.LineCap = Context2d.LineCap.BUTT,
+        val endCap: Context2d.LineCap = Context2d.LineCap.BUTT,
+        val lineJoin: Context2d.LineJoin = Context2d.LineJoin.MITER,
+        val miterLimit: Double = 20.0
+    )
 }
+
+fun RGBA.toFill() = Context2d.Color(this)
 
 fun Context2d.Drawable.renderTo(ctx: Context2d) = ctx.draw(this)
 

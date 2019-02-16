@@ -200,6 +200,20 @@ class NativeRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.B
                                     },
                                     close = { CGContextClosePath(ctx) }
                                 )
+                                if (!fill) {
+                                    CGContextSetLineWidth(ctx, state.lineWidth)
+                                    CGContextSetMiterLimit(ctx, state.miterLimit)
+                                    CGContextSetLineJoin(ctx, when (state.lineJoin) {
+                                        Context2d.LineJoin.BEVEL -> CGLineJoin.kCGLineJoinBevel
+                                        Context2d.LineJoin.MITER -> CGLineJoin.kCGLineJoinMiter
+                                        Context2d.LineJoin.ROUND -> CGLineJoin.kCGLineJoinRound
+                                    })
+                                    CGContextSetLineCap(ctx, when (state.lineCap) {
+                                        Context2d.LineCap.BUTT -> CGLineCap.kCGLineCapButt
+                                        Context2d.LineCap.ROUND -> CGLineCap.kCGLineCapRound
+                                        Context2d.LineCap.SQUARE -> CGLineCap.kCGLineCapSquare
+                                    })
+                                }
                                 memScoped {
                                     val style = if (fill) state.fillStyle else state.strokeStyle
                                     when (style) {
