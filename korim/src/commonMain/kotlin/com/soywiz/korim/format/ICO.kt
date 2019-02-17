@@ -89,4 +89,46 @@ object ICO : ImageFormat("ico") {
 		}
 		return ImageData(bitmaps.map { ImageFrame(it, main = false) })
 	}
+
+    // https://en.wikipedia.org/wiki/ICO_(file_format)
+    override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
+        // 6
+        s.write16LE(0)
+        s.write16LE(1) // ICO
+        s.write16LE(image.frames.size)
+
+        val payloadStart = 6 + 16 * image.frames.size
+        val payloadData = MemorySyncStream()
+
+        // 16 per entry
+        for (frame in image.frames) {
+            val bitmap = frame.bitmap
+            val width = bitmap.width
+            val height = bitmap.height
+            if (width > 256 || height > 256) error("Size too big for ICO image: ${frame.bitmap.size}")
+
+            s.write8(width)
+            s.write8(height)
+            s.write8(0) // Palette size
+            s.write8(0) // Reserved
+            s.write16LE(1) // Color planes
+            s.write16LE(32) // Bits per pixel
+
+            val start = payloadData.position.toInt()
+            if (width == 32 && height == 32) {
+                val bmp = BMP.encode(bitmap.toBMP32())
+                payloadData.writeBytes(bmp.sliceArray(14 until bmp.size))
+                val data = Bitmap1(width, height)
+                payloadData.writeBytes(data.data)
+            } else {
+                payloadData.writeBytes(PNG.encode(bitmap.toBMP32()))
+            }
+            val size = payloadData.position.toInt() - start
+
+            s.write32LE(size)
+            s.write32LE(payloadStart + start)
+        }
+
+        s.writeBytes(payloadData.toByteArray())
+    }
 }
