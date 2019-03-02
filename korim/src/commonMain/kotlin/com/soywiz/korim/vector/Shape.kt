@@ -306,7 +306,19 @@ data class PolylineShape(
         else -> Context2d.LineJoin.MITER
     }, miterLimit)
 
-	override fun drawInternal(c: Context2d) {
+    private val tempBB = BoundsBuilder()
+    private val tempRect = Rectangle()
+
+    override fun addBounds(bb: BoundsBuilder): Unit {
+        //println("PolylineShape.addBounds: thickness=$thickness")
+        tempBB.reset()
+        tempBB.add(path)
+        tempBB.getBounds(tempRect)
+        tempRect.inflate(thickness, thickness)
+        bb.add(tempRect)
+    }
+
+    override fun drawInternal(c: Context2d) {
 		c.lineScaleMode = scaleMode
 		c.lineWidth = thickness
 		c.lineCap = endCaps
