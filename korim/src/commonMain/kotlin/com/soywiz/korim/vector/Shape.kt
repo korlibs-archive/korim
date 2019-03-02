@@ -9,6 +9,7 @@ import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.shape.*
 import com.soywiz.korma.geom.vector.*
+import kotlin.math.*
 
 /*
 <svg width="80px" height="30px" viewBox="0 0 80 30"
@@ -314,7 +315,7 @@ data class PolylineShape(
         tempBB.reset()
         tempBB.add(path)
         tempBB.getBounds(tempRect)
-        tempRect.inflate(thickness, thickness)
+        tempRect.inflate(max(thickness - 1.0, 0.0), max(thickness - 1.0, 0.0))
         bb.add(tempRect)
     }
 
