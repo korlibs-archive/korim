@@ -323,7 +323,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 			//} else {
 			//	strokeSize
 			//}
-			//println("$strokeSize, $aStrokeSize, lineWidth=${state.lineWidth}, lineScaleMode=${state.lineScaleMode}, lineScaleHack=${state.lineScaleHack}")
+			//println("applyState: $strokeSize, lineWidth=${state.lineWidth}, lineScaleMode=${state.lineScaleMode}")
 			g.stroke = BasicStroke(
 				strokeSize,
 				state.lineCap.toAwt(),
