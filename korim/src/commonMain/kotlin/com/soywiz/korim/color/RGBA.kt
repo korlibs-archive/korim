@@ -60,6 +60,7 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 
     companion object : ColorFormat32() {
         fun float(r: Float, g: Float, b: Float, a: Float): RGBA = unclamped(f2i(r), f2i(g), f2i(b), f2i(a))
+        inline fun float(r: Number, g: Number, b: Number, a: Number): RGBA = float(r.toFloat(), g.toFloat(), b.toFloat(), a.toFloat())
         fun unclamped(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
 		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), a.clamp0_255())
         operator fun invoke(r: Int, g: Int, b: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), 0xFF)
