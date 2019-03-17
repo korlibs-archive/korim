@@ -6,6 +6,7 @@ import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korma.interpolation.*
+import kotlin.jvm.*
 
 inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     val r: Int get() = (value ushr 0) and 0xFF
@@ -60,7 +61,7 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 
     companion object : ColorFormat32() {
         fun float(r: Float, g: Float, b: Float, a: Float): RGBA = unclamped(f2i(r), f2i(g), f2i(b), f2i(a))
-        inline fun float(r: Number, g: Number, b: Number, a: Number): RGBA = float(r.toFloat(), g.toFloat(), b.toFloat(), a.toFloat())
+        inline fun float(r: Number, g: Number, b: Number, a: Number = 1f): RGBA = float(r.toFloat(), g.toFloat(), b.toFloat(), a.toFloat())
         fun unclamped(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
 		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), a.clamp0_255())
         operator fun invoke(r: Int, g: Int, b: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), 0xFF)
