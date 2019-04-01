@@ -71,13 +71,25 @@ abstract class Bitmap(
 	fun flipY() = this.apply {
 		for (y in 0 until height / 2) swapRows(y, height - y - 1)
 	}
-
+	fun flipX() = this.apply {
+		for (x in 0 until width / 2) swapColumns(x, width - x - 1)
+	}
+	
 	open fun swapRows(y0: Int, y1: Int) {
 		for (x in 0 until width) {
 			val c0 = getInt(x, y0)
 			val c1 = getInt(x, y1)
 			setInt(x, y0, c1)
 			setInt(x, y1, c0)
+		}
+	}
+
+	open fun swapColumns(x0: Int, x1: Int) {
+		for (y in 0 until height) {
+			val c0 = getInt(y, x0)
+			val c1 = getInt(y, x1)
+			setInt(y, x0, c1)
+			setInt(y, x1, c0)
 		}
 	}
 
