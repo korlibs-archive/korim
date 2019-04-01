@@ -116,6 +116,15 @@ abstract class Bitmap(
             }
         }
     }
+
+    fun contentEquals(other: Bitmap): Boolean {
+        if (this.width != other.width) return false
+        if (this.height != other.height) return false
+        for (y in 0 until height) for (x in 0 until width) {
+            if (this.getRgba(x, y) != other.getRgba(x, y)) return false
+        }
+        return true
+    }
 }
 
 fun <T : Bitmap> T.createWithThisFormatTyped(width: Int, height: Int): T = this.createWithThisFormat(width, height) as T
