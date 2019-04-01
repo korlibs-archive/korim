@@ -86,10 +86,10 @@ abstract class Bitmap(
 
 	open fun swapColumns(x0: Int, x1: Int) {
 		for (y in 0 until height) {
-			val c0 = getInt(y, x0)
-			val c1 = getInt(y, x1)
-			setInt(y, x0, c1)
-			setInt(y, x1, c0)
+			val c0 = getInt(x0, y)
+			val c1 = getInt(x1, y)
+			setInt(x0, y, c1)
+			setInt(x1, y, c0)
 		}
 	}
 
