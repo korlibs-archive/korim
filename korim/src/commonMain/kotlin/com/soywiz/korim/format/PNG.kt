@@ -190,7 +190,7 @@ object PNG : ImageFormat("png") {
 		val aPalette = UByteArrayInt(ByteArray(0x100) { -1 })
 		var paletteCount = 0
 
-		fun SyncStream.readChunk() {
+		fun SyncStream.readChunk(): Boolean {
 			val length = readS32BE()
 			val type = readStringz(4)
 			val data = readStream(length.toLong())
@@ -223,13 +223,14 @@ object PNG : ImageFormat("png") {
 					pngdata.append(data.readAll())
 				}
 				"IEND" -> {
+                    return false
 				}
 			}
 			//println(type)
+            return true
 		}
 
-		while (!s.eof) {
-			s.readChunk()
+		while (!s.eof && s.readChunk()) {
 			if (readHeader && pheader != null) return pheader
 		}
 
