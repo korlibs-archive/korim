@@ -311,11 +311,11 @@ data class PolylineShape(
     private val tempRect = Rectangle()
 
     override fun addBounds(bb: BoundsBuilder): Unit {
-        //println("PolylineShape.addBounds: thickness=$thickness")
         tempBB.reset()
         tempBB.add(path)
         tempBB.getBounds(tempRect)
-        tempRect.inflate(max(thickness - 1.0, 0.0), max(thickness - 1.0, 0.0))
+        tempRect.inflate(max(thickness, 0.0), max(thickness, 0.0))
+        //println("PolylineShape.addBounds: thickness=$thickness, rect=$tempRect")
         bb.add(tempRect)
     }
 
