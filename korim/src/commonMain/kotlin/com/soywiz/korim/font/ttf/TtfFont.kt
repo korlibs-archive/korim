@@ -394,7 +394,7 @@ class TtfFont private constructor(val s: SyncStream) {
 		for (char in text) {
 			val g = getGlyphByChar(char)
 			if (g != null) {
-				g.fill(this, 32.0, TtfFont.Origin.TOP, color)
+				g.fill(this, size, TtfFont.Origin.TOP, color)
 				translate(scale * g.advanceWidth, 0.0)
 			}
 		}
