@@ -4,7 +4,7 @@ import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
 
 // https://en.wikipedia.org/wiki/YUV
-inline class YUVA(val value: Int) {
+data class YUVA(val value: Int) {
     constructor(y: Int, u: Int, v: Int, a: Int) : this(packIntClamped(y, u, v, a))
 
     val y get() = value.extract8(0)
@@ -45,7 +45,7 @@ inline class YUVA(val value: Int) {
     }
 }
 
-inline class YuvaArray(val ints: IntArray) {
+data class YuvaArray(val ints: IntArray) {
     val size get() = ints.size
     operator fun get(index: Int): YUVA = YUVA(ints[index])
     operator fun set(index: Int, color: YUVA) = run { ints[index] = color.value }

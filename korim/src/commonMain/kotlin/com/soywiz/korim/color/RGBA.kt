@@ -8,7 +8,7 @@ import com.soywiz.korio.lang.*
 import com.soywiz.korma.interpolation.*
 import kotlin.jvm.*
 
-inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
+data class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     val r: Int get() = (value ushr 0) and 0xFF
 	val g: Int get() = (value ushr 8) and 0xFF
 	val b: Int get() = (value ushr 16) and 0xFF
@@ -114,7 +114,7 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 
 fun Double.interpolate(a: RGBA, b: RGBA): RGBA = RGBA.interpolate(a, b, this)
 
-inline class RGBAPremultiplied(val value: Int) {
+data class RGBAPremultiplied(val value: Int) {
     val r: Int get() = (value ushr 0) and 0xFF
     val g: Int get() = (value ushr 8) and 0xFF
     val b: Int get() = (value ushr 16) and 0xFF
@@ -185,7 +185,7 @@ fun RGBAPremultiplied.asNonPremultiplied() = RGBA(value)
 fun RgbaArray.asPremultiplied() = RgbaPremultipliedArray(ints)
 fun RgbaPremultipliedArray.asNonPremultiplied() = RgbaArray(ints)
 
-inline class RgbaPremultipliedArray(val ints: IntArray) {
+data class RgbaPremultipliedArray(val ints: IntArray) {
     val size: Int get() = ints.size
     operator fun get(index: Int): RGBAPremultiplied = RGBAPremultiplied(ints[index])
     operator fun set(index: Int, color: RGBAPremultiplied) = run { ints[index] = color.value }
@@ -201,7 +201,7 @@ inline class RgbaPremultipliedArray(val ints: IntArray) {
 }
 
 
-inline class RgbaArray(val ints: IntArray) : List<RGBA> {
+data class RgbaArray(val ints: IntArray) : List<RGBA> {
     companion object {
         operator fun invoke(colors: Array<RGBA>): RgbaArray = RgbaArray(colors.map { it.value }.toIntArray())
         operator fun invoke(size: Int): RgbaArray = RgbaArray(IntArray(size))

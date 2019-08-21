@@ -182,7 +182,7 @@ data class ColorTransform(
 	}
 }
 
-inline class ColorAdd(val rgba: Int) {
+data class ColorAdd(val rgba: Int) {
 	val r get() = unpackComponent((rgba ushr 0) and 0xFF)
 	val g get() = unpackComponent((rgba ushr 8) and 0xFF)
 	val b get() = unpackComponent((rgba ushr 16) and 0xFF)
