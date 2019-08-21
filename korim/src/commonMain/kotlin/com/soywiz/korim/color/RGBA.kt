@@ -29,7 +29,7 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 	fun withR(v: Int) = RGBA((value and (0xFF shl 0).inv()) or ((v and 0xFF) shl 0))
 	fun withG(v: Int) = RGBA((value and (0xFF shl 8).inv()) or ((v and 0xFF) shl 8))
 	fun withB(v: Int) = RGBA((value and (0xFF shl 16).inv()) or ((v and 0xFF) shl 16))
-	fun withA(v: Int) = RGBA((value and (0xFF shl 24).inv()) or ((v and 0xFF) shl 16))
+	fun withA(v: Int) = RGBA((value and (0xFF shl 24).inv()) or ((v and 0xFF) shl 24))
 	fun withRGB(rgb: Int) = RGBA(rgb, a)
 
     fun withRd(v: Double) = withR(d2i(v))
