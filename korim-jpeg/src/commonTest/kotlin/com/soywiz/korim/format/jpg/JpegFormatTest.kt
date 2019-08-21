@@ -10,14 +10,14 @@ class JpegFormatTest {
     val formats = ImageFormats(JPEG, PNG)
 
     @Test
-    fun jpeg() = suspendTest {
+    fun jpeg() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["kotlin.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(190, 190)", bitmap.toString())
         //bitmap.writeTo(LocalVfs("c:/temp/img1.jpg.png"), formats = formats)
     }
 
     @Test
-    fun jpeg2() = suspendTest {
+    fun jpeg2() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["img1.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(460, 460)", bitmap.toString())
         //bitmap.writeTo(LocalVfs("c:/temp/img1.jpg.tga"), formats = formats)
@@ -25,7 +25,7 @@ class JpegFormatTest {
 
     @Test
     @Ignore
-    fun jpegNative() = suspendTest {
+    fun jpegNative() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["kotlin.jpg"].readBitmap(formats = formats)
         //assertTrue(bitmap is NativeImage)
         assertEquals("Bitmap32(190, 190)", bitmap.toBMP32().toString())
@@ -40,7 +40,7 @@ class JpegFormatTest {
 
     @Test
     @Ignore
-    fun jpeg2Native() = suspendTest {
+    fun jpeg2Native() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["img1.jpg"].readBitmap(formats = formats)
         //assertTrue(bitmap is NativeImage)
         assertEquals("Bitmap32(460, 460)", bitmap.toBMP32().toString())
@@ -55,7 +55,7 @@ class JpegFormatTest {
     }
 
     @Test
-    fun jpegEncoder() = suspendTest {
+    fun jpegEncoder() = suspendTestNoBrowser {
         val bitmapOriginal = resourcesVfs["kotlin32.png"].readBitmapNoNative(formats).toBMP32()
         val bytes = JPEG.encode(bitmapOriginal, ImageEncodingProps(quality = 0.5))
         //val bitmapOriginal = LocalVfs("/tmp/aa.jpg").readBitmapNoNative().toBMP32()
@@ -63,13 +63,13 @@ class JpegFormatTest {
     }
 
     @Test
-    fun ajpeg() = suspendTest {
+    fun ajpeg() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["kotlin.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(190, 190)", bitmap.toString())
     }
 
     @Test
-    fun ajpeg2() = suspendTest {
+    fun ajpeg2() = suspendTestNoBrowser {
         val bitmap = resourcesVfs["img1.jpg"].readBitmapNoNative(formats)
         assertEquals("Bitmap32(460, 460)", bitmap.toString())
     }

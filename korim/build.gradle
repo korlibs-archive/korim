@@ -2,8 +2,11 @@ apply plugin: com.soywiz.korlibs.KorlibsPlugin
 
 korlibs {
     exposeVersion()
-    dependencyMulti("com.soywiz:korio:$korioVersion")
-    dependencyMulti("com.soywiz:korma:$kormaVersion")
-    dependencyNodeModule("canvas", "2.2.0")
+    //dependencyNodeModule("canvas", "2.2.0")
     dependencyCInterops("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
+}
+
+dependencies {
+    commonMainApi("com.soywiz.korlibs.korio:korio:$korioVersion")
+    commonMainApi("com.soywiz.korlibs.korma:korma:$kormaVersion")
 }
