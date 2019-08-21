@@ -3,7 +3,7 @@ package com.soywiz.korim.color
 import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
 
-data class CMYK(val value: Int) {
+inline class CMYK(val value: Int) {
     val c: Int get() = value.extract8(0)
     val m: Int get() = value.extract8(8)
     val y: Int get() = value.extract8(16)

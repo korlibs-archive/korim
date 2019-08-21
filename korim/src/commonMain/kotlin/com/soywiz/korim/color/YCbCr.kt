@@ -4,7 +4,7 @@ import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
 
 // https://en.wikipedia.org/wiki/YCbCr
-data class YCbCr(val value: Int) {
+inline class YCbCr(val value: Int) {
     constructor(y: Int, cb: Int, cr: Int, a: Int = 0xFF) : this(packIntClamped(y, cb, cr, a))
 
     val y: Int get() = value.extract8(0) // Luma
@@ -33,7 +33,7 @@ data class YCbCr(val value: Int) {
     }
 }
 
-data class YCbCrArray(val ints: IntArray) {
+inline class YCbCrArray(val ints: IntArray) {
     val size get() = ints.size
     operator fun get(index: Int): YCbCr = YCbCr(ints[index])
     operator fun set(index: Int, color: YCbCr) = run { ints[index] = color.value }
