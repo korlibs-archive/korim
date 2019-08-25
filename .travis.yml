@@ -19,6 +19,8 @@ jobs:
       JAVA_OPTS=-Xmx2g
     before_install:
       - echo before_install
+    install:
+      - echo install
     before_script:
       - echo before_script
     script:
@@ -37,7 +39,9 @@ jobs:
     language: java
     jdk: openjdk10
     before_install:
-    - cp $(/usr/libexec/java_home)/lib/security/cacerts "${JAVA_HOME}/lib/security/cacerts"
+      - cp $(/usr/libexec/java_home)/lib/security/cacerts "${JAVA_HOME}/lib/security/cacerts"
+    install:
+      - echo install
     before_script:
       - echo before_script
     script:
@@ -57,6 +61,8 @@ jobs:
     jdk: openjdk10
     before_install:
       - cp $(/usr/libexec/java_home)/lib/security/cacerts "${JAVA_HOME}/lib/security/cacerts"
+    install:
+      - echo install
     before_script:
       - echo before_script
     script:
@@ -74,6 +80,8 @@ jobs:
       JAVA_OPTS=-Xmx2g
     before_install:
       - echo before_instal
+    install:
+      - echo install
     before_script:
       - echo before_script
     script:
