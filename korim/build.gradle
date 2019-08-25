@@ -2,7 +2,7 @@ apply plugin: com.soywiz.korlibs.KorlibsPlugin
 
 korlibs {
     exposeVersion()
-    //dependencyNodeModule("canvas", "2.2.0")
+    dependencyNodeModule("canvas", npmCanvasVersion)
     dependencyCInterops("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
 }
 
@@ -10,3 +10,9 @@ dependencies {
     commonMainApi("com.soywiz.korlibs.korio:korio:$korioVersion")
     commonMainApi("com.soywiz.korlibs.korma:korma:$kormaVersion")
 }
+
+//kotlin {
+//    dependencies {
+//        implementation(npm("canvas", npmCanvasVersion))
+//    }
+//}

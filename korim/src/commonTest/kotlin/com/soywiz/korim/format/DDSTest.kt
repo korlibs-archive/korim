@@ -9,14 +9,14 @@ class DDSTest {
     val formats = ImageFormats(PNG, DDS)
 
     @Test
-    fun dxt1() = suspendTest {
+    fun dxt1() = suspendTestNoBrowser {
         val output = resourcesVfs["dxt1.dds"].readBitmapNoNative(formats)
         val expected = resourcesVfs["dxt1.png"].readBitmapNoNative(formats)
         assertEquals(0, output.matchContentsDistinctCount(expected))
     }
 
     @Test
-    fun dxt3() = suspendTest {
+    fun dxt3() = suspendTestNoBrowser {
         val output = resourcesVfs["dxt3.dds"].readBitmapNoNative(formats)
         val expected = resourcesVfs["dxt3.png"].readBitmapNoNative(formats)
         assertEquals(0, output.matchContentsDistinctCount(expected))
@@ -24,7 +24,7 @@ class DDSTest {
     }
 
     @Test
-    fun dxt5() = suspendTest {
+    fun dxt5() = suspendTestNoBrowser {
         val output = resourcesVfs["dxt5.dds"].readBitmapNoNative(formats)
         val expected = resourcesVfs["dxt5.png"].readBitmapNoNative(formats)
         assertEquals(0, output.matchContentsDistinctCount(expected))
@@ -32,7 +32,7 @@ class DDSTest {
     }
 
     @Test
-    fun dxt5_registered() = suspendTest {
+    fun dxt5_registered() = suspendTestNoBrowser {
         RegisteredImageFormats.temporalRegister(DDS, PNG) {
             val output = resourcesVfs["dxt5.dds"].readBitmapNoNative()
             val expected = resourcesVfs["dxt5.png"].readBitmapNoNative()

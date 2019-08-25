@@ -2,6 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
@@ -108,7 +109,8 @@ object BrowserImage {
 
 	suspend fun decodeToCanvas(bytes: ByteArray, premultiplied: Boolean = true): HTMLCanvasElementLike {
         if (OS.isJsNodeJs) {
-            return (js("(require('canvas'))").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
+
+            return (jsRequire("canvas").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
         } else {
             val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
             val blobURL = URL.createObjectURL(blob)
@@ -134,7 +136,7 @@ object BrowserImage {
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")
 		if (OS.isJsNodeJs) {
-            (js("(require('canvas'))").loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
+            (jsRequire("canvas").loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
 				c.resume(v)
 			}, { v ->
 				c.resumeWithException(v)

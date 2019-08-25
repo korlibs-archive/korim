@@ -7,7 +7,7 @@ import kotlin.test.*
 
 class NinePatchBitmap32Test {
     @Test
-    fun name() = suspendTest {
+    fun name() = suspendTestNoBrowser {
         val ninePatch = resourcesVfs["bubble-chat.9.png"].readNinePatch()
 
         assertEquals(

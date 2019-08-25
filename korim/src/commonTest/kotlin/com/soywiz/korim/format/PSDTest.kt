@@ -9,7 +9,7 @@ class PSDTest {
     val formats = ImageFormats(PNG, PSD)
 
     @Test
-    fun psdTest() = suspendTest {
+    fun psdTest() = suspendTestNoBrowser {
         val output = resourcesVfs["small.psd"].readBitmapNoNative(formats)
         val expected = resourcesVfs["small.psd.png"].readBitmapNoNative(formats)
         //showImageAndWait(output)
