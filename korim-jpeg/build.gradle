@@ -2,5 +2,5 @@ apply plugin: com.soywiz.korlibs.KorlibsPlugin
 
 korlibs {
     dependencyProject(":korim")
-    dependencyNodeModule("canvas", npmCanvasVersion)
+//    dependencyNodeModule("canvas", npmCanvasVersion)
 }
