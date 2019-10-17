@@ -109,8 +109,8 @@ object BrowserImage {
 
 	suspend fun decodeToCanvas(bytes: ByteArray, premultiplied: Boolean = true): HTMLCanvasElementLike {
         if (OS.isJsNodeJs) {
-
-            return (jsRequire("canvas").loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
+            val canvas = nodeJsCanvas ?: error("Canvas not available")
+            return (canvas.loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
         } else {
             val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
             val blobURL = URL.createObjectURL(blob)
@@ -136,7 +136,8 @@ object BrowserImage {
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")
 		if (OS.isJsNodeJs) {
-            (jsRequire("canvas").loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
+            val canvas = nodeJsCanvas ?: error("Canvas not available")
+            (canvas.loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
 				c.resume(v)
 			}, { v ->
 				c.resumeWithException(v)

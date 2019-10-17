@@ -2,7 +2,7 @@ apply plugin: com.soywiz.korlibs.KorlibsPlugin
 
 korlibs {
     exposeVersion()
-    dependencyNodeModule("canvas", npmCanvasVersion)
+    //dependencyNodeModule("canvas", npmCanvasVersion)
     dependencyCInterops("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
 }
 
