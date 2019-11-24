@@ -3,7 +3,7 @@ apply plugin: com.soywiz.korlibs.KorlibsPlugin
 korlibs {
     exposeVersion()
     //dependencyNodeModule("canvas", npmCanvasVersion)
-    dependencyCInterops("stb_image", ["linuxX64", "iosX64", "iosArm32", "iosArm64"])
+    dependencyCInterops("stb_image", [*(korlibs.linuxEnabled ? ["linuxX64"] : []), "iosX64", "iosArm32", "iosArm64"])
 }
 
 dependencies {
