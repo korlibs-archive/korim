@@ -127,7 +127,7 @@ object BrowserImage {
         //println("[onload.b]")
         val ctx: CanvasRenderingContext2D = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
         //println("[onload.c]")
-        ctx.drawImage(img, 0.0, 0.0)
+        ctx.drawImage(img.unsafeCast<CanvasImageSource>(), 0.0, 0.0)
         return canvas
 	}
 
@@ -194,7 +194,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 				}
 			}
 			is Context2d.BitmapPaint -> {
-				ctx.createPattern(this.bitmap.toHtmlNative().texSource, if (this.repeat) "repeat" else "no-repeat")
+				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), if (this.repeat) "repeat" else "no-repeat")
 				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
 			else -> "black"
@@ -249,7 +249,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		try {
 			transform.run { ctx.setTransform(a, b, c, d, tx, ty) }
 			ctx.drawImage(
-				(image.ensureNative() as HtmlNativeImage).texSource,
+				(image.ensureNative() as HtmlNativeImage).texSource.unsafeCast<CanvasImageSource>(),
 				x.toDouble(),
 				y.toDouble(),
 				width.toDouble(),
