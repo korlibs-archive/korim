@@ -180,6 +180,8 @@ data class ColorTransform(
 		val a = ((RGBA(color).a * mA) + aA).toInt()
 		return RGBA.pack(r, g, b, a)
 	}
+
+    fun applyToRGBA(color: RGBA): RGBA = RGBA(applyToColor(color.value))
 }
 
 inline class ColorAdd(val rgba: Int) {
@@ -233,3 +235,5 @@ inline fun ColorTransform(
 	aB.toInt(),
 	aA.toInt()
 )
+
+fun RGBA.transform(transform: ColorTransform): RGBA = transform.applyToRGBA(this)

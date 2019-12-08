@@ -25,7 +25,9 @@ class Bitmap32(
 
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap32(width, height, premultiplied = premultiplied)
 
-	override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+    fun copyTo(other: Bitmap32): Bitmap32 = checkMatchDimensions(other).also { arraycopy(this.data, 0, other.data, 0, this.data.size) }
+
+    override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		val src = this
 
 		val srcArray = src.data
@@ -173,7 +175,10 @@ class Bitmap32(
 	fun writeChannel(destination: BitmapChannel, input: Bitmap8) = Bitmap32.copyChannel(input, this, destination)
 	fun extractChannel(channel: BitmapChannel): Bitmap8 = Bitmap8(width, height).also { Bitmap32.copyChannel(this, channel, it) }
 
-	fun invert() = xor(RGBA(255, 255, 255, 0))
+    fun inverted(target: Bitmap32 = Bitmap32(width, height)): Bitmap32 = copyTo(target).apply { invert() }
+    fun xored(value: RGBA, target: Bitmap32 = Bitmap32(width, height)) = copyTo(target).apply { xor(value) }
+
+    fun invert() = xor(RGBA(255, 255, 255, 0))
 	fun xor(value: RGBA) = updateColors { RGBA(it.value xor value.value) }
 
 	override fun toString(): String = "Bitmap32($width, $height)"

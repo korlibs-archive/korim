@@ -145,3 +145,7 @@ inline fun <T : Bitmap> T.context2d(antialiased: Boolean = true, callback: Conte
     return this
 }
 
+fun <T : Bitmap> T.checkMatchDimensions(other: T): T {
+    check((this.width == other.width) && (this.height == other.height)) { "Bitmap doesn't have the same dimensions (${width}x${height}) != (${other.width}x${other.height})" }
+    return other
+}
