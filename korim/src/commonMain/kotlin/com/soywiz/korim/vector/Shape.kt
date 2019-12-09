@@ -1,5 +1,6 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kds.iterators.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
@@ -343,9 +344,9 @@ data class PolylineShape(
 class CompoundShape(
 	val components: List<Shape>
 ) : Shape {
-	override fun addBounds(bb: BoundsBuilder) = run { for (component in components) component.addBounds(bb) }
-	override fun draw(c: Context2d) = c.buffering { for (component in components) component.draw(c) }
-	override fun buildSvg(svg: SvgBuilder) = run { for (component in components) component.buildSvg(svg) }
+	override fun addBounds(bb: BoundsBuilder) = run { components.fastForEach { it.addBounds(bb)}  }
+	override fun draw(c: Context2d) = c.buffering { components.fastForEach { it.draw(c) } }
+	override fun buildSvg(svg: SvgBuilder) = run { components.fastForEach { it.buildSvg(svg) } }
 	override fun containsPoint(x: Double, y: Double): Boolean {
 		return components.any { it.containsPoint(x, y) }
 	}
