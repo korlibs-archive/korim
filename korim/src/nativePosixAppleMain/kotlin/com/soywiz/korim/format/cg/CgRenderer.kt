@@ -89,6 +89,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
     }
 
     override fun flushCommands() {
+        if (bmp.data.size == 0) return
         Releases { releases ->
             autoreleasepool {
                 bmp.data.ints.usePinned { dataPin ->
