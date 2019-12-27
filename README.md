@@ -25,7 +25,7 @@ in addition to ensure the continuity of the project, you will get exclusive cont
 Use with gradle:
 
 ```
-compile "com.soywiz:korim:$korVersion"
+compile "com.soywiz.korlibs.korim:korim:$korVersion"
 ```
 
 ### Bitmap classes
