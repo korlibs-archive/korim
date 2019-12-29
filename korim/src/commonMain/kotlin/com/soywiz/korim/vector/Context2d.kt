@@ -140,7 +140,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			height: Int = image.height,
 			transform: Matrix = Matrix()
 		): Unit {
-			val state = State(
+			render(State(
                 transform = transform,
                 path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) },
                 fillStyle = Context2d.BitmapPaint(image,
@@ -148,8 +148,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
                         .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
                         .translate(x, y)
                 )
-            )
-			render(state, fill = true)
+            ), fill = true)
 		}
 
 		open fun dispose(): Unit {

@@ -2,24 +2,27 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 
-inline fun buildShape(builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder().apply(builder).buildShape()
+inline fun buildShape(width: Int = 256, height: Int = 256, builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder(width, height).apply(builder).buildShape()
 
-class ShapeBuilder : Context2d(Renderer.DUMMY), Context2d.Drawable {
-    override val rendererWidth: Int get() = super.rendererWidth
-    override val rendererHeight: Int get() = super.rendererHeight
+class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context2d.Drawable {
+    override val rendererWidth: Int = width
+    override val rendererHeight: Int = height
 
     val shapes = arrayListOf<Shape>()
 
     override fun rendererRender(state: State, fill: Boolean) {
+        if (state.path.isEmpty()) return
+
         if (fill) {
-            shapes += FillShape(path = state.path, clip = state.clip, paint = state.fillStyle, transform = state.transform)
+            shapes += FillShape(path = state.path?.clone(), clip = state.clip?.clone(), paint = state.fillStyle, transform = state.transform.clone())
         } else {
             shapes += PolylineShape(
-                path = state.path,
-                clip = state.clip,
+                path = state.path.clone(),
+                clip = state.clip?.clone(),
                 paint = state.strokeStyle,
-                transform = state.transform,
+                transform = state.transform.clone(),
                 thickness = state.lineWidth,
                 pixelHinting = true,
                 scaleMode = state.lineScaleMode,
@@ -33,23 +36,39 @@ class ShapeBuilder : Context2d(Renderer.DUMMY), Context2d.Drawable {
     }
 
     override fun rendererRenderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
-        super.rendererRenderText(state, font, text, x, y, fill)
+        shapes += TextShape(
+            text = text,
+            x = x, y = y,
+            font = font,
+            clip = state.clip?.clone(),
+            fill = if (fill) state.fillStyle else null,
+            stroke = if (fill) null else state.strokeStyle,
+            halign = state.horizontalAlign,
+            valign = state.verticalAlign,
+            transform = state.transform.clone()
+        )
     }
 
     override fun rendererDrawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
-        super.rendererDrawImage(image, x, y, width, height, transform)
+        rendererRender(State(
+            transform = transform,
+            path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) },
+            fillStyle = Context2d.BitmapPaint(image,
+                transform = Matrix()
+                    .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
+                    .translate(x, y)
+            )
+        ), fill = true)
     }
 
     override fun rendererDispose() {
-        super.rendererDispose()
     }
 
     override fun rendererBufferingStart(): Int {
-        return super.rendererBufferingStart()
+        return 0
     }
 
     override fun rendererBufferingEnd() {
-        super.rendererBufferingEnd()
     }
 
     override fun rendererGetBounds(font: Font, text: String, out: TextMetrics) {
@@ -57,6 +76,7 @@ class ShapeBuilder : Context2d(Renderer.DUMMY), Context2d.Drawable {
     }
 
     fun clear() {
+        state.clone()
         shapes.clear()
     }
     fun buildShape(): Shape = CompoundShape(shapes.toList())

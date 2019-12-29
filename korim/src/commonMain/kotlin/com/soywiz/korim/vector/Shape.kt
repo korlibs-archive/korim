@@ -105,7 +105,8 @@ interface Shape : Context2d.Drawable {
 	fun buildSvg(svg: SvgBuilder): Unit {
 	}
 
-	fun containsPoint(x: Double, y: Double): Boolean
+    // Unoptimized version
+	fun containsPoint(x: Double, y: Double): Boolean = BoundsBuilder().also { addBounds(it) }.getBounds().contains(x, y)
 }
 
 fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
@@ -115,23 +116,29 @@ fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
 }
 
 fun Shape.toSvg(scale: Double = 1.0): Xml = SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
+fun Context2d.Drawable.toShape(width: Int, height: Int): Shape = buildShape(width, height) { draw(this@toShape) }
+fun Context2d.Drawable.toSvg(width: Int, height: Int, scale: Double = 1.0): Xml = toShape(width, height).toSvg(scale)
+
+fun Context2d.SizedDrawable.toShape(): Shape = toShape(width, height)
+fun Context2d.SizedDrawable.toSvg(scale: Double = 1.0): Xml = toSvg(width, height, scale)
 
 interface StyledShape : Shape {
-	val path: GraphicsPath
+	val path: GraphicsPath? get() = null
 	val clip: GraphicsPath?
 	val paint: Context2d.Paint
 	val transform: Matrix
 
 	override fun addBounds(bb: BoundsBuilder): Unit {
-        bb.add(path)
+        path?.let { bb.add(it) }
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
 		svg.nodes += Xml.Tag(
 			"path", mapOf(
 				//"d" to path.toSvgPathString(svg.scale, svg.tx, svg.ty)
-				"d" to path.toSvgPathString()
-			) + getSvgXmlAttributes(svg), listOf()
+				"d" to (path?.toSvgPathString() ?: ""),
+                "transform" to transform.toSvg()
+            ) + getSvgXmlAttributes(svg), listOf()
 		)
 	}
 
@@ -143,7 +150,7 @@ interface StyledShape : Shape {
 		c.keepTransform {
 			c.transform(transform)
 			c.beginPath()
-			path.draw(c)
+			path?.draw(c)
 			if (clip != null) {
 				clip!!.draw(c)
 				c.clip()
@@ -354,4 +361,56 @@ class CompoundShape(
 	override fun containsPoint(x: Double, y: Double): Boolean {
 		return components.any { it.containsPoint(x, y) }
 	}
+}
+
+class TextShape(
+    val text: String,
+    val x: Double,
+    val y: Double,
+    val font: Context2d.Font,
+    override val clip: GraphicsPath?,
+    val fill: Context2d.Paint?,
+    val stroke: Context2d.Paint?,
+    val halign: Context2d.HorizontalAlign = Context2d.HorizontalAlign.LEFT,
+    val valign: Context2d.VerticalAlign = Context2d.VerticalAlign.TOP,
+    override val transform: Matrix = Matrix()
+) : StyledShape {
+    override val paint: Context2d.Paint get() = fill ?: stroke ?: Context2d.None
+
+    override fun addBounds(bb: BoundsBuilder) {
+        bb.add(x, y)
+        bb.add(x + font.size * text.length, y + font.size) // @TODO: this is not right since we don't have information about Glyph metrics
+    }
+    override fun drawInternal(c: Context2d) {
+        c.font(font, halign, valign) {
+            if (fill != null) c.fillText(text, x, y)
+            if (stroke != null) c.strokeText(text, x, y)
+        }
+    }
+    override fun buildSvg(svg: SvgBuilder) {
+        svg.nodes += Xml.Tag(
+            "text", mapOf(
+                "x" to x,
+                "y" to y,
+                "fill" to (fill?.toSvg(svg) ?: "none"),
+                "stroke" to (stroke?.toSvg(svg) ?: "none"),
+                "font-family" to font.name,
+                "font-size" to "${font.size}px",
+                "text-anchor" to when (halign) {
+                    Context2d.HorizontalAlign.LEFT -> "start"
+                    Context2d.HorizontalAlign.CENTER -> "middle"
+                    Context2d.HorizontalAlign.RIGHT -> "end"
+                },
+                "alignment-baseline" to when (valign) {
+                    Context2d.VerticalAlign.TOP -> "hanging"
+                    Context2d.VerticalAlign.MIDDLE -> "middle"
+                    Context2d.VerticalAlign.BASELINE -> "baseline"
+                    Context2d.VerticalAlign.BOTTOM -> "bottom"
+                },
+                "transform" to transform.toSvg()
+            ), listOf(
+                Xml.Text(text)
+            )
+        )
+    }
 }

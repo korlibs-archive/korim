@@ -138,36 +138,44 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 	}
 
 	fun parseFillStroke(c: Context2d, str2: String, bounds: Rectangle): Context2d.Paint {
-		val str = str2.toLowerCase()
-		val res = if (str.startsWith("url(")) {
-			val urlPattern = str.substr(4, -1)
-			if (urlPattern.startsWith("#")) {
-				val idName = urlPattern.substr(1).toLowerCase()
-				val def = defs[idName]
-				if (def == null) {
-					println(defs)
-					println("Can't find svg definition '$idName'")
-				}
-				def ?: c.none
-			} else {
-				println("Unsupported $str")
-				c.none
-			}
-		} else {
-			when (str) {
-				"none" -> c.none
-				else -> c.createColor(Colors.Default[str])
-			}
-		}
-		if (res is Context2d.Gradient) {
-			val m = Matrix()
-			m.scale(bounds.width, bounds.height)
-			val out = res.applyMatrix(m)
-			//println(out)
-			return out
-		} else {
-			return res
-		}
+		val str = str2.toLowerCase().trim()
+		val res = when {
+            str.startsWith("url(") -> {
+                val urlPattern = str.substr(4, -1)
+                if (urlPattern.startsWith("#")) {
+                    val idName = urlPattern.substr(1).toLowerCase()
+                    val def = defs[idName]
+                    if (def == null) {
+                        println(defs)
+                        println("Can't find svg definition '$idName'")
+                    }
+                    def ?: c.none
+                } else {
+                    println("Unsupported $str")
+                    c.none
+                }
+            }
+            str.startsWith("rgba(") -> {
+                val components = str.removePrefix("rgba(").removeSuffix(")").split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
+                Context2d.Color(RGBA(components[0].toInt(), components[1].toInt(), components[2].toInt(), (components[3] * 255).toInt()))
+            }
+            else -> when (str) {
+                "none" -> c.none
+                else -> c.createColor(Colors.Default[str])
+            }
+        }
+        return when (res) {
+            is Context2d.Gradient -> {
+                val m = Matrix()
+                m.scale(bounds.width, bounds.height)
+                val out = res.applyMatrix(m)
+                //println(out)
+                out
+            }
+            else -> {
+                res
+            }
+        }
 	}
 
 	fun drawElement(xml: Xml, c: Context2d): Context2d = c.keepApply {
@@ -234,7 +242,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			"g" -> {
 			}
 			"text" -> {
-				fillText(xml.text, xml.double("x") + xml.double("dx"), xml.double("y") + xml.double("dy"))
 			}
 			"path" -> {
 				val d = xml.str("d")
@@ -331,7 +338,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
 		if (xml.hasAttribute("font-size")) {
-			font = font.copy(size = xml.double("font-size"))
+			font = font.copy(size = parseSizeAsDouble(xml.str("font-size")))
 		}
 		if (xml.hasAttribute("font-family")) {
 			font = font.copy(name = xml.str("font-family"))
@@ -343,13 +350,22 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			applyTransform(state, parseTransform(xml.str("transform")))
 		}
 		if (xml.hasAttribute("text-anchor")) {
-			horizontalAlign = when (xml.str("text-anchor").toLowerCase()) {
+			horizontalAlign = when (xml.str("text-anchor").toLowerCase().trim()) {
 				"left" -> Context2d.HorizontalAlign.LEFT
 				"center", "middle" -> Context2d.HorizontalAlign.CENTER
-				"right" -> Context2d.HorizontalAlign.RIGHT
+				"right", "end" -> Context2d.HorizontalAlign.RIGHT
 				else -> horizontalAlign
 			}
 		}
+        if (xml.hasAttribute("alignment-baseline")) {
+            verticalAlign = when (xml.str("alignment-baseline").toLowerCase().trim()) {
+                "hanging" -> Context2d.VerticalAlign.TOP
+                "center", "middle" -> Context2d.VerticalAlign.MIDDLE
+                "baseline" -> Context2d.VerticalAlign.BASELINE
+                "bottom" -> Context2d.VerticalAlign.BOTTOM
+                else -> verticalAlign
+            }
+        }
 		if (xml.hasAttribute("fill-opacity")) {
 			globalAlpha = xml.double("fill-opacity", 1.0)
 		}
@@ -358,10 +374,17 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			"g" -> {
 				drawChildren(xml, c)
 			}
+            "text" -> {
+                fillText(xml.text.trim(), xml.double("x") + xml.double("dx"), xml.double("y") + xml.double("dy"))
+            }
 		}
 
 		c.fillStroke()
 	}
+
+    fun parseSizeAsDouble(size: String): Double {
+        return size.filter { it !in 'a'..'z' && it !in 'A'..'Z' }.toDoubleOrNull() ?: 16.0
+    }
 
 	fun applyFill(c: Context2d, str: String, bounds: Rectangle) {
 		c.fillStyle = parseFillStroke(c, str, bounds)
