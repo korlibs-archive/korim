@@ -85,9 +85,9 @@ val BufferedImage.premultiplied: Boolean get() = (this.type == BufferedImage.TYP
 fun BufferedImage.toBMP32(): Bitmap32 {
 	//println("Convert BufferedImage into BMP32!")
 	val image = awtConvertImageIfRequired(this)
-	val ints = (image.raster.dataBuffer as DataBufferInt).data
+	val ints = (image.raster.dataBuffer as DataBufferInt).data.copyOf() // copyOf required to not mutate the bitmap
 	val area = image.width * image.height
-	for (n in 0 until area) ints[n] = BGRA.rgbaToBgra(ints[n])
+	for (n in 0 until area) ints[n] = BGRA.rgbaToBgra(ints[n]) // Fast toggle bytes
 	return Bitmap32(image.width, image.height, RgbaArray(ints), premultiplied)
 }
 
