@@ -315,7 +315,10 @@ data class PolylineShape(
         tempBB.reset()
         tempBB.add(path)
         tempBB.getBounds(tempRect)
-        tempRect.inflate(max(thickness, 0.0), max(thickness, 0.0))
+
+        val halfThickness = thickness / 2
+        tempRect.inflate(max(halfThickness, 0.0), max(halfThickness, 0.0))
+
         //println("PolylineShape.addBounds: thickness=$thickness, rect=$tempRect")
         bb.add(tempRect)
     }
@@ -336,6 +339,7 @@ data class PolylineShape(
 	}
 
 	override fun getSvgXmlAttributes(svg: SvgBuilder) = super.getSvgXmlAttributes(svg) + mapOf(
+        "fill" to "none",
 		"stroke-width" to "$thickness",
 		"stroke" to paint.toSvg(svg)
 	)

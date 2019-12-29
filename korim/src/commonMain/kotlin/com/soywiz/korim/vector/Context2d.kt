@@ -6,13 +6,23 @@ import com.soywiz.korim.color.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
-class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
-    val width: Int get() = renderer.width
-	val height: Int get() = renderer.height
+open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBuilder {
+    protected open val rendererWidth get() = renderer.width
+    protected open val rendererHeight get() = renderer.height
+    protected open fun rendererRender(state: Context2d.State, fill: Boolean) = renderer.render(state, fill)
+    protected open fun rendererRenderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) =
+        renderer.renderText(state, font, text, x, y, fill)
+    protected open fun rendererDrawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height, transform: Matrix = Matrix()) = renderer.drawImage(image, x, y, width, height, transform)
+    protected open fun rendererDispose() = renderer.dispose()
+    protected open fun rendererBufferingStart() = renderer.bufferingStart()
+    protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
+    protected open fun rendererGetBounds(font: Font, text: String, out: TextMetrics): Unit = renderer.getBounds(font, text, out)
+
+    open val width: Int get() = renderer.width
+    open val height: Int get() = renderer.height
 
 	enum class LineCap { BUTT, ROUND, SQUARE }
 	enum class LineJoin { BEVEL, MITER, ROUND }
@@ -23,10 +33,10 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	}
 
 	override fun dispose() {
-		renderer.dispose()
+		rendererDispose()
 	}
 
-	fun withScaledRenderer(scaleX: Double, scaleY: Double = scaleX): Context2d = if (scaleX == 1.0 && scaleY == 1.0) this else Context2d(ScaledRenderer(renderer, scaleX, scaleY))
+    fun withScaledRenderer(scaleX: Double, scaleY: Double = scaleX): Context2d = if (scaleX == 1.0 && scaleY == 1.0) this else Context2d(ScaledRenderer(renderer, scaleX, scaleY))
 
 	class ScaledRenderer(val parent: Renderer, val scaleX: Double, val scaleY: Double) : Renderer() {
 		override val width: Int get() = (parent.width / scaleX).toInt()
@@ -53,11 +63,11 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	}
 
     inline fun <T> buffering(callback: () -> T): T {
-        renderer.bufferingStart()
+        rendererBufferingStart()
         try {
             return callback()
         } finally {
-            renderer.bufferingEnd()
+            rendererBufferingEnd()
         }
     }
 
@@ -130,12 +140,15 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 			height: Int = image.height,
 			transform: Matrix = Matrix()
 		): Unit {
-			val state = State(transform = transform, path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) }, fillStyle = Context2d.BitmapPaint(
-				image,
-				transform = Matrix()
-					.scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
-					.translate(x, y)
-			))
+			val state = State(
+                transform = transform,
+                path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) },
+                fillStyle = Context2d.BitmapPaint(image,
+                    transform = Matrix()
+                        .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
+                        .translate(x, y)
+                )
+            )
 			render(state, fill = true)
 		}
 
@@ -169,7 +182,8 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		var path: GraphicsPath = GraphicsPath(),
 		var lineScaleMode: ScaleMode = ScaleMode.NORMAL,
 		var lineWidth: Double = 1.0,
-		var lineCap: LineCap = LineCap.BUTT,
+		var startLineCap: LineCap = LineCap.BUTT,
+        var endLineCap: LineCap = LineCap.BUTT,
 		var lineJoin: LineJoin = LineJoin.MITER,
 		var miterLimit: Double = 4.0,
 		var strokeStyle: Paint = Color(Colors.BLACK),
@@ -179,7 +193,14 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
 		var globalAlpha: Double = 1.0
 	) {
-		fun clone(): State = this.copy(
+        var lineCap: LineCap
+            get() = startLineCap
+            set(value) {
+                startLineCap = value
+                endLineCap = value
+            }
+
+        fun clone(): State = this.copy(
 			transform = transform.clone(),
 			clip = clip?.clone(),
 			path = path.clone()
@@ -192,6 +213,8 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	var lineScaleMode: ScaleMode by { state::lineScaleMode }.redirected()
 	var lineWidth: Double by { state::lineWidth }.redirected()
 	var lineCap: LineCap by { state::lineCap }.redirected()
+    var startLineCap: LineCap by { state::startLineCap }.redirected()
+    var endLineCap: LineCap by { state::startLineCap }.redirected()
     var lineJoin: LineJoin by { state::lineJoin }.redirected()
 	var strokeStyle: Paint by { state::strokeStyle }.redirected()
 	var fillStyle: Paint by { state::fillStyle }.redirected()
@@ -303,7 +326,6 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
         state.path.quadTo(cx, cy, ax, ay)
     }
 
-
 	inline fun strokeRect(x: Number, y: Number, width: Number, height: Number) =
 		strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 
@@ -331,10 +353,10 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 
 	fun getBounds(out: Rectangle = Rectangle()) = state.path.getBounds(out)
 
-	fun stroke() = run { if (state.strokeStyle != None) renderer.render(state, fill = false) }
-	fun fill() = run { if (state.fillStyle != None) renderer.render(state, fill = true) }
+	fun stroke() = run { if (state.strokeStyle != None) rendererRender(state, fill = false) }
+    fun fill() = run { if (state.fillStyle != None) rendererRender(state, fill = true) }
 
-	fun fill(paint: Paint) {
+    fun fill(paint: Paint) {
 		this.fillStyle(paint) {
 			this.fill()
 		}
@@ -346,7 +368,17 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		}
 	}
 
-	inline fun stroke(paint: Paint, callback: () -> Unit) {
+    inline fun fill(color: RGBA, block: () -> Unit) {
+        block()
+        fill(Color(color))
+    }
+
+    inline fun fill(paint: Paint, block: () -> Unit) {
+        block()
+        fill(paint)
+    }
+
+    inline fun stroke(paint: Paint, callback: () -> Unit) {
 		callback()
 		stroke(paint)
 	}
@@ -356,10 +388,16 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		stroke(Color(color))
 	}
 
-	fun fillStroke() = run { fill(); stroke() }
+    inline fun fillStroke(fill: Paint, stroke: Paint, callback: () -> Unit) {
+        callback()
+        fill(fill)
+        stroke(stroke)
+    }
+
+    fun fillStroke() = run { fill(); stroke() }
 	fun clip() = run { state.clip = state.path }
 
-	fun drawShape(
+    fun drawShape(
 		shape: Shape,
 		rasterizerMethod: Context2d.ShapeRasterizerMethod = Context2d.ShapeRasterizerMethod.X4
 	) {
@@ -369,7 +407,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 			}
 			Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
 				val scale = rasterizerMethod.scale
-				val newBi = NativeImage(ceil(renderer.width * scale).toInt(), ceil(renderer.height * scale).toInt())
+				val newBi = NativeImage(ceil(rendererWidth * scale).toInt(), ceil(rendererHeight * scale).toInt())
 				val bi = newBi.getContext2d(antialiasing = false)
 				//val bi = Context2d(AwtContext2dRender(newBi, antialiasing = true))
 				//val oldLineScale = bi.lineScale
@@ -385,7 +423,7 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 				}
 				keepTransform {
 					setTransform(Matrix())
-					this.renderer.drawImage(renderBi, 0, 0)
+					this.rendererDrawImage(renderBi, 0, 0)
 				}
 				//} finally {
 				//	bi.lineScale = oldLineScale
@@ -414,9 +452,9 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 	data class TextMetrics(val bounds: Rectangle = Rectangle())
 
 	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
-		out.apply { renderer.getBounds(font, text, out) }
+		out.apply { rendererGetBounds(font, text, out) }
 
-	@Suppress("NOTHING_TO_INLINE") // Number inlining
+    @Suppress("NOTHING_TO_INLINE") // Number inlining
 	inline fun fillText(text: String, x: Number, y: Number): Unit =
 		renderText(text, x.toDouble(), y.toDouble(), fill = true)
 
@@ -441,14 +479,14 @@ class Context2d(val renderer: Renderer) : Disposable, VectorBuilder {
 		}
 	}
 
-	fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit =
-		run { renderer.renderText(state, font, text, x, y, fill) }
+    open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit =
+		run { rendererRenderText(state, font, text, x, y, fill) }
 
-	fun drawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height) {
-		renderer.drawImage(image, x, y, width, height, state.transform)
+    open fun drawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height) {
+		rendererDrawImage(image, x, y, width, height, state.transform)
 	}
 
-	interface Paint
+    interface Paint
 
 	object None : Paint
 
