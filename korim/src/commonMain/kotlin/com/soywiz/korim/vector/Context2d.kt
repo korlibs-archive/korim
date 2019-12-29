@@ -21,8 +21,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
     protected open fun rendererGetBounds(font: Font, text: String, out: TextMetrics): Unit = renderer.getBounds(font, text, out)
 
-    open val width: Int get() = renderer.width
-    open val height: Int get() = renderer.height
+    open val width: Int get() = rendererWidth
+    open val height: Int get() = rendererHeight
 
 	enum class LineCap { BUTT, ROUND, SQUARE }
 	enum class LineJoin { BEVEL, MITER, ROUND }
