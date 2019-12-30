@@ -563,16 +563,20 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		fun draw(c: Context2d)
 	}
 
-	interface BoundsDrawable : Drawable {
-		val bounds: Rectangle
-	}
-
 	interface SizedDrawable : Drawable {
 		val width: Int
 		val height: Int
 	}
 
-	class FuncDrawable(val action: Context2d.() -> Unit) : Context2d.Drawable {
+    interface BoundsDrawable : SizedDrawable {
+        val bounds: Rectangle
+        val left: Int get() = bounds.left.toInt()
+        val top: Int get() = bounds.top.toInt()
+        override val width: Int get() = bounds.width.toInt()
+        override val height: Int get() = bounds.height.toInt()
+    }
+
+    class FuncDrawable(val action: Context2d.() -> Unit) : Context2d.Drawable {
 		override fun draw(c: Context2d) {
 			c.keep {
 				action(c)
