@@ -100,13 +100,13 @@ fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1):
 //	return parts.joinToString("")
 //}
 
-interface Shape : Context2d.Drawable {
+interface Shape : Context2d.BoundsDrawable {
 	fun addBounds(bb: BoundsBuilder): Unit
-	fun buildSvg(svg: SvgBuilder): Unit {
-	}
+	fun buildSvg(svg: SvgBuilder): Unit = Unit
 
     // Unoptimized version
-	fun containsPoint(x: Double, y: Double): Boolean = BoundsBuilder().also { addBounds(it) }.getBounds().contains(x, y)
+    override val bounds: Rectangle get() = BoundsBuilder().also { addBounds(it) }.getBounds()
+	fun containsPoint(x: Double, y: Double): Boolean = bounds.contains(x, y)
 }
 
 fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
