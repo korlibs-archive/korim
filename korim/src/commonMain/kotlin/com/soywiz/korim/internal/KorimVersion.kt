@@ -1,3 +1,3 @@
 package com.soywiz.korim.internal
 
-internal const val KORIM_VERSION = "1.9.5"
+internal const val KORIM_VERSION = "1.9.6-SNAPSHOT"
