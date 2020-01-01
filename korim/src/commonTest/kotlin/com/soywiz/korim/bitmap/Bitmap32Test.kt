@@ -46,4 +46,14 @@ class Bitmap32Test {
         bmp1[0, 0] = Colors.RED
         assertEquals(bmp1.hashCode(), hash1)
     }
+
+    @Test
+    fun testScaled() {
+        val nbmp = Bitmap32(128, 128, Colors.RED).scaled(16, 16)
+        assertEquals(16, nbmp.width)
+        assertEquals(16, nbmp.height)
+        assertEquals(Colors.RED, nbmp[0, 0])
+        assertEquals(Colors.RED, nbmp[7, 7])
+        assertEquals(Colors.RED, nbmp[15, 15])
+    }
 }

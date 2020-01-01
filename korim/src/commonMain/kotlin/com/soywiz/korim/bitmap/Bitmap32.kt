@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.*
 import kotlin.js.*
+import kotlin.jvm.*
 import kotlin.math.*
 
 class Bitmap32(
@@ -20,7 +21,8 @@ class Bitmap32(
 	private val temp = RgbaArray(max(width, height))
     val bounds: IRectangleInt = RectangleInt(0, 0, width, height)
 
-	constructor(width: Int, height: Int, value: RGBA, premultiplied: Boolean) : this(width, height, premultiplied = premultiplied) { data.fill(value) }
+    @JvmOverloads
+	constructor(width: Int, height: Int, value: RGBA, premultiplied: Boolean = false) : this(width, height, premultiplied = premultiplied) { data.fill(value) }
 	constructor(width: Int, height: Int, premultiplied: Boolean = false, generator: (x: Int, y: Int) -> RGBA) : this(width, height, premultiplied = premultiplied) { setEach(callback = generator) }
 
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap32(width, height, premultiplied = premultiplied)
@@ -293,8 +295,41 @@ class Bitmap32(
     //    }
     //}
 
-    fun scaleNearest(sx: Int, sy: Int): Bitmap32 = Bitmap32(width * sx, height * sy).apply { setEach { x, y -> this@Bitmap32[x / sx, y / sy] } }
-    fun scaleLinear(sx: Double, sy: Double): Bitmap32 = Bitmap32((width * sx).toInt(), (height * sy).toInt()).apply { setEach { x, y -> this@Bitmap32.getRgbaSampled(x / sx, y / sy) } }
+    fun scaleNearest(sx: Int, sy: Int): Bitmap32 = scaled(width * sx, height * sy, smooth = false)
+    fun scaleLinear(sx: Double, sy: Double): Bitmap32 = scaled((width * sx).toInt(), (height * sy).toInt(), smooth = true)
+
+    /**
+     * Creates a new [Bitmap32] with the specified new dimensions [width]x[height]
+     * scaling the original content.
+     * The [smooth] parameter determines the quality of the interpolation. [smooth]=false will use a nearest neighborhood implementation.
+     */
+    @JvmOverloads
+    fun scaled(width: Int, height: Int, smooth: Boolean = true): Bitmap32 {
+        val sx = width.toDouble() / this.width.toDouble()
+        val sy = height.toDouble() / this.height.toDouble()
+        val isx = 1.0 / sx
+        val isy = 1.0 / sy
+        val out = Bitmap32(width, height)
+        if (smooth) {
+            out.setEach { x, y -> this@Bitmap32[(x * isx).toInt(), (y * isy).toInt()] }
+        } else {
+            val gWidth = width > (this.width / 2 + 1)
+            val gHeight = height > (this.height / 2 + 1)
+            //println("gWidth: $gWidth, gHeight=$gHeight")
+            //println("width=$width, height=$height")
+            //println("this.width=${this.width}, this.height=${this.height}")
+            // @TODO: Reduce memory usage here
+            if (gWidth || gHeight) {
+                return scaled(
+                    if (gWidth) this.width / 2 else width,
+                    if (gHeight) this.height / 2 else height,
+                    smooth = true
+                ).scaled(width, height)
+            }
+            out.setEach { x, y -> this@Bitmap32.getRgbaSampled(x * isx, y * isy) }
+        }
+        return out
+    }
 
 	fun rgbaToYCbCr(): Bitmap32 = clone().apply { rgbaToYCbCrInline() }
     fun rgbaToYCbCrInline() = updateColors { RGBA(it.toYCbCr().value) }
