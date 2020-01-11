@@ -13,8 +13,10 @@ class DemoTest {
     
     @Test
     fun test() = suspendTestNoBrowser {
-        val bmp1 = PNG.decode(DebugBitmapFont.DEBUG_FONT_BYTES)
-        val bmp2 = MemoryVfs(mapOf("image.png" to DebugBitmapFont.DEBUG_FONT_BYTES.openAsync()))["image.png"].readBitmapOptimized()
-        assertTrue(Bitmap32.matches(bmp1.toBMP32(), bmp2.toBMP32(), threshold = 0))
+        val bmp1 = PNG.decode(DebugBitmapFont.DEBUG_FONT_BYTES).toBMP32().premultipliedIfRequired()
+        val bmp2 = MemoryVfs(mapOf("image.png" to DebugBitmapFont.DEBUG_FONT_BYTES.openAsync()))["image.png"].readBitmapOptimized().toBMP32().premultipliedIfRequired()
+        assertEquals(bmp1.size, bmp2.size)
+        val result = Bitmap32.matchesWithResult(bmp1, bmp2)
+        assertEquals(Bitmap32.Companion.MatchResult(sizeMatches = true, differentPixels = 0, samePixels = bmp1.area), result)
     }
 }
