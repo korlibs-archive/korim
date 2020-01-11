@@ -287,9 +287,9 @@ object PNG : ImageFormat("png") {
 					bmp8 != null -> {
 						applyFilter(filter, lastRow, currentRow, header.components)
                         when (header.bitsPerChannel) {
-                            1 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 8].extract((n % 8) * 1, 1)
-                            2 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 4].extract((n % 4) * 2, 2)
-                            4 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 2].extract((n % 2) * 4, 4)
+                            1 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 8].extract(7 - (n % 8) * 1, 1)
+                            2 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 4].extract(6 - (n % 4) * 2, 2)
+                            4 -> for (n in 0 until width) bmp[col + n, row] = currentRow[n / 2].extract(4 - (n % 2) * 4, 4)
                             8 -> bmp8.setRowChunk(col, row, currentRow.asByteArray(), width, colIncrement)
                             else -> error("Unsupported header.bitsPerChannel=${header.bitsPerChannel}")
                         }

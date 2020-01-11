@@ -431,6 +431,30 @@ class Bitmap32(
             }
         }
 
+        data class MatchResult(
+            val sizeMatches: Boolean,
+            val differentPixels: Int = 0,
+            val samePixels: Int = 0
+        )
+
+        fun matchesWithResult(a: Bitmap32, b: Bitmap32): MatchResult {
+            if (a.width != b.width || a.height != b.height) return MatchResult(sizeMatches = false)
+            val aData = a.data
+            val bData = b.data
+            var different = 0
+            var same = 0
+            for (n in 0 until aData.size) {
+                val av = aData[n]
+                val bv = bData[n]
+                if (av == bv || (av.a == 0 && bv.a == 0)) {
+                    same++
+                } else {
+                    different++
+                }
+            }
+            return MatchResult(sizeMatches = true, differentPixels = different, samePixels = same)
+        }
+
         fun diff(a: Bitmap, b: Bitmap): Bitmap32 {
             if (a.width != b.width || a.height != b.height) throw IllegalArgumentException("$a not matches $b size")
             val a32 = a.toBMP32()
