@@ -75,11 +75,14 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 		//fun mutliplyByAlpha(v: Int, alpha: Double): Int = com.soywiz.korim.color.RGBA.pack(RGBA(v).r, RGBA(v).g, RGBA(v).b, (RGBA(v).a * alpha).toInt())
 		//fun depremultiply(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
 
-        fun mixRgbFactor256(c1: RGBA, c2: RGBA, factor256: Int): RGBA = RGBA((256 - factor256).let { ifactor256 ->
-            ((((((c1.value and 0xFF00FF) * ifactor256) +
-                ((c2.value and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or
-                ((((c1.value and 0x00FF00) * ifactor256) + ((c2.value and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8
-        })
+        fun mixRgbFactor256(c1: RGBA, c2: RGBA, factor256: Int): RGBA {
+            val ifactor256 = (256 - factor256)
+            return RGBA(
+                ((((((c1.value and 0xFF00FF) * ifactor256) +
+                    ((c2.value and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or
+                    ((((c1.value and 0x00FF00) * ifactor256) + ((c2.value and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8
+            )
+        }
 		fun mixRgb(c1: RGBA, c2: RGBA, factor: Double): RGBA = mixRgbFactor256(c1, c2, (factor * 256).toInt())
 
         fun mixRgba(c1: RGBA, c2: RGBA, factor: Double): RGBA =
@@ -89,10 +92,14 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 
         fun mix(dst: RGBA, src: RGBA): RGBA {
             val srcA = src.a
+            val iSrcA = 255 - srcA
             return when (srcA) {
                 0x000 -> dst
                 0xFF -> src
-                else -> RGBA(mixRgbFactor256(dst, src, srcA + 1).rgb, dst.a + srcA)
+                else -> {
+                    RGBA(mixRgbFactor256(dst, src, srcA + 1).rgb, (srcA + (dst.a * iSrcA) / 255).clamp0_255())
+                    //(dst.premultiplied mix src.premultiplied).depremultiplied
+                }
             }
         }
 
@@ -115,6 +122,10 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 fun Double.interpolate(a: RGBA, b: RGBA): RGBA = RGBA.interpolate(a, b, this)
 
 inline class RGBAPremultiplied(val value: Int) {
+    constructor(rgb: Int, a: Int) : this((rgb and 0xFFFFFF) or (a shl 24))
+    constructor(r: Int, g: Int, b: Int, a: Int) : this(RGBA.pack(r, g, b, a))
+
+    val rgb: Int get() = value and 0xFFFFFF
     val r: Int get() = (value ushr 0) and 0xFF
     val g: Int get() = (value ushr 8) and 0xFF
     val b: Int get() = (value ushr 16) and 0xFF
@@ -137,11 +148,11 @@ inline class RGBAPremultiplied(val value: Int) {
         //val B = (((value and 0xFF0000) shl 8) / A) and 0xFF0000
         //return RGBA((value and 0x00FFFFFF.inv()) or B or G or R)
 
-        val A = (value ushr 24)
+        val A = a
         val A1 = A + 1
-        val R = ((((value ushr 0) and 0xFF) shl 8) / A1) and 0xFF
-        val G = ((((value ushr 8) and 0xFF) shl 8) / A1) and 0xFF
-        val B = ((((value ushr 16) and 0xFF) shl 8) / A1) and 0xFF
+        val R = ((r shl 8) / A1) and 0xFF
+        val G = ((g shl 8) / A1) and 0xFF
+        val B = ((b shl 8) / A1) and 0xFF
         return RGBA(R, G, B, A)
     }
 
@@ -198,6 +209,22 @@ inline class RgbaPremultipliedArray(val ints: IntArray) {
     }
 
     override fun toString(): String = "RgbaPremultipliedArray($size)"
+}
+
+//infix fun RGBA.mix(dst: RGBA): RGBA = RGBA.mix(this, dst)
+infix fun RGBAPremultiplied.mix(src: RGBAPremultiplied): RGBAPremultiplied {
+    val dst = this
+    val srcAf = src.af
+    val oneMSrcAf = (1f - srcAf)
+    val outA = (src.a + (dst.a * oneMSrcAf)).toInt()
+    val outR = (src.r + (dst.r * oneMSrcAf)).toInt()
+    val outG = (src.g + (dst.g * oneMSrcAf)).toInt()
+    val outB = (src.b + (dst.b * oneMSrcAf)).toInt()
+    return RGBAPremultiplied(outR, outG, outB, outA)
+    //val A = (src.a + (dst.a * oneMSrcAf).toInt()).clamp0_255()
+    //val RB = ((src.value and 0xFF00FF) + ((dst.value and 0xFF00FF) * oneMSrcAf).toInt()) and 0xFF00FF
+    //val G = ((src.value and 0x00FF00) + ((dst.value and 0x00FF00) * oneMSrcAf).toInt()) and 0x00FF00
+    //return RGBAPremultiplied(RB or G, A)
 }
 
 

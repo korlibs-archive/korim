@@ -14,6 +14,8 @@ class Bitmap32(
     val data: RgbaArray = RgbaArray(width * height),
     premultiplied: Boolean = false
 ) : Bitmap(width, height, 32, premultiplied, data), Iterable<RGBA> {
+    val dataPremult = RgbaPremultipliedArray(data.ints)
+
 	init {
 		if (data.size < width * height) throw RuntimeException("Bitmap data is too short: width=$width, height=$height, data=ByteArray(${data.size}), area=${width * height}")
 	}
@@ -66,13 +68,30 @@ class Bitmap32(
 		val height = sbottom - stop
 		val dstData = dst.data
 		val srcData = src.data
-		for (y in 0 until height) {
+
+        val dstDataPremult = dst.dataPremult
+        val srcDataPremult = src.dataPremult
+
+        val dstPremultiplied = this.premultiplied
+        val srcPremultiplied = src.premultiplied
+
+        for (y in 0 until height) {
 			val dstOffset = dst.index(dx, dy + y)
 			val srcOffset = src.index(sleft, stop + y)
 			if (mix) {
-				for (x in 0 until width) dstData[dstOffset + x] = dstData[dstOffset + x] mix srcData[srcOffset + x]
+                when {
+                    dstPremultiplied && srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = dstDataPremult[dstOffset + x] mix srcDataPremult[srcOffset + x]
+                    dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = (dstDataPremult[dstOffset + x] mix srcData[srcOffset + x].premultiplied)
+                    !dstPremultiplied && srcPremultiplied -> for (x in 0 until width) dstData[dstOffset + x] = (dstData[dstOffset + x].premultiplied mix srcDataPremult[srcOffset + x]).depremultiplied
+                    !dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstData[dstOffset + x] = (dstData[dstOffset + x].premultiplied mix srcData[srcOffset + x].premultiplied).depremultiplied
+                }
+
 			} else {
-				arraycopy(srcData, srcOffset, dstData, dstOffset, width)
+                when {
+                    dstPremultiplied == srcPremultiplied -> arraycopy(srcData, srcOffset, dstData, dstOffset, width)
+                    dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = srcData[srcOffset + x].premultiplied
+                    !dstPremultiplied && srcPremultiplied -> for (x in 0 until width) dstData[dstOffset + x] = srcDataPremult[srcOffset + x].depremultiplied
+                }
 			}
 		}
 	}

@@ -98,4 +98,13 @@ class RGBATest {
 	//	val c = RGBA.pack(0xFF, 0xFF, 0xFF, 0x7F)
 	//	for (n in 0 until 10000000000) m += RGBA.premultiplyFast2(c)
 	//}
+
+    @Test
+    fun mix() {
+        val dst = Colors["#00ff00ff"]
+        val src = Colors["#3f3f3f7f"]
+        //val out = dst mix src
+        assertEquals("#1f9f1fff", (dst mix src).toString())
+        assertEquals("#1f9f1fff", (dst.premultiplied mix src.premultiplied).depremultiplied.toString())
+    }
 }
