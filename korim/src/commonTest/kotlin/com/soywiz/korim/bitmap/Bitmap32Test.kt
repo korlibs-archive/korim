@@ -24,6 +24,12 @@ class Bitmap32Test {
 		val c = Bitmap32(16, 16)
 		c.fill(Colors.RED)
 		assertTrue(c.all { it == Colors.RED })
+        assertTrue(c.any { it == Colors.RED })
+        assertFalse(c.any { it == Colors.BLUE })
+        c[0, 0] = Colors.BLUE
+        assertFalse(c.all { it == Colors.RED })
+        assertTrue(c.any { it == Colors.RED })
+        assertTrue(c.any { it == Colors.BLUE })
 	}
 
 	//@Test

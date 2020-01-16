@@ -167,7 +167,8 @@ class Bitmap32(
         }
     }
 
-	inline fun all(callback: (RGBA) -> Boolean): Boolean = (0 until area).any { callback(data[it]) }
+    inline fun any(callback: (RGBA) -> Boolean): Boolean = (0 until area).any { callback(data[it]) }
+	inline fun all(callback: (RGBA) -> Boolean): Boolean = (0 until area).all { callback(data[it]) }
 
 	inline fun setEach(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (x: Int, y: Int) -> RGBA) = forEach(sx, sy, width, height) { n, x, y -> this.data[n] = callback(x, y) }
 	inline fun updateColors(sx: Int = 0, sy: Int = 0, width: Int = this.width - sx, height: Int = this.height - sy, callback: (rgba: RGBA) -> RGBA) = forEach(sx, sy, width, height) { n, x, y -> this.data[n] = callback(this.data[n]) }
