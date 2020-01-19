@@ -39,19 +39,12 @@ object AwtNativeImageFormatProvider : NativeImageFormatProvider() {
 
 	override fun copy(bmp: Bitmap): NativeImage = AwtNativeImage(bmp.toAwt())
 	override suspend fun display(bitmap: Bitmap, kind: Int): Unit = awtShowImageAndWait(bitmap)
-	override fun mipmap(bmp: Bitmap, levels: Int): NativeImage = bmp.toBMP32().mipmap(levels).ensureNative()
 
 	//actual fun mipmap(bmp: Bitmap, levels: Int): NativeImage {
 	//	var out = bmp.ensureNative()
 	//	for (n in 0 until levels) out = mipmap(out)
 	//	return out
 	//}
-
-	override fun mipmap(bmp: Bitmap): NativeImage {
-		val out = NativeImage(ceil(bmp.width * 0.5).toInt(), ceil(bmp.height * 0.5).toInt())
-		out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0, 0, out.width, out.height)
-		return out
-	}
 
 	//override fun mipmap(bmp: Bitmap, levels: Int): NativeImage = mipmapInternal(bmp, levels)
 	////override fun mipmap(bmp: Bitmap): NativeImage = mipmapInternal(bmp, 1)

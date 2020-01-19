@@ -5,6 +5,7 @@ import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.*
 import kotlin.jvm.JvmOverloads
+import kotlin.math.*
 
 expect val nativeImageFormatProvider: NativeImageFormatProvider
 
@@ -25,8 +26,12 @@ abstract class NativeImageFormatProvider {
     abstract suspend fun display(bitmap: Bitmap, kind: Int): Unit
 	abstract fun create(width: Int, height: Int): NativeImage
 	open fun copy(bmp: Bitmap): NativeImage = create(bmp.width, bmp.height).apply { context2d { drawImage(bmp, 0, 0) } }
-	abstract fun mipmap(bmp: Bitmap, levels: Int): NativeImage
-	abstract fun mipmap(bmp: Bitmap): NativeImage
+	open fun mipmap(bmp: Bitmap, levels: Int): NativeImage = bmp.toBMP32().mipmap(levels).ensureNative()
+	open fun mipmap(bmp: Bitmap): NativeImage {
+        val out = NativeImage(ceil(bmp.width * 0.5).toInt(), ceil(bmp.height * 0.5).toInt())
+        out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0, 0, out.width, out.height)
+        return out
+    }
 }
 
 suspend fun Bitmap.showImageAndWait(kind: Int = 0) = nativeImageFormatProvider.display(this, kind)

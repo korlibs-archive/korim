@@ -60,18 +60,7 @@ object AndroidNativeImageFormatProvider : NativeImageFormatProvider() {
 		return AndroidNativeImage(bmp)
 	}
 
-	override fun copy(bmp: Bitmap): NativeImage {
-		TODO()
-	}
-
-	override fun mipmap(bmp: Bitmap, levels: Int): NativeImage {
-		TODO()
-	}
-
-	override fun mipmap(bmp: Bitmap): NativeImage {
-		TODO()
-	}
-
+	override fun copy(bmp: Bitmap): NativeImage = AndroidNativeImage(bmp.toAndroidBitmap())
 }
 
 /*
