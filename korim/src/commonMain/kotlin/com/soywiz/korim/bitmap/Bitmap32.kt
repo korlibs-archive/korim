@@ -35,14 +35,14 @@ class Bitmap32(
 		val src = this
 
         val srcX0 = src.clampWidth(srcX)
-        val srcX1 = src.clampWidth(srcX0 + width)
+        val srcX1 = src.clampWidth(srcX + width)
         val srcY0 = src.clampHeight(srcY)
-        val srcY1 = src.clampHeight(srcY0 + height)
+        val srcY1 = src.clampHeight(srcY + height)
 
         val dstX0 = dst.clampWidth(dstX)
-        val dstX1 = dst.clampWidth(dstX0 + width)
+        val dstX1 = dst.clampWidth(dstX + width)
         val dstY0 = dst.clampHeight(dstY)
-        val dstY1 = dst.clampHeight(dstY0 + height)
+        val dstY1 = dst.clampHeight(dstY + height)
 
         val srcX = srcX0
         val srcY = srcY0

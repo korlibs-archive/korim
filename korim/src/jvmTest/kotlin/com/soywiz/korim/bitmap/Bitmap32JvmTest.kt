@@ -1,5 +1,9 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.korim.color.*
+import com.soywiz.korim.format.*
+import com.soywiz.korio.file.std.*
+import kotlinx.coroutines.*
 import kotlin.test.*
 
 class Bitmap32JvmTest {
@@ -21,5 +25,17 @@ class Bitmap32JvmTest {
                 }
             }
         }
+    }
+
+    @Test
+    fun test2() {
+        val src = Bitmap32(32, 32, Colors.RED)
+        val dst = Bitmap32(32, 32, Colors.BLUE)
+        Bitmap32.copyRect(src, -16, -16, dst, 0, 0, 32, 32)
+        Bitmap32.copyRect(src, 16, 16, dst, 16, 16, 32, 32)
+        assertEquals(Colors.RED, dst[0, 0])
+        assertEquals(Colors.RED, dst[24, 24])
+        assertEquals(Colors.BLUE, dst[0, 24])
+        assertEquals(Colors.BLUE, dst[24, 0])
     }
 }
