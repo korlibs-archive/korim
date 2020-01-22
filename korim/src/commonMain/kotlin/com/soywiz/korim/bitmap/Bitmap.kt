@@ -68,7 +68,10 @@ abstract class Bitmap(
 	fun clampX(x: Int) = x.clamp(0, width - 1)
 	fun clampY(y: Int) = y.clamp(0, height - 1)
 
-	fun flipY() = this.apply {
+    fun clampWidth(x: Int) = x.clamp(0, width)
+    fun clampHeight(y: Int) = y.clamp(0, height)
+
+    fun flipY() = this.apply {
 		for (y in 0 until height / 2) swapRows(y, height - y - 1)
 	}
 	fun flipX() = this.apply {

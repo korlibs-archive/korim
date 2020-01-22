@@ -34,6 +34,24 @@ class Bitmap32(
     override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		val src = this
 
+        val srcX0 = src.clampWidth(srcX)
+        val srcX1 = src.clampWidth(srcX0 + width)
+        val srcY0 = src.clampHeight(srcY)
+        val srcY1 = src.clampHeight(srcY0 + height)
+
+        val dstX0 = dst.clampWidth(dstX)
+        val dstX1 = dst.clampWidth(dstX0 + width)
+        val dstY0 = dst.clampHeight(dstY)
+        val dstY1 = dst.clampHeight(dstY0 + height)
+
+        val srcX = srcX0
+        val srcY = srcY0
+        val dstX = dstX0
+        val dstY = dstY0
+
+        val width = min(srcX1 - srcX0, dstX1 - dstX0)
+        val height = min(srcY1 - srcY0, dstY1 - dstY0)
+
 		val srcArray = src.data
 		var srcIndex = src.index(srcX, srcY)
 		val srcAdd = src.width
@@ -423,13 +441,7 @@ class Bitmap32(
             dstY: Int,
             width: Int,
             height: Int
-        ) {
-            for (y in 0 until height) {
-                val srcIndex = src.index(srcX, srcY + y)
-                val dstIndex = dst.index(dstX, dstY + y)
-                arraycopy(src.data, srcIndex, dst.data, dstIndex, width)
-            }
-        }
+        ) = src.copy(srcX, srcY, dst, dstX, dstY, width, height)
 
         fun createWithAlpha(
             color: Bitmap32,
