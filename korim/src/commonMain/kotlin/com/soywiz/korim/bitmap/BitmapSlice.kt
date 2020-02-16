@@ -63,18 +63,9 @@ class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt,
 	fun extract(): T = bmp.extract(bounds.x, bounds.y, bounds.width, bounds.height)
 
 	fun sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): BitmapSlice<T> =
-		BitmapSlice(
-			bmp, RectangleInt.fromBounds(
-				(left + bounds.left).clampX(),
-				(top + bounds.top).clampY(),
-				(right + bounds.left).clampX(),
-				(bottom + bounds.top).clampY()
-			)
-		)
+		BitmapSlice(bmp, createRectangleInt(bounds.left, bounds.top, bounds.right, bounds.bottom, left, top, right, bottom))
 
-	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): BitmapSlice<T> =
-		sliceWithBounds(x, y, x + width, y + height)
-
+	fun sliceWithSize(x: Int, y: Int, width: Int, height: Int): BitmapSlice<T> = sliceWithBounds(x, y, x + width, y + height)
 	fun slice(rect: RectangleInt): BitmapSlice<T> = sliceWithBounds(rect.left, rect.top, rect.right, rect.bottom)
 	fun slice(rect: Rectangle): BitmapSlice<T> = slice(rect.toInt())
 
@@ -90,9 +81,6 @@ class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt,
             }
         }
     }
-
-    private fun Int.clampX() = this.clamp(bounds.left, bounds.right)
-	private fun Int.clampY() = this.clamp(bounds.top, bounds.bottom)
 
 	override val rotated: Boolean = false
 	override val rotatedAngle: Int = 0
@@ -111,9 +99,18 @@ fun BitmapSliceCompat(
 ) = BitmapSlice(bmp, frame.toInt(), name = name, rotated = rotated)
 
 fun <T : Bitmap> T.slice(bounds: RectangleInt = RectangleInt(0, 0, width, height), name: String = "unknown"): BitmapSlice<T> = BitmapSlice<T>(this, bounds, name)
-fun <T : Bitmap> T.sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): BitmapSlice<T> =
-	BitmapSlice<T>(this, RectangleInt(left, top, right - left, bottom - top))
+fun <T : Bitmap> T.sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): BitmapSlice<T> = slice(createRectangleInt(0, 0, this.width, this.height, left, top, right, bottom))
+fun <T : Bitmap> T.sliceWithSize(x: Int, y: Int, width: Int, height: Int): BitmapSlice<T> = sliceWithBounds(x, y, x + width, y + height)
 
-fun <T : Bitmap> T.sliceWithSize(x: Int, y: Int, width: Int, height: Int): BitmapSlice<T> =
-	BitmapSlice<T>(this, RectangleInt(x, y, width, height))
-
+private fun createRectangleInt(
+    bleft: Int, btop: Int, bright: Int, bbottom: Int,
+    left: Int, top: Int, right: Int, bottom: Int,
+    allowInvalidBounds: Boolean = false
+): RectangleInt {
+    return RectangleInt.fromBounds(
+        (bleft + left).clamp(bleft, bright),
+        (btop + top).clamp(btop, bbottom),
+        (bleft + right).clamp(if (allowInvalidBounds) bleft else bleft + left, bright),
+        (btop + bottom).clamp(if (allowInvalidBounds) btop else btop + top, bbottom)
+    )
+}
