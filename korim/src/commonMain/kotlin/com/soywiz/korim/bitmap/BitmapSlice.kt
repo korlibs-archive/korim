@@ -78,7 +78,20 @@ class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt,
 	fun slice(rect: RectangleInt): BitmapSlice<T> = sliceWithBounds(rect.left, rect.top, rect.right, rect.bottom)
 	fun slice(rect: Rectangle): BitmapSlice<T> = slice(rect.toInt())
 
-	private fun Int.clampX() = this.clamp(bounds.left, bounds.right)
+    fun split(width: Int, height: Int): List<BitmapSlice<T>> {
+        val self = this
+        val nheight = self.height / height
+        val nwidth = self.width / width
+        return arrayListOf<BitmapSlice<T>>().apply {
+            for (y in 0 until nheight) {
+                for (x in 0 until nwidth) {
+                    add(self.sliceWithSize(x * width, y * height, width, height))
+                }
+            }
+        }
+    }
+
+    private fun Int.clampX() = this.clamp(bounds.left, bounds.right)
 	private fun Int.clampY() = this.clamp(bounds.top, bounds.bottom)
 
 	override val rotated: Boolean = false
