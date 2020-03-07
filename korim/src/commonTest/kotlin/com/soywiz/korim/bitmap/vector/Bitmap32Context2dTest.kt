@@ -15,6 +15,7 @@ import kotlin.test.*
 class Bitmap32Context2dTest {
     @Test
     fun testVisualRendered() = suspendTest {
+        if (OS.isNative) return@suspendTest
         //if (OS.isMac) return@suspendTest // Ignore on MAC since this fails on travis on K/N?
         //if (OS.isTvos) return@suspendTest // Ignore on MAC since this fails on travis on K/N?
 

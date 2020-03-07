@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 class Bitmap32RgbaTest {
     @Test
     fun testNative() = suspendTestNoBrowser {
+        if (OS.isNative) return@suspendTestNoBrowser
         //if (OS.isMac) return@suspendTestNoBrowser // kotlin.AssertionError: Expected <#ff0000ff>, actual <#fb0007ff>.
         //if (OS.isTvos) return@suspendTestNoBrowser
 
