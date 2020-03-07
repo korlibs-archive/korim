@@ -13,9 +13,10 @@ import kotlin.test.assertEquals
 class Bitmap32RgbaTest {
     @Test
     fun testNative() = suspendTestNoBrowser {
-        if (OS.isMac) return@suspendTestNoBrowser // kotlin.AssertionError: Expected <#ff0000ff>, actual <#fb0007ff>.
+        //if (OS.isMac) return@suspendTestNoBrowser // kotlin.AssertionError: Expected <#ff0000ff>, actual <#fb0007ff>.
+        //if (OS.isTvos) return@suspendTestNoBrowser
 
-        val bmp = resourcesVfs["rgba.png"].readBitmapOptimized()
+        val bmp = resourcesVfs["rgba.png"].readBitmapOptimized(premultiplied = false)
         val i = bmp.toBMP32()
         assertEquals(Colors.RED, i[0, 0])
         assertEquals(Colors.GREEN, i[1, 0])

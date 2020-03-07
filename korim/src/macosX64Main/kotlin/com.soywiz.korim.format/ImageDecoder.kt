@@ -1,18 +1,12 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korim.color.*
 import com.soywiz.korim.format.cg.*
-import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
-import com.soywiz.korma.geom.*
 import kotlinx.cinterop.*
 import platform.AppKit.*
-import platform.CoreFoundation.*
 import platform.CoreGraphics.*
 import platform.Foundation.*
-import platform.posix.*
-import kotlin.math.*
 import kotlin.native.concurrent.*
 
 private val ImageIOWorker by lazy { Worker.start() }
@@ -41,7 +35,9 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
                         val imageSize = image.size
                         imageSize.useContents { iwidth = width.toInt(); iheight = height.toInt() }
                         val imageRect = NSMakeRect(0.0, 0.0, iwidth.toDouble(), iheight.toDouble())
-                        val colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB)
+                        val colorSpace = CGColorSpaceCreateDeviceRGB()
+                        //val colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceGenericRGB)
+                        //val colorSpace = CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB)
                         try {
                             val ctx = CGBitmapContextCreate(
                                 null, iwidth.convert(), iheight.convert(),

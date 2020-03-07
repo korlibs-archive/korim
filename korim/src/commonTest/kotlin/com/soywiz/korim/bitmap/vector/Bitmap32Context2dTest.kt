@@ -15,11 +15,13 @@ import kotlin.test.*
 class Bitmap32Context2dTest {
     @Test
     fun testVisualRendered() = suspendTest {
-        if (OS.isMac) return@suspendTest // Ignore on MAC since this fails on travis on K/N?
+        //if (OS.isMac) return@suspendTest // Ignore on MAC since this fails on travis on K/N?
+        //if (OS.isTvos) return@suspendTest // Ignore on MAC since this fails on travis on K/N?
 
         val bitmaps = listOf(Bitmap32(128, 128), NativeImage(128, 128))
         for (bmp in bitmaps) {
-            bmp.getContext2d().apply {
+            bmp.context2d {
+            //bmp.getContext2d().apply {
                 //fill(Context2d.Color(Colors.BLUE))
                 keep {
                     scale(2.0, 1.0)

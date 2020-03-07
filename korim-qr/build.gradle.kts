@@ -1,4 +1,6 @@
-apply plugin: com.soywiz.korlibs.KorlibsPlugin
+import com.soywiz.korlibs.*
+
+apply<KorlibsPlugin>()
 
 korlibs {
     dependencyProject(":korim")

@@ -1,5 +1,6 @@
 @file:Suppress("UnusedImport")
 
+/*
 package com.soywiz.korim.format.cg
 
 import com.soywiz.korim.bitmap.*
@@ -290,3 +291,4 @@ internal fun RGBA.toCgColor(releases: Releases, space: CGColorSpaceRef?) = memSc
     releases.colors.add(color)
     color
 }
+*/
