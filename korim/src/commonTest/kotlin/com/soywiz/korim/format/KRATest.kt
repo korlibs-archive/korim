@@ -6,7 +6,7 @@ import com.soywiz.korio.file.std.*
 import kotlin.test.*
 
 class KRATest {
-    val formats = ImageFormats(KRA)
+    val formats = ImageFormats(KRA, PNG)
 
     @Test
     fun kraTest() = suspendTestNoBrowser {
