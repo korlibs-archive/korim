@@ -62,4 +62,13 @@ class Bitmap32Test {
         assertEquals(Colors.RED, nbmp[7, 7])
         assertEquals(Colors.RED, nbmp[15, 15])
     }
+
+    @Test
+    fun testCopy() {
+        Bitmap32(8, 8).put(Bitmap32(16, 16))
+        Bitmap32(8, 8).put(Bitmap32(16, 16), 8, 8)
+        Bitmap32(8, 8).put(Bitmap32(16, 16), 15, 15)
+        Bitmap32(8, 8).put(Bitmap32(16, 16), 16, 16)
+        Bitmap32(8, 8).put(Bitmap32(16, 16), -8, -8)
+    }
 }

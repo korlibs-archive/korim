@@ -80,12 +80,12 @@ class Bitmap32(
 		arraycopy(row, 0, data.ints, index(0, y), width)
 	}
 
-	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
-		val dst = this
-		val width = sright - sleft
-		val height = sbottom - stop
-		val dstData = dst.data
-		val srcData = src.data
+    fun _drawUnchecked(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
+        val dst = this
+        val width = sright - sleft
+        val height = sbottom - stop
+        val dstData = dst.data
+        val srcData = src.data
 
         val dstDataPremult = dst.dataPremult
         val srcDataPremult = src.dataPremult
@@ -94,9 +94,9 @@ class Bitmap32(
         val srcPremultiplied = src.premultiplied
 
         for (y in 0 until height) {
-			val dstOffset = dst.index(dx, dy + y)
-			val srcOffset = src.index(sleft, stop + y)
-			if (mix) {
+            val dstOffset = dst.index(dx, dy + y)
+            val srcOffset = src.index(sleft, stop + y)
+            if (mix) {
                 when {
                     dstPremultiplied && srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = dstDataPremult[dstOffset + x] mix srcDataPremult[srcOffset + x]
                     dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = (dstDataPremult[dstOffset + x] mix srcData[srcOffset + x].premultiplied)
@@ -104,14 +104,34 @@ class Bitmap32(
                     !dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstData[dstOffset + x] = (dstData[dstOffset + x].premultiplied mix srcData[srcOffset + x].premultiplied).depremultiplied
                 }
 
-			} else {
+            } else {
                 when {
                     dstPremultiplied == srcPremultiplied -> arraycopy(srcData, srcOffset, dstData, dstOffset, width)
                     dstPremultiplied && !srcPremultiplied -> for (x in 0 until width) dstDataPremult[dstOffset + x] = srcData[srcOffset + x].premultiplied
                     !dstPremultiplied && srcPremultiplied -> for (x in 0 until width) dstData[dstOffset + x] = srcDataPremult[srcOffset + x].depremultiplied
                 }
-			}
-		}
+            }
+        }
+    }
+
+	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
+        var sleft = 0
+        var stop = 0
+        var dx = dx
+        var dy = dy
+        if (dx < 0) {
+            sleft -= dx
+            dx = 0
+        }
+        if (dy < 0) {
+            stop -= dy
+            dy = 0
+        }
+        val availableWidth = width - dx
+        val availableHeight = height - dy
+        val awidth = min(availableWidth, sright - sleft)
+        val aheight = min(availableHeight, sbottom - stop)
+        _drawUnchecked(src, dx, dy, sleft, stop, sleft + awidth, stop + aheight, mix)
 	}
 
 	fun drawPixelMixed(x: Int, y: Int, c: RGBA) {
@@ -119,24 +139,7 @@ class Bitmap32(
 	}
 
 	fun _drawPut(mix: Boolean, other: Bitmap32, _dx: Int = 0, _dy: Int = 0) {
-		var dx = _dx
-		var dy = _dy
-		var sleft = 0
-		var stop = 0
-		val sright = other.width
-		val sbottom = other.height
-		if (dx < 0) {
-			sleft = -dx
-			//sright += dx
-			dx = 0
-		}
-		if (dy < 0) {
-			stop = -dy
-			//sbottom += dy
-			dy = 0
-		}
-
-		_draw(other, dx, dy, sleft, stop, sright, sbottom, mix)
+		_draw(other, _dx, _dy, 0, 0, other.width, other.height, mix)
 	}
 
     fun historiogram(channel: BitmapChannel, out: IntArray = IntArray(256)): IntArray {
@@ -156,14 +159,7 @@ class Bitmap32(
 
 	fun _draw(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0, mix: Boolean) {
 		val b = src.bounds
-
-		val availableWidth = width - dx
-		val availableHeight = height - dy
-
-		val awidth = kotlin.math.min(availableWidth, b.width)
-		val aheight = kotlin.math.min(availableHeight, b.height)
-
-		_draw(src.bmp, dx, dy, b.x, b.y, b.x + awidth, b.y + aheight, mix = mix)
+		_draw(src.bmp, dx, dy, b.left, b.top, b.right, b.bottom, mix = mix)
 	}
 
 	fun put(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, src, dx, dy)
