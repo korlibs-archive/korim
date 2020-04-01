@@ -31,8 +31,7 @@ compile "com.soywiz.korlibs.korim:korim:$korVersion"
 ### Bitmap classes
 
 Bitmap base class + Bitmap8 and Bitmap32.
-And other fancy bitmaps: BitmapIndexed as base + Bitmap1, Bitmap2, Bitmap4
-Ad BitmapChannel
+And other fancy bitmaps: BitmapIndexed as base + Bitmap1, Bitmap2, Bitmap4 and BitmapChannel.
 
 ### Image Formats
 
@@ -46,7 +45,7 @@ Korim also allows to use native image readers from your device for maximum perfo
 
 ### Color Formats
 
-Korim provides color formats to convert easily and fast and to perform, mixing, de/premultiplication and other operations quickly.
+Korim provides color formats to convert easily and fast and to perform mixing, de/premultiplication and other operations quickly.
 
 ### Vectorial Image Formats
 
@@ -54,16 +53,16 @@ Korim supports loading, rasterizing and drawing vectorial SVG files.
 
 ### Native vectorial rendering
 
-It provides a single interface for vector rendering so you can use a single interface
+Korim provides a single interface for vector rendering so you can use a single interface
 and leverage JavaScript Canvas, AWT's Graphics2D, Android Canvas or any other rasterizer exposed by korim implementations.
 It also allows to convert shapes into SVG.
-Includes a feature to draw shapes with fills in contact without artifacts in a portable way by multisampling.
+Korim includes a feature to draw shapes with fills in contact without artifacts in a portable way by multisampling.
 Useful for offline rasterizers.
 
 ### AWT Utilities
 
 Korim provides AWT utilities to convert bitmaps into AWT BufferedImages, and to display them.
-These are just extensions so not referenced from the main code.
+These are just extensions so they are not referenced from the main code.
 And if you use native image loading, you can display those images as fast as possible without any conversion at all.
 
 ### Native Fonts
