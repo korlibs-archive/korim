@@ -37,6 +37,22 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     fun withBd(v: Double) = withB(d2i(v))
     fun withAd(v: Double) = withA(d2i(v))
 
+    fun getComponent(c: Int): Int = when (c) {
+        0 -> r
+        1 -> g
+        2 -> b
+        3 -> a
+        else -> r
+    }
+
+    fun getComponent(c: Char): Int = when (c.toLowerCase()) {
+        'r' -> r
+        'g' -> g
+        'b' -> b
+        'a' -> a
+        else -> r
+    }
+
     val hexString: String get() ="#%02x%02x%02x%02x".format(r, g, b, a)
 	val htmlColor: String get() = "rgba($r, $g, $b, $af)"
 	val htmlStringSimple: String get() = "#%02x%02x%02x".format(r, g, b)
