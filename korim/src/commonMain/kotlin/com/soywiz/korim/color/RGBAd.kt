@@ -25,4 +25,11 @@ class RGBAd(
     }
 
     fun set(c: RGBAd) = set(c.r, c.g, c.b, c.a)
+
+    fun toRGBA(): RGBA = RGBA(
+        (r * 255).toInt() and 0xFF,
+        (g * 255).toInt() and 0xFF,
+        (b * 255).toInt() and 0xFF,
+        (a * 255).toInt() and 0xFF
+    )
 }
