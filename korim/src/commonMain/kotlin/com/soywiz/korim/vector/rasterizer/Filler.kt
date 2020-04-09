@@ -1,5 +1,6 @@
 package com.soywiz.korim.vector.rasterizer
 
+import com.soywiz.kmem.clamp
 import com.soywiz.kmem.toIntCeil
 import com.soywiz.kmem.toIntFloor
 import com.soywiz.korim.bitmap.Bitmap32
@@ -21,12 +22,12 @@ abstract class BaseFiller(var bmp: Bitmap32) : Rasterizer.PaintSegment {
         val start = a.toIntCeil()
         val end = b.toIntFloor()
         if (start0 < start) {
-            val x = bmp.index(start0, y)
+            val x = bmp.index(start0, y).clamp(0, bmp.width - 1)
             fill(bmp.data, x, x, start0.toDouble(), start0.toDouble(), yd, 1.0 - (a - start0))
         }
         run {
-            val x0 = bmp.index(start, y)
-            val x1 = bmp.index(end, y)
+            val x0 = bmp.index(start.clamp(0, bmp.width - 1), y)
+            val x1 = bmp.index(end.clamp(0, bmp.width - 1), y)
             fill(bmp.data, x0, x1, start.toDouble(), end.toDouble(), yd, 1.0)
         }
     }

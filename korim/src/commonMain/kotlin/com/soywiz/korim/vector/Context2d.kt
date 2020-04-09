@@ -377,15 +377,19 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         fill(paint)
     }
 
-    inline fun stroke(paint: Paint, lineWidth: Double = this.lineWidth, callback: () -> Unit) {
+    inline fun stroke(paint: Paint, lineWidth: Double = this.lineWidth, lineCap: LineCap = this.lineCap, lineJoin: LineJoin = this.lineJoin, callback: () -> Unit) {
 		callback()
         this.lineWidth = lineWidth
+        this.lineCap = lineCap
+        this.lineJoin = lineJoin
 		stroke(paint)
 	}
 
-	inline fun stroke(color: RGBA, lineWidth: Double = this.lineWidth, callback: () -> Unit) {
+	inline fun stroke(color: RGBA, lineWidth: Double = this.lineWidth, lineCap: LineCap = this.lineCap, lineJoin: LineJoin = this.lineJoin, callback: () -> Unit) {
 		callback()
         this.lineWidth = lineWidth
+        this.lineCap = lineCap
+        this.lineJoin = lineJoin
 		stroke(Color(color))
 	}
 
