@@ -377,13 +377,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         fill(paint)
     }
 
-    inline fun stroke(paint: Paint, callback: () -> Unit) {
+    inline fun stroke(paint: Paint, lineWidth: Double = this.lineWidth, callback: () -> Unit) {
 		callback()
+        this.lineWidth = lineWidth
 		stroke(paint)
 	}
 
-	inline fun stroke(color: RGBA, callback: () -> Unit) {
+	inline fun stroke(color: RGBA, lineWidth: Double = this.lineWidth, callback: () -> Unit) {
 		callback()
+        this.lineWidth = lineWidth
 		stroke(Color(color))
 	}
 
@@ -557,7 +559,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		override val transform: Matrix,
 		val repeat: Boolean = false,
 		val smooth: Boolean = true
-	) : TransformedPaint
+	) : TransformedPaint {
+        val bmp32 = bitmap.toBMP32()
+    }
 
 	interface Drawable {
 		fun draw(c: Context2d)
