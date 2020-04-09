@@ -21,7 +21,7 @@ open class BaseNativeNativeImageFormatProvider : NativeImageFormatProvider() {
     }
     protected fun Bitmap.wrapNative(premultiplied: Boolean = true) = wrapNative(this, premultiplied)
 
-    override fun create(width: Int, height: Int): NativeImage = createBitmapNativeImage(Bitmap32(width, height))
+    override fun create(width: Int, height: Int): NativeImage = createBitmapNativeImage(Bitmap32(width, height, premultiplied = true))
     override fun copy(bmp: Bitmap): NativeImage = createBitmapNativeImage(bmp)
     override suspend fun display(bitmap: Bitmap, kind: Int) {
         println("TODO: NativeNativeImageFormatProvider.display(bitmap=$bitmap, kind=$kind)")
