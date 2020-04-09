@@ -1,10 +1,15 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.color.RGBAPremultiplied
+import com.soywiz.korim.color.RgbaPremultipliedArray
 import com.soywiz.korim.vector.rasterizer.*
 import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.float
 import com.soywiz.korma.geom.vector.VectorPath
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
 // References:
 // - https://github.com/memononen/nanosvg/blob/master/src/nanosvgrast.h
@@ -13,38 +18,103 @@ import com.soywiz.korma.geom.vector.VectorPath
 // - https://nothings.org/gamedev/rasterize/
 // - https://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/code_v2/RasterPoly/index.html
 class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.Renderer() {
+    init {
+        bmp.premultiplyInplace()
+    }
+
 	override val width: Int get() = bmp.width
 	override val height: Int get() = bmp.height
 
     val bounds = bmp.bounds.float
     val rasterizer = Rasterizer()
-	val colorFiller = ColorFiller(bmp)
-	val gradientFiller = GradientFiller(bmp)
-	val bitmapFiller = BitmapFiller(bmp)
-	val noneFiller = NoneFiller(bmp)
+	val colorFiller = ColorFiller()
+	val gradientFiller = GradientFiller()
+	val bitmapFiller = BitmapFiller()
 
-	override fun render(state: Context2d.State, fill: Boolean) {
+    // @TODO: Optimize. We could handle a few more chunks
+    inner class ScanlineWriter {
+        var filler: BaseFiller = NoneFiller
+        var ny = -1
+        val size = bmp.width
+        var alphaCount = 0
+        val alpha = IntArray(size)
+        val color = RgbaPremultipliedArray(size)
+        var xmin = size - 1
+        var xmax = 0
+        fun reset() {
+            alpha.fill(0)
+            alphaCount = 0
+            xmin = size
+            xmax = 0
+        }
+        fun select(a: Int, b: Int, y: Int) {
+            val x0 = a.coerceIn(0, bmp.width - 1)
+            val x1 = b.coerceIn(0, bmp.width - 1)
+
+            if (ny != y) {
+                if (y >= 0) {
+                    flush()
+                }
+                ny = y
+                reset()
+            }
+            xmin = min(xmin, x0)
+            xmax = max(xmax, x1)
+            for (x in x0..x1) alpha[x]++
+            alphaCount++
+        }
+        fun flush() {
+            if (ny >= 0 && ny < bmp.height) {
+                filler.fill(color, xmin, xmax, ny)
+                val data = bmp.dataPremult
+                val row = bmp.index(0, ny)
+                val scale = 1.0 / alphaCount
+                // @TODO: Critical. Use SIMD
+                for (x in xmin..xmax) {
+                    val rx = row + x
+                    val ialpha = this.alpha[x]
+                    if (ialpha > 0) {
+                        val alpha = ialpha * scale
+                        val col = color[x]
+                        val scaled = col.scaled(alpha)
+                        val mixed = RGBAPremultiplied.mix(data[rx], scaled)
+                        //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
+                        data[rx] = mixed
+                    }
+                }
+            }
+        }
+    }
+
+    val scanlineWriter = ScanlineWriter()
+
+
+    override fun render(state: Context2d.State, fill: Boolean) {
 		//println("RENDER")
 		val style = if (fill) state.fillStyle else state.strokeStyle
 		val filler = when (style) {
-			is Context2d.None -> noneFiller.set(style, state)
+			is Context2d.None -> NoneFiller
 			is Context2d.Color -> colorFiller.set(style, state)
 			is Context2d.Gradient -> gradientFiller.set(style, state)
 			is Context2d.BitmapPaint -> bitmapFiller.set(style, state)
 			else -> TODO()
 		}
 
+        rasterizer.debug = debug
         rasterizer.reset()
         state.path.emitPoints2({
             if (it) rasterizer.close()
         }, { x, y ->
             rasterizer.add(x, y)
         })
-        if (fill) {
-            rasterizer.rasterizeFill(bounds, filler)
-        } else {
-            rasterizer.rasterizeStroke(bounds, state.lineWidth, filler)
+        rasterizer.strokeWidth = state.lineWidth
+        rasterizer.quality = if (antialiasing) 8 else 2
+        scanlineWriter.filler = filler
+        scanlineWriter.reset()
+        rasterizer.rasterize(bounds, fill) { x0, x1, y ->
+            scanlineWriter.select(x0.roundToInt(), x1.roundToInt(), y.toInt())
         }
+        scanlineWriter.flush()
 	}
 
     private inline fun VectorPath.emitPoints2(flush: (close: Boolean) -> Unit, emit: (x: Double, y: Double) -> Unit, curveSteps: Int = 20) {

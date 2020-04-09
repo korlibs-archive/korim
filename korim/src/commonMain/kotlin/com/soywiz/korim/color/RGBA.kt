@@ -2,11 +2,14 @@ package com.soywiz.korim.color
 
 import com.soywiz.kds.GenericListIterator
 import com.soywiz.kds.GenericSubList
-import com.soywiz.kmem.*
-import com.soywiz.korim.internal.*
-import com.soywiz.korio.lang.*
-import com.soywiz.korma.interpolation.*
-import kotlin.jvm.*
+import com.soywiz.kmem.arraycopy
+import com.soywiz.kmem.fill
+import com.soywiz.korim.internal.clamp0_255
+import com.soywiz.korim.internal.d2i
+import com.soywiz.korim.internal.f2i
+import com.soywiz.korio.lang.format
+import com.soywiz.korma.interpolation.Interpolable
+import com.soywiz.korma.interpolation.interpolate
 
 inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     val r: Int get() = (value ushr 0) and 0xFF
@@ -188,8 +191,15 @@ inline class RGBAPremultiplied(val value: Int) {
     val htmlStringSimple: String get() = this.asNonPremultiplied().htmlStringSimple
 
     override fun toString(): String = hexString
+    fun scaled(alpha: Double): RGBAPremultiplied {
+        return RGBAPremultiplied((r * alpha).toInt(), (g * alpha).toInt(), (b * alpha).toInt(), (a * alpha).toInt())
+    }
 
     companion object {
+        fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied {
+            return RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
+        }
+
         fun blend(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied {
             val RB = (((c1.value and 0xFF00FF) + (c2.value and 0xFF00FF)) ushr 1) and 0xFF00FF
             val G = (((c1.value and 0x00FF00) + (c2.value and 0x00FF00)) ushr 1) and 0x00FF00
@@ -213,6 +223,12 @@ fun RgbaArray.asPremultiplied() = RgbaPremultipliedArray(ints)
 fun RgbaPremultipliedArray.asNonPremultiplied() = RgbaArray(ints)
 
 inline class RgbaPremultipliedArray(val ints: IntArray) {
+    companion object {
+        operator fun invoke(colors: Array<RGBAPremultiplied>): RgbaPremultipliedArray = RgbaPremultipliedArray(colors.map { it.value }.toIntArray())
+        operator fun invoke(size: Int): RgbaPremultipliedArray = RgbaPremultipliedArray(IntArray(size))
+        operator fun invoke(size: Int, callback: (index: Int) -> RGBAPremultiplied): RgbaPremultipliedArray = RgbaPremultipliedArray(IntArray(size)).apply { for (n in 0 until size) this[n] = callback(n) }
+    }
+
     val size: Int get() = ints.size
     operator fun get(index: Int): RGBAPremultiplied = RGBAPremultiplied(ints[index])
     operator fun set(index: Int, color: RGBAPremultiplied) = run { ints[index] = color.value }

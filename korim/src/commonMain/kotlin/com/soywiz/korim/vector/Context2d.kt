@@ -10,6 +10,10 @@ import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
 open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBuilder {
+    var debug: Boolean
+        get() = renderer.debug
+        set(value) = run { renderer.debug = value }
+
     protected open val rendererWidth get() = renderer.width
     protected open val rendererHeight get() = renderer.height
     protected open fun rendererRender(state: Context2d.State, fill: Boolean) = renderer.render(state, fill)
@@ -105,6 +109,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			}
 		}
 
+        var debug: Boolean = false
 		abstract val width: Int
 		abstract val height: Int
 

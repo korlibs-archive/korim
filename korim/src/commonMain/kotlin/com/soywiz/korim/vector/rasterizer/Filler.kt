@@ -1,74 +1,47 @@
 package com.soywiz.korim.vector.rasterizer
 
-import com.soywiz.kmem.clamp
-import com.soywiz.kmem.toIntCeil
-import com.soywiz.kmem.toIntFloor
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.Bitmaps
-import com.soywiz.korim.color.Colors
-import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.color.RgbaArray
+import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korma.geom.Matrix
 import com.soywiz.korma.geom.transformX
 import com.soywiz.korma.geom.transformY
 import com.soywiz.korma.interpolation.interpolate
 
-abstract class BaseFiller(var bmp: Bitmap32) : Rasterizer.PaintSegment {
-    override fun paint(a: Double, b: Double, y: Int, alpha: Double) {
-        val yd = y.toDouble()
-        val start0 = a.toIntFloor()
-        val end0 = b.toIntFloor()
-        val start = a.toIntCeil()
-        val end = b.toIntFloor()
-        if (start0 < start) {
-            val x = bmp.index(start0, y).clamp(0, bmp.width - 1)
-            fill(bmp.data, x, x, start0.toDouble(), start0.toDouble(), yd, 1.0 - (a - start0))
-        }
-        run {
-            val x0 = bmp.index(start.clamp(0, bmp.width - 1), y)
-            val x1 = bmp.index(end.clamp(0, bmp.width - 1), y)
-            fill(bmp.data, x0, x1, start.toDouble(), end.toDouble(), yd, 1.0)
-        }
-    }
+// @TODO: We should optimize this
 
-    protected fun put(data: RgbaArray, index: Int, color: RGBA, alpha: Double) {
-        data[index] = RGBA.mixRgba(data[index], color, alpha)
-    }
-
-    abstract fun fill(data: RgbaArray, a: Int, b: Int, x0: Double, x1: Double, y: Double, alpha: Double)
+abstract class BaseFiller {
+    abstract fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int)
 }
 
-class NoneFiller(bmp: Bitmap32) : BaseFiller(bmp) {
-    fun set(fillStyle: Context2d.None, state: Context2d.State) = this.apply {
-    }
-
-    override fun fill(data: RgbaArray, a: Int, b: Int, x0: Double, x1: Double, y: Double, alpha: Double) {
-    }
+object NoneFiller : BaseFiller() {
+    override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) = Unit
 }
 
-class GradientFiller(bmp: Bitmap32) : BaseFiller(bmp) {
+class GradientFiller() : BaseFiller() {
     fun set(fillStyle: Context2d.Gradient, state: Context2d.State) = this.apply {
     }
 
-    override fun fill(data: RgbaArray, a: Int, b: Int, x0: Double, x1: Double, y: Double, alpha: Double) {
+    override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
+        println("Not implemented GradientFiller")
     }
 }
 
-class ColorFiller(bmp: Bitmap32) : BaseFiller(bmp) {
-    private var color: RGBA = Colors.RED
+class ColorFiller() : BaseFiller() {
+    private var color: RGBAPremultiplied = Colors.RED.premultiplied
 
     fun set(style: Context2d.Color, state: Context2d.State) = this.apply {
-        this.color = style.color
-        println("ColorFiller: $color")
+        this.color = style.color.premultiplied
+        //println("ColorFiller: $color")
     }
 
-    override fun fill(data: RgbaArray, a: Int, b: Int, x0: Double, x1: Double, y: Double, alpha: Double) {
-        for (n in a..b) put(data, n, color, alpha)
+    override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
+        data.fill(color, x0, x1)
     }
 }
 
-class BitmapFiller(bmp: Bitmap32) : BaseFiller(bmp) {
+class BitmapFiller() : BaseFiller() {
     private var texture: Bitmap32 = Bitmaps.transparent.bmp
     private var transform: Matrix = Matrix()
     private var linear: Boolean = true
@@ -82,19 +55,19 @@ class BitmapFiller(bmp: Bitmap32) : BaseFiller(bmp) {
     fun lookupLinear(x: Double, y: Double): RGBA = texture.getRgbaSampled(x, y)
     fun lookupNearest(x: Double, y: Double): RGBA = texture[x.toInt(), y.toInt()]
 
-    override fun fill(data: RgbaArray, a: Int, b: Int, x0: Double, x1: Double, y: Double, alpha: Double) {
+    override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
         val tx0 = transform.transformX(x0, y)
         val tx1 = transform.transformX(x1, y)
         val ty0 = transform.transformY(x0, y)
         val ty1 = transform.transformY(x1, y)
-        val total = ((b - a) + 1).toDouble()
+        val total = ((x1 - x0) + 1).toDouble()
 
-        for (n in a..b) {
+        for (n in x0..x1) {
             val ratio = n / total
             val tx = ratio.interpolate(tx0, tx1)
             val ty = ratio.interpolate(ty0, ty1)
             val color = if (linear) lookupLinear(tx, ty) else lookupNearest(tx, ty)
-            put(data, n, color, alpha)
+            data[n] = color.premultiplied
         }
     }
 }
