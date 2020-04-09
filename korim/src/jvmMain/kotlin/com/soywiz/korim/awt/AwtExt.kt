@@ -3,7 +3,12 @@ package com.soywiz.korim.awt
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.vector.Context2d
 import com.soywiz.korio.async.*
+import com.soywiz.korma.geom.Anchor
+import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.geom.ScaleMode
+import com.soywiz.korma.geom.Size
 import kotlinx.coroutines.*
 import java.awt.*
 import java.awt.event.*
@@ -45,18 +50,46 @@ suspend fun awtShowImageAndWait(image: BufferedImage): Unit = suspendCancellable
 fun awtShowImage(image: BufferedImage): JFrame {
 	//println("Showing: $image")
 	val frame = object : JFrame("Image (${image.width}x${image.height})") {
+        override fun paint(g: Graphics) {
+            //super.paint(g)
+            paintComponents(g)
+        }
+    }
+    frame.contentPane = object : Container() {
+        override fun paint(g: Graphics) {
+            val scaleMode = ScaleMode.SHOW_ALL
+            val imageSize = Size(image.width, image.height)
+            val containerSize = g.clipBounds.toKorma()
+            val out = containerSize.place(imageSize, Anchor.MIDDLE_CENTER, scaleMode).toInt()
+            g.drawImage(image, out.x, out.y, out.width, out.height, null)
+        }
+    }
+	//val label = JLabel()
 
-	}
-	val label = JLabel()
-	label.icon = ImageIcon(image)
-	label.setSize(image.width, image.height)
-	frame.add(label, BorderLayout.CENTER)
+    //label.icon = ImageIcon(image)
+	//label.setSize(image.width, image.height)
+	//frame.add(label, BorderLayout.CENTER)
+
 	//frame.setSize(bitmap.width, bitmap.height)
+
 	frame.defaultCloseOperation = JFrame.DISPOSE_ON_CLOSE
+    frame.contentPane.minimumSize = Dimension(128, 128)
+    frame.contentPane.preferredSize = Dimension(image.width, image.height)
 	frame.pack()
 	frame.setLocationRelativeTo(null)
 	frame.isVisible = true
 	return frame
+}
+
+// @TODO: Move to KorMA
+private fun java.awt.Rectangle.toKorma(): Rectangle = Rectangle(this.x, this.y, this.width, this.height)
+
+// @TODO: Move to KorMA
+private fun Rectangle.place(item: Size, anchor: Anchor, scale: ScaleMode, out: Rectangle = Rectangle()): Rectangle {
+    val outSize = scale(item, this.size)
+    val x = (this.width - outSize.width) * anchor.sx
+    val y = (this.height - outSize.height) * anchor.sy
+    return out.setTo(x, y, outSize.width, outSize.height)
 }
 
 fun awtShowImage(bitmap: Bitmap) = awtShowImage(bitmap.toBMP32().toAwt())
