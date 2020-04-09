@@ -1,5 +1,6 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kds.intArrayListOf
 import com.soywiz.kmem.toIntCeil
 import com.soywiz.kmem.toIntFloor
 import com.soywiz.kmem.toIntRound
@@ -30,36 +31,52 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 	val gradientFiller = GradientFiller()
 	val bitmapFiller = BitmapFiller()
 
-    // @TODO: Optimize. We could handle a few more chunks
     class SegmentHandler {
-        companion object {
-            val XMIN = Int.MAX_VALUE
-            val XMAX = Int.MIN_VALUE
-        }
-
-        var count = 0
-        var xmin: Int = 0
-        var xmax: Int = 0
+        val xmin = intArrayListOf()
+        val xmax = intArrayListOf()
+        val size get() = xmin.size
 
         init {
             reset()
         }
 
         fun reset() {
-            xmin = XMIN
-            xmax = XMAX
-            count = 0
+            xmin.clear()
+            xmax.clear()
+        }
+
+        private fun overlaps(a0: Int, a1: Int, b0: Int, b1: Int): Boolean {
+            val min = min(a0, a0)
+            val max = max(a1, a1)
+            val maxMinor = max(a0, b0)
+            val minMajor = min(a1, b1)
+            return (maxMinor in min..max) || (minMajor in min..max)
         }
 
         fun add(x0: Int, x1: Int) {
-            xmin = min(xmin, x0)
-            xmax = max(xmax, x1)
-            count++
+            // @TODO: Maybe we can optimize this if we keep segments in order
+            for (n in 0 until size) {
+                val xmin = this.xmin[n]
+                val xmax = this.xmax[n]
+                if (overlaps(xmin, xmax, x0, x1)) {
+                    this.xmin[n] = min(x0, xmin)
+                    this.xmax[n] = max(x1, xmax)
+                    return
+                }
+            }
+            // Only works if done from left to right
+            //if (size > 0 && overlaps(xmin[size - 1], xmax[size - 1], x0, x1)) {
+            //    xmin[size - 1] = min(x0, xmin[size - 1])
+            //    xmax[size - 1] = max(x0, xmax[size - 1])
+            //} else {
+            xmin.add(x0)
+            xmax.add(x1)
+            //}
         }
 
         inline fun forEachFast(block: (x0: Int, x1: Int) -> Unit) {
-            if (count > 0) {
-                block(xmin, xmax)
+            for (n in 0 until size) {
+                block(xmin[n], xmax[n])
             }
         }
     }
