@@ -18,10 +18,6 @@ import kotlin.math.roundToInt
 // - https://nothings.org/gamedev/rasterize/
 // - https://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/code_v2/RasterPoly/index.html
 class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.Renderer() {
-    init {
-        bmp.premultiplyInplace()
-    }
-
 	override val width: Int get() = bmp.width
 	override val height: Int get() = bmp.height
 
@@ -60,27 +56,44 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
             }
             xmin = min(xmin, x0)
             xmax = max(xmax, x1)
-            for (x in x0..x1) alpha[x]++
-            alphaCount++
+            for (x in x0..x1) {
+                val calpha = ++alpha[x]
+                alphaCount = max(alphaCount, calpha)
+            }
         }
         fun flush() {
             if (ny >= 0 && ny < bmp.height) {
-                filler.fill(color, xmin, xmax, ny)
-                val data = bmp.dataPremult
-                val row = bmp.index(0, ny)
-                val scale = 1.0 / alphaCount
-                // @TODO: Critical. Use SIMD
-                for (x in xmin..xmax) {
-                    val rx = row + x
-                    val ialpha = this.alpha[x]
-                    if (ialpha > 0) {
-                        val alpha = ialpha * scale
-                        val col = color[x]
-                        val scaled = col.scaled(alpha)
-                        val mixed = RGBAPremultiplied.mix(data[rx], scaled)
-                        //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
-                        data[rx] = mixed
+                if (bmp.premultiplied) {
+                    val data = bmp.dataPremult
+                    render0 { index, color ->
+                        val mixed = RGBAPremultiplied.mix(data[index], color)
+                        data[index] = mixed
                     }
+                } else {
+                    val data = bmp.data
+                    render0 { index, color ->
+                        data[index] = RGBAPremultiplied.mix(data[index].premultiplied, color).depremultiplied
+                        //data[index] = RGBA.mix(data[index], color.depremultiplied)
+                    }
+                }
+            }
+        }
+
+        // PERFORMANCE: This is inline so we have two specialized versions without ifs on the inner loop
+        private inline fun render0(mix: (index: Int, color: RGBAPremultiplied) -> Unit) {
+            filler.fill(color, xmin, xmax, ny)
+            val row = bmp.index(0, ny)
+            val scale = 1.0 / alphaCount
+            // @TODO: Critical. Use SIMD
+            for (x in xmin..xmax) {
+                val rx = row + x
+                val ialpha = this.alpha[x]
+                if (ialpha > 0) {
+                    val alpha = ialpha * scale
+                    val col = color[x]
+                    val scaled = col.scaled(alpha)
+                    //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
+                    mix(rx, scaled)
                 }
             }
         }
