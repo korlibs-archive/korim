@@ -37,7 +37,7 @@ class ColorFiller() : BaseFiller() {
     }
 
     override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
-        data.fill(color, x0, x1)
+        data.fill(color, x0, x1 + 1)
     }
 }
 

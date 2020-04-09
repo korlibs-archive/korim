@@ -1,5 +1,8 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kmem.toIntCeil
+import com.soywiz.kmem.toIntFloor
+import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
@@ -28,24 +31,62 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 	val bitmapFiller = BitmapFiller()
 
     // @TODO: Optimize. We could handle a few more chunks
+    class SegmentHandler {
+        companion object {
+            val XMIN = Int.MAX_VALUE
+            val XMAX = Int.MIN_VALUE
+        }
+
+        var count = 0
+        var xmin: Int = 0
+        var xmax: Int = 0
+
+        init {
+            reset()
+        }
+
+        fun reset() {
+            xmin = XMIN
+            xmax = XMAX
+            count = 0
+        }
+
+        fun add(x0: Int, x1: Int) {
+            xmin = min(xmin, x0)
+            xmax = max(xmax, x1)
+            count++
+        }
+
+        inline fun forEachFast(block: (x0: Int, x1: Int) -> Unit) {
+            if (count > 0) {
+                block(xmin, xmax)
+            }
+        }
+    }
+
     inner class ScanlineWriter {
         var filler: BaseFiller = NoneFiller
+        var ny0 = -1.0
         var ny = -1
         val size = bmp.width
-        var alphaCount = 0
-        val alpha = IntArray(size)
+        val width1 = bmp.width - 1
+        val hitbits = IntArray(size)
+        val hitcount = IntArray(size)
         val color = RgbaPremultipliedArray(size)
-        var xmin = size - 1
-        var xmax = 0
+        val segments = SegmentHandler()
+        var subRowCount = 0
         fun reset() {
-            alpha.fill(0)
-            alphaCount = 0
-            xmin = size
-            xmax = 0
+            hitbits.fill(0)
+            hitcount.fill(0)
+            subRowCount = 0
+            segments.reset()
         }
-        fun select(a: Int, b: Int, y: Int) {
-            val x0 = a.coerceIn(0, bmp.width - 1)
-            val x1 = b.coerceIn(0, bmp.width - 1)
+        fun select(x0: Double, x1: Double, y0: Double) {
+            val a = x0.toIntRound()
+            val b = x1.toIntRound()
+            val y = y0.toInt()
+            val x0 = a.coerceIn(0, width1)
+            val x1 = b.coerceIn(0, width1)
 
             if (ny != y) {
                 if (y >= 0) {
@@ -54,13 +95,21 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
                 ny = y
                 reset()
             }
-            xmin = min(xmin, x0)
-            xmax = max(xmax, x1)
-            for (x in x0..x1) {
-                val calpha = ++alpha[x]
-                alphaCount = max(alphaCount, calpha)
+            if (ny0 != y0) {
+                ny0 = y0
+                subRowCount++
             }
+            segments.add(x0, x1)
+            val mask = 1 shl subRowCount
+            for (x in x0..x1) {
+                if ((hitcount[x] and mask) == 0) {
+                    hitcount[x] = hitcount[x] or mask
+                }
+            }
+            //alphaCount++
         }
+
+        // @TODO: We should try to use SIMD if possible
         fun flush() {
             if (ny >= 0 && ny < bmp.height) {
                 if (bmp.premultiplied) {
@@ -80,20 +129,22 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
         }
 
         // PERFORMANCE: This is inline so we have two specialized versions without ifs on the inner loop
+        @OptIn(ExperimentalStdlibApi::class)
         private inline fun render0(mix: (index: Int, color: RGBAPremultiplied) -> Unit) {
-            filler.fill(color, xmin, xmax, ny)
             val row = bmp.index(0, ny)
-            val scale = 1.0 / alphaCount
-            // @TODO: Critical. Use SIMD
-            for (x in xmin..xmax) {
-                val rx = row + x
-                val ialpha = this.alpha[x]
-                if (ialpha > 0) {
-                    val alpha = ialpha * scale
-                    val col = color[x]
-                    val scaled = col.scaled(alpha)
-                    //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
-                    mix(rx, scaled)
+            val scale = 1.0 / subRowCount
+            segments.forEachFast { xmin, xmax ->
+                filler.fill(color, xmin, xmax, ny)
+                for (x in xmin..xmax) {
+                    val rx = row + x
+                    val ialpha = this.hitcount[x].countOneBits()
+                    if (ialpha > 0) {
+                        val alpha = ialpha * scale
+                        val col = color[x]
+                        val scaled = col.scaled(alpha)
+                        //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
+                        mix(rx, scaled)
+                    }
                 }
             }
         }
@@ -125,7 +176,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
         scanlineWriter.filler = filler
         scanlineWriter.reset()
         rasterizer.rasterize(bounds, fill) { x0, x1, y ->
-            scanlineWriter.select(x0.roundToInt(), x1.roundToInt(), y.toInt())
+            scanlineWriter.select(x0, x1, y)
         }
         scanlineWriter.flush()
 	}

@@ -5,10 +5,10 @@ import com.soywiz.kds.doubleArrayListOf
 import com.soywiz.kds.iterators.fastForEach
 import com.soywiz.kmem.toIntCeil
 import com.soywiz.kmem.toIntFloor
-import com.soywiz.korma.geom.BoundsBuilder
-import com.soywiz.korma.geom.IPoint
-import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.geom.*
 import com.soywiz.korma.interpolation.interpolate
+import kotlin.math.absoluteValue
+import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 
@@ -24,6 +24,10 @@ class Rasterizer {
         val isCoplanarX = a.y == b.y
         val isCoplanarY = a.x == b.x
         val slope = (b.y - a.y) / (b.x - a.x)
+        val angle = Angle.between(a.x, a.y, b.x, b.y)
+        val cos = angle.cosine
+        //val cos = angle.sine
+        val absCos = cos.absoluteValue
         val h = a.y - (a.x * slope)
 
         fun containsY(y: Double): Boolean = y >= a.y && y < b.y
@@ -155,7 +159,7 @@ class Rasterizer {
             iterateActiveEdgesAtY(y) {
                 if (!it.isCoplanarX) {
                     val x = it.intersectX(y)
-                    val hwidth = strokeWidth2
+                    val hwidth = strokeWidth2 + strokeWidth2 * it.absCos
                     callback(x - hwidth, x + hwidth, y) // We should use slope to determine the actual width
                 } else {
                     callback(it.minX, it.maxX, y)
