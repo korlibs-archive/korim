@@ -1,5 +1,3 @@
-@file:ExperimentalUnsignedTypes
-
 package com.soywiz.korim.format
 
 import com.soywiz.korim.color.*
@@ -12,59 +10,55 @@ import kotlin.math.*
 @ExperimentalUnsignedTypes
 object GifDec {
     class gd_Palette(
-        var size: Int,
+        var size: Int = 0,
         val colors: RgbaArray = RgbaArray(0x100) // @TODO: Convert into RgbaArray once working
     )
 
     class gd_GCE(
-        var delay: Int,
-        var tindex: Int,
-        var disposal: Int,
-        var input: Int,
-        var transparency: Boolean
+        var delay: Int = 0,
+        var tindex: Int = 0,
+        var disposal: Int = 0,
+        var input: Int = 0,
+        var transparency: Boolean = false
     )
 
     class gd_GIF(
         var fd: SyncStream,
-        var anim_start: Int,
-        var width: Int,
-        var height: Int,
-        var depth: Int,
-        var loop_count: Int,
-        var gce: gd_GCE,
-        var palette: gd_Palette,
-        var lct: gd_Palette,
-        var gct: gd_Palette,
-        var plain_text: ((
-            gif: gd_GIF, tx: Int, ty: Int,
-            tw: Int, th: Int, cw: Int, ch: Int,
-            fg: Int, bg: Int
-        ) -> Unit)? = null,
-        var comment: ((gif: gd_GIF) -> Unit) ? =null,
-        var application: ((gif: gd_GIF, id: String, auth: String) -> Unit)? = null,
-        var fx: Int,
-        var fy: Int,
-        var fw: Int,
-        var fh: Int,
-        var bgindex: Int,
-        var canvas: RgbaArray,
-        var frame: UByteArray
+        var anim_start: Long = 0L,
+        var width: Int = 0,
+        var height: Int = 0,
+        var depth: Int = 0,
+        var loop_count: Int = 0,
+        var gce: gd_GCE = gd_GCE(),
+        var palette: gd_Palette = gd_Palette(),
+        var lct: gd_Palette = gd_Palette(),
+        var gct: gd_Palette = gd_Palette(),
+        var plain_text: ((gif: gd_GIF, tx: Int, ty: Int, tw: Int, th: Int, cw: Int, ch: Int, fg: Int, bg: Int) -> Unit)? = null,
+        var comment: ((gif: gd_GIF) -> Unit) ? = null,
+        var application: ((gif: gd_GIF, id: ByteArray, auth: ByteArray) -> Unit)? = null,
+        var fx: Int = 0,
+        var fy: Int = 0,
+        var fw: Int = 0,
+        var fh: Int = 0,
+        var bgindex: Int = 0,
+        var canvas: RgbaArray = RgbaArray(0),
+        var frame: UByteArray = UByteArray(0)
     )
 
     class Entry(
-        var length: Int,
-        var prefix: Int,
-        var suffix: Int
+        var length: Int = 0,
+        var prefix: Int = 0,
+        var suffix: Int = 0
     )
 
     class Table(
-        var bulk: Int,
-        var nentries: Int,
-        var entries: Array<Entry>
+        var bulk: Int = 0,
+        var nentries: Int = 0,
+        var entries: Array<Entry> = emptyArray()
     ) {
         fun resize(count: Int) {
             bulk = count
-            entries = entries.copyOf(bulk)
+            entries = Array(count) { entries.getOrNull(it) ?: Entry() }
         }
     }
 
@@ -74,20 +68,21 @@ object GifDec {
         return a or (b shl 8)
     }
 
-    suspend fun gd_open_gif(fname: String): gd_GIF {
-        var depth: UShort
-        var bgidx: UByte
-        var aspect: UByte
-        var gct_sz: Int
-        var gif: gd_GIF
+    fun ByteArray.eqbytes(str: String): Boolean {
+        for (n in str.indices) if (this[n] != str[n].toByte()) return false
+        return true
+    }
 
-        val fd = open(fname, O_RDONLY);
+    fun gd_open_gif(fd: SyncStream): gd_GIF {
         /* Header */
-        val sigver = fd.readBytes(3)
-        if (memcmp(sigver, "GIF", 3) != 0) error("invalid signature");
+        val sigver1 = fd.readBytes(3)
+
+        if (sigver1.eqbytes("GIF")) {
+            error("invalid signature")
+        };
         /* Version */
-        val sigver = fd.readBytes(3)
-        if (memcmp(sigver, "89a", 3) != 0) error("invalid version")
+        val sigver2 = fd.readBytes(3)
+        if (sigver2.eqbytes("89a")) error("invalid version")
         /* Width x Height */
         val width  = read_num(fd);
         val height = read_num(fd);
@@ -107,26 +102,25 @@ object GifDec {
         /* Aspect Ratio */
         val aspect = fd.readU8()
         /* Create gd_GIF Structure. */
-        gif = calloc(1, sizeof(*gif) + 4 * width * height);
-        if (!gif) goto fail;
+        val gif = gd_GIF(fd, canvas = RgbaArray(width * height), frame = UByteArray(width * height))
         gif.fd = fd;
         gif.width  = width;
         gif.height = height;
         gif.depth  = depth;
         /* Read GCT */
         gif.gct.size = gct_sz;
-        read(fd, gif.gct.colors, 3 * gif.gct.size);
-        gif.palette = &gif.gct;
+        for (n in 0 until gif.gct.size) {
+            val r = fd.readU8()
+            val g = fd.readU8()
+            val b = fd.readU8()
+            gif.gct.colors[n] = RGBA(r, g, b)
+        }
+        gif.palette = gif.gct;
         gif.bgindex = bgidx;
-        gif.canvas = (uint8_t *) &gif[1];
-        gif.frame = &gif.canvas[3 * width * height];
-        if (gif.bgindex)
-        memset(gif.frame, gif.bgindex, gif.width * gif.height);
+        if (gif.bgindex != 0) {
+            gif.frame.fill(gif.bgindex.toUByte(), 0, gif.width * gif.height)
+        }
         gif.anim_start = lseek(fd, 0, SEEK_CUR);
-        goto ok;
-        fail:
-        close(fd);
-        ok:
         return gif;
     }
 
@@ -167,7 +161,7 @@ object GifDec {
         val rdit = gif.fd.readU8()
         gif.gce.disposal = (rdit ushr 2) and 3;
         gif.gce.input = rdit and 2;
-        gif.gce.transparency = rdit and 1;
+        gif.gce.transparency = (rdit and 1) != 0;
         gif.gce.delay = read_num(gif.fd);
         gif.gce.tindex = gif.fd.readU8()
         /* Skip block terminator. */
@@ -193,7 +187,7 @@ object GifDec {
         val app_id = gif.fd.readBytesExact(8)
         /* Application Authentication Code. */
         val app_auth_code = gif.fd.readBytesExact(3)
-        if (!strncmp(app_id, "NETSCAPE", sizeof(app_id))) {
+        if (app_id.eqbytes("NETSCAPE")) {
             /* Discard block size (0x03) and constant byte (0x01). */
             lseek(gif.fd, 2, SEEK_CUR);
             gif.loop_count = read_num(gif.fd);
@@ -230,15 +224,19 @@ object GifDec {
         )
     }
 
-    interface BasePointer
+    interface BasePointer {
+        fun add(offset: Int)
+        fun incr() = add(+1)
+        fun decr() = add(-1)
+    }
 
     data class Pointer<T>(val array: Array<T>, var offset: Int) : BasePointer {
         fun get() = array[offset]
         fun set(value: T) {
             array[offset] = value
         }
-        fun incr() {
-            offset++
+        override fun add(offset: Int) = run {
+            this.offset += offset
         }
     }
 
@@ -247,8 +245,8 @@ object GifDec {
         fun set(value: UByte) {
             array[offset] = value
         }
-        fun incr() {
-            offset++
+        override fun add(offset: Int) = run {
+            this.offset += offset
         }
     }
 
@@ -256,15 +254,10 @@ object GifDec {
      *  0 on success
      *  +1 if key size must be incremented after this addition
      *  -1 if could not realloc table */
-    fun add_entry(tablep: Pointer<Table>, length: Int, prefix: Int, suffix: Int): Int {
-        var table = tablep.get()
+    fun add_entry(tablep: Table, length: Int, prefix: Int, suffix: Int): Int {
+        var table = tablep
         if (table.nentries == table.bulk) {
             table.resize(table.bulk * 2)
-            table.bulk *= 2;
-            table = realloc(table, sizeof(*table) + sizeof(Entry) * table.bulk);
-            //if (!table) return -1;
-            table.entries = (Entry *) &table[1];
-            tablep.set(table)
         }
         table.entries[table.nentries] = Entry(length = length, prefix = prefix, suffix = suffix)
         table.nentries++;
@@ -273,30 +266,32 @@ object GifDec {
         return 0;
     }
 
-    fun get_key(gif: gd_GIF, key_size: Int, sub_len: UByteArray, shift: UByteArray, byte: UByteArray): Int {
-        var bits_read;
-        var rpad;
-        var frag_size;
+    data class KeyState(
+        var sub_len: Int = 0,
+        var shift: Int = 0,
+        var byte: Int = 0
+    )
 
+    fun get_key(gif: gd_GIF, key_size: Int, s: KeyState): Int {
         var key = 0;
-        bits_read = 0
+        var bits_read = 0
         while (bits_read < key_size) {
-            rpad = (*shift + bits_read) % 8;
+            val rpad = (s.shift.toInt() + bits_read) % 8;
             if (rpad == 0) {
                 /* Update byte. */
-                if (*sub_len == 0) {
-                    read(gif.fd, sub_len, 1); /* Must be nonzero! */
+                if (s.sub_len == 0) {
+                    s.sub_len = gif.fd.readU8() /* Must be nonzero! */
                 }
-                read(gif.fd, byte, 1);
-                (*sub_len)--;
+                s.byte = gif.fd.readU8()
+                s.sub_len--
             }
-            frag_size = MIN(key_size - bits_read, 8 - rpad);
-            key = key or (((uint16_t) ((*byte) ushr rpad)) shl bits_read)
+            val frag_size = min(key_size - bits_read, 8 - rpad);
+            key = key or (( 0xFFFF and ((s.byte) ushr rpad)) shl bits_read)
             bits_read += frag_size
         }
         /* Clear extra bits to the left. */
         key = key and ((1 shl key_size) - 1);
-        *shift = (*shift + key_size) % 8;
+        s.shift = (s.shift.toInt() + key_size) % 8
         return key;
     }
 
@@ -319,13 +314,8 @@ object GifDec {
     /* Decompress image pixels.
      * Return 0 on success or -1 on out-of-memory (w.r.t. LZW code table). */
     fun read_image_data(gif: gd_GIF, interlace: Boolean): Int {
+        var str_len: Int = 0
         var table_is_full: Boolean = false
-        var str_len: Int
-        var p: Int
-        var x: Int
-        var y: Int
-        var entry: Entry
-
         val byte = gif.fd.readU8()
         var key_size = byte.toInt()
         val start = lseek(gif.fd, 0, SEEK_CUR);
@@ -334,12 +324,13 @@ object GifDec {
         lseek(gif.fd, start, SEEK_SET);
         val clear = 1 shl key_size;
         val stop = clear + 1;
-        val table = new_table(key_size);
+        val table = new_table(key_size)
         key_size++;
         var init_key_size = key_size;
-        var shift = 0
-        var sub_len = 0
-        var key = get_key(gif, key_size, &sub_len, &shift, &byte); /* clear code */
+        val state = KeyState()
+        lateinit var entry: Entry
+        state.byte = byte
+        var key = get_key(gif, key_size, state); /* clear code */
         var frm_off = 0;
         var ret = 0;
         while (true) {
@@ -348,7 +339,7 @@ object GifDec {
                 table.nentries = (1 shl (key_size - 1)) + 2;
                 table_is_full = false
             } else if (!table_is_full) {
-                ret = add_entry(&table, str_len + 1, key, entry.suffix);
+                ret = add_entry(table, str_len + 1, key, entry.suffix);
                 if (ret == -1) {
                     free(table);
                     return -1;
@@ -358,16 +349,16 @@ object GifDec {
                     table_is_full = true
                 }
             }
-            key = get_key(gif, key_size, &sub_len, &shift, &byte);
+            key = get_key(gif, key_size, state);
             if (key == clear) continue;
             if (key == stop) break;
             if (ret == 1) key_size++;
             entry = table.entries[key.toInt()];
             str_len = entry.length;
             while (true) {
-                p = frm_off + entry.length - 1;
-                x = p % gif.fw;
-                y = p / gif.fw;
+                val p = frm_off + entry.length - 1;
+                val x = p % gif.fw;
+                var y = p / gif.fw;
                 if (interlace) {
                     y = interlaced_line_index(gif.fh, y);
                 }
@@ -380,10 +371,10 @@ object GifDec {
             }
             frm_off += str_len;
             if (key.toInt() < table.nentries - 1 && !table_is_full)
-            table.entries[table.nentries - 1].suffix = entry.suffix;
+                table.entries[table.nentries - 1].suffix = entry.suffix;
         }
         free(table);
-        sub_len = gif.fd.readU8()  /* Must be zero! */
+        state.sub_len = gif.fd.readU8()  /* Must be zero! */
         lseek(gif.fd, end, SEEK_SET);
         return 0;
     }
