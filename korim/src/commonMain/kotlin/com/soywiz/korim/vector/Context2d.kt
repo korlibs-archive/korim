@@ -448,7 +448,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) =
 		Gradient(Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
 
-	fun createColor(color: RGBA) = Color(color)
+    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: Gradient.() -> Unit = {}) =
+        Gradient(Gradient.Kind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
+    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: Gradient.() -> Unit = {}) =
+        Gradient(Gradient.Kind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
+
+    fun createColor(color: RGBA) = Color(color)
 	fun createPattern(
 		bitmap: Bitmap,
 		repeat: Boolean = false,
@@ -533,13 +538,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			LINEAR, NORMAL
 		}
 
-		val numberOfStops = stops.size
+		val numberOfStops get() = stops.size
 
-		fun addColorStop(stop: Double, color: RGBA): Gradient {
-			stops += stop
-			colors += color.value
-			return this
-		}
+		fun addColorStop(stop: Double, color: RGBA): Gradient = add(stop, color)
+
+        fun add(stop: Double, color: RGBA): Gradient = this.apply {
+            stops += stop
+            colors += color.value
+            return this
+        }
 
 		fun applyMatrix(m: Matrix): Gradient = Gradient(
 			kind,

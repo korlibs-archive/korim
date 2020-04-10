@@ -1,14 +1,19 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.intArrayListOf
+import com.soywiz.kmem.clamp
+import com.soywiz.kmem.clamp01
 import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
+import com.soywiz.korim.bitmap.Bitmaps
+import com.soywiz.korim.color.Colors
+import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
-import com.soywiz.korim.vector.rasterizer.*
+import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.bezier.Bezier
-import com.soywiz.korma.geom.float
 import com.soywiz.korma.geom.vector.VectorPath
+import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -214,40 +219,140 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
         var ly = 0.0
         flush(false)
         this.visitCmds(
-            moveTo = { x, y ->
-                //kotlin.io.println("moveTo")
-                emit(x, y)
-                lx = x
-                ly = y
-            },
-            lineTo = { x, y ->
-                //kotlin.io.println("lineTo")
-                emit(x, y)
-                lx = x
-                ly = y
-            },
+            moveTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
+            lineTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
             quadTo = { x0, y0, x1, y1 ->
-                //kotlin.io.println("quadTo")
                 val dt = 1.0 / curveSteps
-                for (n in 1 until curveSteps) {
-                    Bezier.quadCalc(lx, ly, x0, y0, x1, y1, n * dt, emit)
-                }
-                lx = x1
-                ly = y1
+                for (n in 1 until curveSteps) Bezier.quadCalc(lx, ly, x0, y0, x1, y1, n * dt, emit)
+                run { lx = x1 }.also { ly = y1 }
             },
             cubicTo = { x0, y0, x1, y1, x2, y2 ->
-                //kotlin.io.println("cubicTo")
                 val dt = 1.0 / curveSteps
-                for (n in 1 until curveSteps) {
-                    Bezier.cubicCalc(lx, ly, x0, y0, x1, y1, x2, y2, n * dt, emit)
-                }
-                lx = x2
-                ly = y2
+                for (n in 1 until curveSteps) Bezier.cubicCalc(lx, ly, x0, y0, x1, y1, x2, y2, n * dt, emit)
+                run { lx = x2 }.also { ly = y2 }
             },
-            close = {
-                flush(true)
-            }
+            close = { flush(true) }
         )
         flush(false)
     }
+
+
+    abstract class BaseFiller {
+        abstract fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int)
+    }
+
+    object NoneFiller : BaseFiller() {
+        override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) = Unit
+    }
+
+    class ColorFiller : BaseFiller() {
+        private var color: RGBAPremultiplied = Colors.RED.premultiplied
+
+        fun set(fill: Context2d.Color, state: Context2d.State) = this.apply {
+            this.color = fill.color.premultiplied
+            //println("ColorFiller: $color")
+        }
+
+        override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
+            data.fill(color, x0, x1 + 1)
+        }
+    }
+
+    class BitmapFiller : BaseFiller() {
+        private var texture: Bitmap32 = Bitmaps.transparent.bmp
+        private var transform: Matrix = Matrix()
+        private var linear: Boolean = true
+
+        fun set(fill: Context2d.BitmapPaint, state: Context2d.State) = this.apply {
+            this.texture = fill.bmp32
+            this.transform = fill.transform
+            this.linear = fill.smooth
+        }
+
+        fun lookupLinear(x: Double, y: Double): RGBA = texture.getRgbaSampled(x, y)
+        fun lookupNearest(x: Double, y: Double): RGBA = texture[x.toInt(), y.toInt()]
+
+        override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
+            val tx0 = transform.transformX(x0, y)
+            val tx1 = transform.transformX(x1, y)
+            val ty0 = transform.transformY(x0, y)
+            val ty1 = transform.transformY(x1, y)
+            val total = ((x1 - x0) + 1).toDouble()
+
+            for (n in x0..x1) {
+                val ratio = n / total
+                val tx = ratio.interpolate(tx0, tx1)
+                val ty = ratio.interpolate(ty0, ty1)
+                val color = if (linear) lookupLinear(tx, ty) else lookupNearest(tx, ty)
+                data[n] = color.premultiplied
+            }
+        }
+    }
+
+    class GradientFiller : BaseFiller() {
+        private val NCOLORS = 256
+        private val colors = RgbaPremultipliedArray(NCOLORS)
+        private lateinit var fill: Context2d.Gradient
+        private val stateTrans: Matrix = Matrix()
+        private val fillTrans: Matrix = Matrix()
+        private val compTrans: Matrix = Matrix()
+
+        private fun stopN(n: Int): Int = (fill.stops[n] * NCOLORS).toInt()
+
+        fun set(fill: Context2d.Gradient, state: Context2d.State) = this.apply {
+            this.fill = fill
+            state.transform.inverted(this.stateTrans)
+            fill.transform.inverted(this.fillTrans)
+            compTrans.apply {
+                identity()
+                multiply(this, stateTrans)
+                multiply(this, fillTrans)
+            }
+
+            when (fill.numberOfStops) {
+                0, 1 -> {
+                    val color = if (fill.numberOfStops == 0) Colors.FUCHSIA else RGBA(fill.colors.first())
+                    val pcolor = color.premultiplied
+                    for (n in 0 until NCOLORS) colors[n] = pcolor
+                }
+                else -> {
+                    for (n in 0 until stopN(0)) colors[n] = RGBA(fill.colors.first()).premultiplied
+                    for (n in 0 until fill.numberOfStops - 1) {
+                        val stop0 = stopN(n + 0)
+                        val stop1 = stopN(n + 1)
+                        val color0 = RGBA(fill.colors[n + 0])
+                        val color1 = RGBA(fill.colors[n + 1])
+                        for (s in stop0 until stop1) {
+                            val ratio = (s - stop0).toDouble() / (stop1 - stop0).toDouble()
+                            colors[s] = RGBA.interpolate(color0, color1, ratio).premultiplied
+                        }
+                    }
+                    for (n in stopN(fill.numberOfStops - 1) until NCOLORS) colors.ints[n] = fill.colors.last()
+                }
+            }
+        }
+
+        private fun color(ratio: Double): RGBAPremultiplied {
+            return colors[(ratio * (NCOLORS - 1)).toInt()]
+        }
+
+        private val p0 = Point()
+        private val p1 = Point()
+        private val tempMat = Matrix()
+
+        // @TODO: Radial gradient
+        override fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int) {
+            val p0 = this.p0.setTo(fill.x0, fill.y0)
+            val p1 = this.p1.setTo(fill.x1, fill.y1)
+
+            val mat = tempMat.copyFrom(compTrans).apply {
+                translate(-p0.x, -p0.y)
+                scale(1.0 / (p0.distanceTo(p1)).clamp(1.0, 16000.0))
+                rotate(-Angle.between(p0, p1))
+            }
+
+            for (n in x0..x1) data[n] = color(mat.transformX(n.toDouble(), y.toDouble()).clamp01())
+        }
+    }
+
 }

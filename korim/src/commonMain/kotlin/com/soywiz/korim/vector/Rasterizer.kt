@@ -1,4 +1,4 @@
-package com.soywiz.korim.vector.rasterizer
+package com.soywiz.korim.vector
 
 import com.soywiz.kds.DoubleArrayList
 import com.soywiz.kds.doubleArrayListOf
@@ -8,7 +8,6 @@ import com.soywiz.kmem.toIntFloor
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
 
@@ -50,7 +49,12 @@ class Rasterizer {
     }
 
     private fun addEdge(a: IPoint, b: IPoint) {
-        edges.add(if (a.y < b.y) Edge(a, b, +1) else Edge(b, a, -1))
+        edges.add(if (a.y < b.y) Edge(
+            a,
+            b,
+            +1
+        ) else Edge(b, a, -1)
+        )
     }
 
     fun add(x: Double, y: Double) {
