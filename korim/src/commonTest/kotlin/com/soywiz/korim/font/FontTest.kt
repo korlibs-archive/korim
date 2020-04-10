@@ -6,6 +6,8 @@ import com.soywiz.korim.bitmap.context2d
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.SvgBuilder
+import com.soywiz.korim.vector.buildSvgXml
 import com.soywiz.korio.async.suspendTest
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.degrees
@@ -18,7 +20,22 @@ class FontTest {
     fun test() = suspendTest {
         BitmapFont(SystemFont("Arial"), 100.0, chars = CharacterSet.LATIN_ALL).register(name = "Arial")
         //BitmapFont(SystemFont("Arial"), 10.0, chars = CharacterSet.LATIN_ALL).register(name = "Arial")
-        resourcesVfs["Comfortaa-Regular.ttf"].readTtfFont().register(name = "Arial")
+        //resourcesVfs["tinymce-small.ttf"].readTtfFont().register(name = "Arial")
+        //BitmapFont(resourcesVfs["chunky-wally.ttf"].readTtfFont(), 100.0).register(name = "Arial") // @TODO: This doesn't work probably because bounds are not right
+        resourcesVfs["chunky-wally.ttf"].readTtfFont().register(name = "Arial")
+        //resourcesVfs["Comfortaa-Regular.ttf"].readTtfFont().register(name = "Arial")
+        //resourcesVfs["OptimusPrinceps.ttf"].readTtfFont().register(name = "Arial")
+
+        println(buildSvgXml {
+            this.fillStyle = createLinearGradient(0, 0, 0, 48).add(0.0, Colors.BLUE).add(1.0, Colors.GREEN)
+            //this.fillStyle = createColor(Colors.BLACK)
+            this.fontName = "Arial"
+            //this.font = font
+            this.fontSize = 48.0
+            translate(20, 20)
+            rotate(15.degrees)
+            fillText("12 Hello World!", 16, 48)
+        })
 
         //val font =
         //val font = SystemFont("Arial")

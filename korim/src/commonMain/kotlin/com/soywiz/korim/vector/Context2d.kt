@@ -319,15 +319,24 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     override fun close() = state.path.close()
 
-    override fun moveTo(x: Double, y: Double) = run { state.path.moveTo(x, y) }
-    override fun lineTo(x: Double, y: Double) = run { state.path.lineTo(x, y) }
-    override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
-        state.path.cubicTo(cx1, cy1, cx2, cy2, ax, ay)
-    }
+    //private fun transX(x: Double, y: Double) = state.transform.transformX(x, y)
+    //private fun transY(x: Double, y: Double) = state.transform.transformY(x, y)
 
-    override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
-        state.path.quadTo(cx, cy, ax, ay)
-    }
+    private fun transX(x: Double, y: Double) = x
+    private fun transY(x: Double, y: Double) = y
+
+    override fun moveTo(x: Double, y: Double) = state.path.moveTo(transX(x, y), transY(x, y))
+    override fun lineTo(x: Double, y: Double) = state.path.lineTo(transX(x, y), transY(x, y))
+    override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) = state.path.quadTo(
+        transX(cx, cy), transY(cx, cy),
+        transX(ax, ay), transY(ax, ay)
+    )
+    override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) =
+        state.path.cubicTo(
+            transX(cx1, cy1), transY(cx1, cy1),
+            transX(cx2, cy2), transY(cx2, cy2),
+            transX(ax, ay), transY(ax, ay)
+        )
 
 	inline fun strokeRect(x: Number, y: Number, width: Number, height: Number) =
 		strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
