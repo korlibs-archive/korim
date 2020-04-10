@@ -338,10 +338,10 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
 		if (xml.hasAttribute("font-size")) {
-			font = font.copy(size = parseSizeAsDouble(xml.str("font-size")))
+			font = font.clone(size = parseSizeAsDouble(xml.str("font-size")))
 		}
 		if (xml.hasAttribute("font-family")) {
-			font = font.copy(name = xml.str("font-family"))
+			font = font.clone(name = xml.str("font-family"))
 		}
 		if (xml.hasAttribute("style")) {
 			applyStyle(c, SvgStyle.parse(xml.str("style"), warningProcessor), bounds)

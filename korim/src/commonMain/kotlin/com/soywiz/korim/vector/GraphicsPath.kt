@@ -7,7 +7,7 @@ import com.soywiz.korma.geom.vector.*
 class GraphicsPath(
 	commands: IntArrayList = IntArrayList(),
 	data: DoubleArrayList = DoubleArrayList(),
-	winding: VectorPath.Winding = VectorPath.Winding.EVEN_ODD
+	winding: Winding = Winding.EVEN_ODD
 ) : VectorPath(commands, data, winding), Context2d.SizedDrawable {
 
 	override val width: Int get() = this.getBounds().width.toInt()

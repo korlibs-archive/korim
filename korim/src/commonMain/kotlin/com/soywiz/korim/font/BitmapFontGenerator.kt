@@ -20,11 +20,11 @@ object BitmapFontGenerator {
 	fun generate(fontName: String, fontSize: Int, chars: String, mipmaps: Boolean = true): BitmapFont =
 		generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps)
 
-	fun generate(fontName: String, fontSize: Int, chars: IntArray, mipmaps: Boolean = true): BitmapFont {
+	fun generate(fontName: String, fontSize: Int, chars: IntArray, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont {
 		val result = measureTimeWithResult {
 			val bni = NativeImage(1, 1)
 			val bnictx = bni.getContext2d()
-			bnictx.font = Font(fontName, fontSize.toDouble())
+			bnictx.font = fontRegistry.get(fontName, fontSize.toDouble())
 			val bitmapHeight = bnictx.getTextBounds("a").bounds.height.toInt()
 
 			val widths: List<Int> = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
@@ -35,7 +35,7 @@ object BitmapFontGenerator {
 
 			val g = ni.getContext2d()
 			g.fillStyle = g.createColor(Colors.WHITE)
-			g.font = Font(fontName, fontSize.toDouble())
+			g.font = fontRegistry.get(fontName, fontSize.toDouble())
 			g.horizontalAlign = HorizontalAlign.LEFT
 			g.verticalAlign = VerticalAlign.TOP
 			val glyphsInfo = arrayListOf<GlyphInfo>()

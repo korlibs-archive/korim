@@ -165,7 +165,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var miterLimit: Double = 4.0,
         var strokeStyle: Paint = Color(Colors.BLACK),
         var fillStyle: Paint = Color(Colors.BLACK),
-        var font: Font = Font("sans-serif", 10.0),
+        var font: Font = SystemFontRegistry.DEFAULT_FONT,
         var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
         var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
         var globalAlpha: Double = 1.0

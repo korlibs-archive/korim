@@ -129,8 +129,8 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         val out = Path()
 
         out.fillType = when (this.winding) {
-            VectorPath.Winding.EVEN_ODD -> Path.FillType.EVEN_ODD
-            VectorPath.Winding.NON_ZERO -> Path.FillType.INVERSE_EVEN_ODD
+            Winding.EVEN_ODD -> Path.FillType.EVEN_ODD
+            Winding.NON_ZERO -> Path.FillType.INVERSE_EVEN_ODD
             else -> Path.FillType.EVEN_ODD
         }
         //kotlin.io.println("Path:")
