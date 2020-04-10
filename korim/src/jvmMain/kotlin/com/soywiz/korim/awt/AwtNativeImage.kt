@@ -223,6 +223,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		is Context2d.Color -> convertColor(this.color)
 		is Context2d.TransformedPaint -> {
 			val t1 = AffineTransform(this.transform.toAwt())
+            t1.concatenate(transform)
 			//t1.preConcatenate(this.transform.toAwt())
 			//t1.preConcatenate(transform)
 
@@ -329,20 +330,13 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	fun applyState(state: Context2d.State, fill: Boolean) {
 		val t = state.transform
 		awtTransform.setToMatrix(t)
-		g.transform = awtTransform
+		//g.transform = awtTransform
         //g.transform = AffineTransform()
 		g.clip = state.clip?.toJava2dPath()
 		if (fill) {
 			g.paint = state.fillStyle.toAwt(awtTransform)
 		} else {
-			//val scale = Math.max(t.a, t.d)
 			val strokeSize = (state.lineWidth).toFloat()
-			//val aStrokeSize = if (strokeSize / scale < 1.0) {
-			//	scale.toFloat()
-			//} else {
-			//	strokeSize
-			//}
-			//println("applyState: $strokeSize, lineWidth=${state.lineWidth}, lineScaleMode=${state.lineScaleMode}")
 			g.stroke = BasicStroke(
 				strokeSize,
 				state.lineCap.toAwt(),

@@ -24,7 +24,9 @@ class Bitmap16(
 	override fun getRgba(x: Int, y: Int): RGBA = format.unpackToRGBA(data[index(x, y)].toInt())
 
 	override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
-		val src = this
+        if (dst !is Bitmap16) return super.copy(srcX, srcY, dst, dstX, dstY, width, height)
+
+        val src = this
 
 		val srcArray = src.data
 		var srcIndex = src.index(srcX, srcY)

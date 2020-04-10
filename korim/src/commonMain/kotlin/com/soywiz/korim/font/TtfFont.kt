@@ -55,7 +55,8 @@ class TtfFont(val s: SyncStream) : Font {
             //ctx.scale(scale)
             commonProcess(text, size, handleGlyph = { tx, ty, g ->
                 //println("x=$x, y=$y, tx=$tx, ty=$ty")
-                g.draw(ctx, x + tx, y + ty, size, Origin.BASELINE, fill)
+                g.draw(ctx, x + tx, y + ty, size, Origin.BASELINE)
+                if (fill) ctx.fill() else ctx.stroke()
             })
         }
     }
@@ -454,7 +455,7 @@ class TtfFont(val s: SyncStream) : Font {
 		val xMax: Int
 		val yMax: Int
 		val advanceWidth: Int
-		fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin, fill: Boolean)
+		fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin)
 	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
@@ -487,14 +488,14 @@ class TtfFont(val s: SyncStream) : Font {
 	) : Glyph {
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs.map { it.glyph }})"
 
-        override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin, fill: Boolean) {
+        override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin) {
 			val scale = size / unitsPerEm.toDouble()
 			c.keepTransform {
 				for (ref in refs) {
 					c.keepTransform {
 						c.translate(x + (ref.x - xMin) * scale, y + (-ref.y - yMin) * scale)
 						c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
-                        ref.glyph.draw(c, 0.0, 0.0, size, origin, fill)
+                        ref.glyph.draw(c, 0.0, 0.0, size, origin)
 					}
 				}
 			}
@@ -521,10 +522,10 @@ class TtfFont(val s: SyncStream) : Font {
 			onCurve = onCurve(n)
 		}
 
-		override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin, fill: Boolean) {
+		override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin) {
 			val font = this@TtfFont
 			val scale = size / font.unitsPerEm.toDouble()
-            c.keep {
+            c.keepTransform {
                 val ydist: Double = when (origin) {
                     Origin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
                     Origin.BASELINE -> 0.0
@@ -541,11 +542,6 @@ class TtfFont(val s: SyncStream) : Font {
                 //    close = { c.close() }
                 //)
                 c.draw(graphicsPath)
-                if (fill) {
-                    c.fill()
-                } else {
-                    c.stroke()
-                }
                 //rect(0, 0, 20, 20)
             }
 		}

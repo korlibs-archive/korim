@@ -12,6 +12,7 @@ import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.bezier.Bezier
+import com.soywiz.korma.geom.shape.emitPoints
 import com.soywiz.korma.geom.vector.VectorPath
 import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
@@ -48,13 +49,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 
         rasterizer.debug = debug
         rasterizer.reset()
-        state.path.emitPoints2({
+        state.path.emitPoints({
             if (it) rasterizer.close()
         }, { x, y ->
-            rasterizer.add(
-                state.transform.transformX(x, y),
-                state.transform.transformY(x, y)
-            )
+            rasterizer.add(x, y)
         })
         rasterizer.strokeWidth = state.lineWidth
         rasterizer.quality = if (antialiasing) 8 else 2
@@ -65,29 +63,6 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
         }
         scanlineWriter.flush()
 	}
-
-    private inline fun VectorPath.emitPoints2(flush: (close: Boolean) -> Unit, emit: (x: Double, y: Double) -> Unit, curveSteps: Int = 20) {
-        var lx = 0.0
-        var ly = 0.0
-        flush(false)
-        this.visitCmds(
-            moveTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
-            lineTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
-            quadTo = { x0, y0, x1, y1 ->
-                val dt = 1.0 / curveSteps
-                for (n in 1 until curveSteps) Bezier.quadCalc(lx, ly, x0, y0, x1, y1, n * dt, emit)
-                run { lx = x1 }.also { ly = y1 }
-            },
-            cubicTo = { x0, y0, x1, y1, x2, y2 ->
-                val dt = 1.0 / curveSteps
-                for (n in 1 until curveSteps) Bezier.cubicCalc(lx, ly, x0, y0, x1, y1, x2, y2, n * dt, emit)
-                run { lx = x2 }.also { ly = y2 }
-            },
-            close = { flush(true) }
-        )
-        flush(false)
-    }
-
 
     abstract class BaseFiller {
         abstract fun fill(data: RgbaPremultipliedArray, x0: Int, x1: Int, y: Int)

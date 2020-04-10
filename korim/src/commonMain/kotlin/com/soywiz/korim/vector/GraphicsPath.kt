@@ -11,7 +11,7 @@ class GraphicsPath(
 ) : VectorPath(commands, data, winding), Context2d.SizedDrawable {
 	override val width: Int get() = this.getBounds().width.toInt()
 	override val height: Int get() = this.getBounds().height.toInt()
-	override fun draw(c: Context2d) = run { c.state.path.write(this) }
+	override fun draw(c: Context2d) = c.path(this)
 	override fun clone() = GraphicsPath(IntArrayList(commands), DoubleArrayList(data), winding)
     override fun toString(): String = "GraphicsPath(\"${this.toSvgPathString()}\")"
 }

@@ -10,6 +10,7 @@ import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -319,11 +320,11 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     override fun close() = state.path.close()
 
-    //private fun transX(x: Double, y: Double) = state.transform.transformX(x, y)
-    //private fun transY(x: Double, y: Double) = state.transform.transformY(x, y)
+    private fun transX(x: Double, y: Double) = state.transform.transformX(x, y)
+    private fun transY(x: Double, y: Double) = state.transform.transformY(x, y)
 
-    private fun transX(x: Double, y: Double) = x
-    private fun transY(x: Double, y: Double) = y
+    //private fun transX(x: Double, y: Double) = x
+    //private fun transY(x: Double, y: Double) = y
 
     override fun moveTo(x: Double, y: Double) = state.path.moveTo(transX(x, y), transY(x, y))
     override fun lineTo(x: Double, y: Double) = state.path.lineTo(transX(x, y), transY(x, y))
@@ -352,7 +353,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	fun strokeDot(x: Double, y: Double) = run { beginPath(); moveTo(x, y); lineTo(x, y); stroke() }
 
-	fun path(path: GraphicsPath) = run { this.state.path.write(path) }
+	fun path(path: GraphicsPath) = this.write(path)
 	fun draw(d: Drawable) = run { d.draw(this) }
 
 	fun strokeRect(x: Double, y: Double, width: Double, height: Double) =
@@ -682,4 +683,14 @@ fun Context2d.Drawable.renderToImage(width: Int, height: Int): NativeImage {
 	val ctx = image.getContext2d()
 	this.draw(ctx)
 	return image
+}
+
+private fun VectorBuilder.write(path: VectorPath) {
+    path.visitCmds(
+        moveTo = { x, y -> moveTo(x, y) },
+        lineTo = { x, y -> lineTo(x, y) },
+        quadTo = { x0, y0, x1, y1 -> quadTo(x0, y0, x1, y1) },
+        cubicTo = { x0, y0, x1, y1, x2, y2 -> cubicTo(x0, y0, x1, y1, x2, y2) },
+        close = { close() }
+    )
 }
