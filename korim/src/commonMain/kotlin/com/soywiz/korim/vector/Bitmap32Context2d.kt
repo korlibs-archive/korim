@@ -1,8 +1,6 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.intArrayListOf
-import com.soywiz.kmem.toIntCeil
-import com.soywiz.kmem.toIntFloor
 import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBAPremultiplied
@@ -11,9 +9,9 @@ import com.soywiz.korim.vector.rasterizer.*
 import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.float
 import com.soywiz.korma.geom.vector.VectorPath
+import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.roundToInt
 
 // References:
 // - https://github.com/memononen/nanosvg/blob/master/src/nanosvgrast.h
@@ -87,23 +85,25 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
         var ny = -1
         val size = bmp.width
         val width1 = bmp.width - 1
+        val alpha = DoubleArray(size)
         val hitbits = IntArray(size)
-        val hitcount = IntArray(size)
         val color = RgbaPremultipliedArray(size)
         val segments = SegmentHandler()
         var subRowCount = 0
         fun reset() {
+            alpha.fill(0.0)
             hitbits.fill(0)
-            hitcount.fill(0)
             subRowCount = 0
             segments.reset()
         }
         fun select(x0: Double, x1: Double, y0: Double) {
+            val x0 = x0.coerceIn(0.0, width1.toDouble())
+            val x1 = x1.coerceIn(0.0, width1.toDouble())
             val a = x0.toIntRound()
             val b = x1.toIntRound()
             val y = y0.toInt()
-            val x0 = a.coerceIn(0, width1)
-            val x1 = b.coerceIn(0, width1)
+            val i0 = a.coerceIn(0, width1)
+            val i1 = b.coerceIn(0, width1)
 
             if (ny != y) {
                 if (y >= 0) {
@@ -116,14 +116,28 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
                 ny0 = y0
                 subRowCount++
             }
-            segments.add(x0, x1)
-            val mask = 1 shl subRowCount
-            for (x in x0..x1) {
-                if ((hitcount[x] and mask) == 0) {
-                    hitcount[x] = hitcount[x] or mask
+            segments.add(i0, i1)
+            if (i0 == i1) {
+                val pixelSize = (x1 - x0).absoluteValue
+                put(i0, pixelSize)
+            } else {
+                val first = (x0 - i0).absoluteValue
+                val last = (x1 - i1).absoluteValue
+                put(i0, first)
+                put(i1, last)
+                for (x in i0 + 1 until i1) {
+                    put(x, 1.0)
                 }
             }
             //alphaCount++
+        }
+
+        fun put(x: Int, ratio: Double) {
+            val mask = 1 shl subRowCount
+            if ((hitbits[x] and mask) == 0) {
+                hitbits[x] = hitbits[x] or mask
+                alpha[x] += ratio
+            }
         }
 
         // @TODO: We should try to use SIMD if possible
@@ -154,7 +168,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
                 filler.fill(color, xmin, xmax, ny)
                 for (x in xmin..xmax) {
                     val rx = row + x
-                    val ialpha = this.hitcount[x].countOneBits()
+                    val ialpha = this.alpha[x]
                     if (ialpha > 0) {
                         val alpha = ialpha * scale
                         val col = color[x]
