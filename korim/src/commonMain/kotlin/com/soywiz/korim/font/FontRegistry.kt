@@ -12,11 +12,12 @@ interface FontRegistry {
 
 @ThreadLocal
 object SystemFontRegistry : DefaultFontRegistry() {
-    val DEFAULT_FONT = this.get("sans-serif")
+    val DEFAULT_FONT = this["sans-serif"]
 }
 
 open class DefaultFontRegistry : FontRegistry {
     private val registeredFonts = CopyOnWriteFrozenMap<String, Font>()
-    fun register(font: Font, name: String = font.name) = font.also { registeredFonts[name] = it }
-    override operator fun get(name: String): Font = registeredFonts[name] ?: SystemFont(name)
+    fun normalizeName(name: String) = name.toLowerCase().trim()
+    fun register(font: Font, name: String = font.name) = font.also { registeredFonts[normalizeName(name)] = it }
+    override operator fun get(name: String): Font = registeredFonts[normalizeName(name)] ?: SystemFont(name)
 }

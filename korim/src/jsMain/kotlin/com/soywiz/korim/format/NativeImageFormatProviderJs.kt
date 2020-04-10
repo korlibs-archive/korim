@@ -212,13 +212,13 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	private fun setFont(font: Font) {
-		ctx.font = "${font.size}px '${font.name}'"
+	private fun setFont(font: Font, fontSize: Double) {
+		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
-	private fun setState(state: Context2d.State, fill: Boolean) {
+	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
-		setFont(state.font)
+		setFont(state.font, state.fontSize)
 		val t = state.transform
 		ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
 		if (fill) {
@@ -264,7 +264,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 		//println("beginPath")
 		keep {
-			setState(state, fill)
+			setState(state, fill, state.fontSize)
 			ctx.beginPath()
 
 			state.path.visitCmds(
@@ -295,13 +295,14 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 	override fun renderText(
         state: Context2d.State,
         font: Font,
+        fontSize: Double,
         text: String,
         x: Double,
         y: Double,
         fill: Boolean
 	) {
 		keep {
-			setState(state, fill)
+			setState(state, fill, fontSize)
 
 			ctx.textBaseline = when (state.verticalAlign) {
 				VerticalAlign.TOP -> CanvasTextBaseline.TOP
@@ -326,12 +327,12 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	override fun getBounds(font: Font, text: String, out: TextMetrics) {
+	override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
 		keep {
-			setFont(font)
+			setFont(font, fontSize)
 			val metrics = ctx.measureText(text)
 			val width = metrics.width.toInt()
-			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, font.size)
+			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, fontSize)
 		}
 	}
 }
