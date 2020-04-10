@@ -541,7 +541,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		val interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL,
 		val units: Units = Units.OBJECT_BOUNDING_BOX
 	) : TransformedPaint {
-		enum class Kind {
+        fun x0(m: Matrix) = m.transformX(x0, y0)
+        fun y0(m: Matrix) = m.transformY(x0, y0)
+        fun r0(m: Matrix) = m.transformX(r0, r0)
+
+        fun x1(m: Matrix) = m.transformX(x1, y1)
+        fun y1(m: Matrix) = m.transformY(x1, y1)
+        fun r1(m: Matrix) = m.transformX(r1, r1)
+
+        enum class Kind {
 			LINEAR, RADIAL
 		}
 

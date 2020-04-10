@@ -155,7 +155,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         return out
     }
 
-    fun convertPaint(c: Context2d.Paint, out: Paint) {
+    fun convertPaint(c: Context2d.Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
         when (c) {
             is Context2d.None -> {
                 out.shader = null
@@ -168,13 +168,13 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
                 when (c.kind) {
                     Context2d.Gradient.Kind.LINEAR ->
                         out.shader = LinearGradient(
-                            c.x0.toFloat(), c.y0.toFloat(),
-                            c.x1.toFloat(), c.y1.toFloat(),
+                            c.x0(m).toFloat(), c.y0(m).toFloat(),
+                            c.x1(m).toFloat(), c.y1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
                         )
                     Context2d.Gradient.Kind.RADIAL ->
                         out.shader = RadialGradient(
-                            c.x1.toFloat(), c.y1.toFloat(), c.r1.toFloat(),
+                            c.x1(m).toFloat(), c.y1(m).toFloat(), c.r1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
                         )
                 }
@@ -192,19 +192,21 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         }
     }
 
-    private fun setState(state: Context2d.State, fill: Boolean) {
-        val transform = state.transform
-        matrixValues[Matrix.MSCALE_X] = transform.a.toFloat()
-        matrixValues[Matrix.MSKEW_X] = transform.b.toFloat()
-        matrixValues[Matrix.MSKEW_Y] = transform.c.toFloat()
-        matrixValues[Matrix.MSCALE_Y] = transform.d.toFloat()
-        matrixValues[Matrix.MTRANS_X] = transform.tx.toFloat()
-        matrixValues[Matrix.MTRANS_Y] = transform.ty.toFloat()
+    fun android.graphics.Matrix.setTo(m: com.soywiz.korma.geom.Matrix) = this.apply {
+        matrixValues[Matrix.MSCALE_X] = m.a.toFloat()
+        matrixValues[Matrix.MSKEW_X] = m.b.toFloat()
+        matrixValues[Matrix.MSKEW_Y] = m.c.toFloat()
+        matrixValues[Matrix.MSCALE_Y] = m.d.toFloat()
+        matrixValues[Matrix.MTRANS_X] = m.tx.toFloat()
+        matrixValues[Matrix.MTRANS_Y] = m.ty.toFloat()
         matrixValues[Matrix.MPERSP_0] = 0f
         matrixValues[Matrix.MPERSP_1] = 0f
         matrixValues[Matrix.MPERSP_2] = 1f
-        androidMatrix.setValues(matrixValues)
-        canvas.matrix = androidMatrix
+        this.setValues(matrixValues)
+    }
+
+    private fun setState(state: Context2d.State, fill: Boolean) {
+        //canvas.matrix = androidMatrix.setTo(state.transform)
         paint.strokeWidth = state.lineWidth.toFloat()
     }
 
@@ -216,10 +218,10 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 
             if (fill) {
                 paint.style = android.graphics.Paint.Style.FILL
-                convertPaint(state.fillStyle, paint)
+                convertPaint(state.fillStyle, state.transform, paint)
             } else {
                 paint.style = android.graphics.Paint.Style.STROKE
-                convertPaint(state.strokeStyle, paint)
+                convertPaint(state.strokeStyle, state.transform, paint)
             }
 
             //println("-----------------")
@@ -245,7 +247,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         paint.typeface = Typeface.create(font.name, Typeface.NORMAL)
         paint.textSize = fontSize.toFloat()
         val fm = paint.fontMetrics
-        getBounds(font, text, metrics)
+        getBounds(font, fontSize, text, metrics)
 
         val baseline = fm.ascent + fm.descent
 
@@ -257,7 +259,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         canvas.drawText(text, 0, text.length, (x - ox).toFloat(), (y + baseline - oy).toFloat(), paint)
     }
 
-    override fun getBounds(font: Font, text: String, out: TextMetrics) {
+    override fun getBounds(font: Font, size: Double, text: String, out: TextMetrics) {
         val rect = Rect()
         paint.getTextBounds(text, 0, text.length, rect)
         out.bounds.setTo(rect.left.toDouble(), rect.top.toDouble(), rect.width().toDouble(), rect.height().toDouble())
