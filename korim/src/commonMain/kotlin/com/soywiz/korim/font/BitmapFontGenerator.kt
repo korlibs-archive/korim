@@ -17,14 +17,17 @@ object BitmapFontGenerator {
 	val LATIN_BASIC = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥PÉáíóúñÑª°¿¬½¼¡«»ßµø±÷°·.²"
 	val LATIN_ALL = SPACE + UPPERCASE + LOWERCASE + NUMBERS + PUNCTUATION + LATIN_BASIC
 
-	fun generate(fontName: String, fontSize: Int, chars: String, mipmaps: Boolean = true): BitmapFont =
-		generate(fontName, fontSize, chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps)
+	fun generate(fontName: String, fontSize: Number, chars: String, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont =
+		generate(fontRegistry.get(fontName, fontSize.toDouble()), chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps)
 
-	fun generate(fontName: String, fontSize: Int, chars: IntArray, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont {
+    fun generate(fontName: String, fontSize: Number, chars: IntArray, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont =
+        generate(fontRegistry.get(fontName, fontSize.toDouble()), chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps)
+
+	fun generate(font: Font, chars: IntArray, mipmaps: Boolean = true, name: String = font.name): BitmapFont {
 		val result = measureTimeWithResult {
 			val bni = NativeImage(1, 1)
 			val bnictx = bni.getContext2d()
-			bnictx.font = fontRegistry.get(fontName, fontSize.toDouble())
+			bnictx.font = font
 			val bitmapHeight = bnictx.getTextBounds("a").bounds.height.toInt()
 
 			val widths: List<Int> = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
@@ -35,7 +38,7 @@ object BitmapFontGenerator {
 
 			val g = ni.getContext2d()
 			g.fillStyle = g.createColor(Colors.WHITE)
-			g.font = fontRegistry.get(fontName, fontSize.toDouble())
+			g.font = font
 			g.horizontalAlign = HorizontalAlign.LEFT
 			g.verticalAlign = VerticalAlign.TOP
 			val glyphsInfo = arrayListOf<GlyphInfo>()
@@ -52,11 +55,12 @@ object BitmapFontGenerator {
 			val atlas = ni.toBMP32()
 
 			BitmapFont(
-				atlas, fontSize, fontSize, fontSize,
+				atlas, font.size.toInt(), font.size.toInt(), font.size.toInt(),
 				glyphsInfo.associate {
 					it.char to BitmapFont.Glyph(it.char, atlas.slice(it.rect), 0, 0, it.width)
 				}.toIntMap(),
-				IntMap()
+				IntMap(),
+                name = name
 			)
 		}
 
@@ -69,4 +73,10 @@ operator fun BitmapFont.Companion.invoke(
 	fontSize: Int,
 	chars: String = BitmapFontGenerator.LATIN_ALL,
 	mipmaps: Boolean = true
-): BitmapFont = BitmapFontGenerator.generate(fontName, fontSize, chars)
+): BitmapFont = BitmapFontGenerator.generate(fontName, fontSize, chars, mipmaps)
+
+operator fun BitmapFont.Companion.invoke(
+    font: Font,
+    chars: String = BitmapFontGenerator.LATIN_ALL,
+    mipmaps: Boolean = true
+): BitmapFont = BitmapFontGenerator.generate(font, chars.map { it.toInt() }.toIntArray(), mipmaps)

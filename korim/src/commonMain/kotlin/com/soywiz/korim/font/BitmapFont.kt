@@ -4,14 +4,18 @@ import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
+import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.TextMetrics
 import com.soywiz.korio.dynamic.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
+import com.soywiz.korma.geom.Rectangle
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
+import kotlin.math.max
 
 //e: java.lang.UnsupportedOperationException: Class literal annotation arguments are not yet supported: Factory
 //@AsyncFactoryClass(BitmapFontAsyncFactory::class)
@@ -21,9 +25,47 @@ class BitmapFont(
 	val lineHeight: Int,
 	val base: Int,
 	val glyphs: IntMap<Glyph>,
-	val kernings: IntMap<Kerning>
-) : Extra by Extra.Mixin() {
-    var name: String = "BitmapFont"
+	val kernings: IntMap<Kerning>,
+    override val name: String = "BitmapFont",
+    override val registry: FontRegistry = SystemFontRegistry
+) : Extra by Extra.Mixin(), Font {
+    override val size get() = fontSize.toDouble()
+
+    override fun getTextBounds(text: String, out: TextMetrics): TextMetrics {
+        var maxx = 0.0
+        var maxy = 0.0
+        commonProcess(text, handleBounds = { _maxx, _maxy ->
+            maxx = _maxx
+            maxy = _maxy
+        })
+        return TextMetrics(Rectangle(0, 0, maxx, maxy))
+    }
+    override fun renderText(ctx: Context2d, text: String, x: Double, y: Double, fill: Boolean) {
+        commonProcess(text, handleGlyph = { x, y, g ->
+            ctx.drawImage(g.bmp, x, y)
+        })
+    }
+    private inline fun commonProcess(
+        text: String,
+        handleGlyph: (x: Double, y: Double, g: BitmapFont.Glyph) -> Unit = { x, y, g -> },
+        handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
+    ) {
+        var x = 0.0
+        var y = 0.0
+        var maxx = 0.0
+        for (c in text) {
+            if (c == '\n') {
+                x = 0.0
+                y += lineHeight
+            } else {
+                val glyph = this[c]
+                handleGlyph(x, y, glyph)
+                x += glyph.xadvance
+                maxx = max(maxx, x + glyph.xadvance)
+            }
+        }
+        handleBounds(maxx, y + lineHeight)
+    }
 
 	fun measureWidth(text: String): Int {
 		var x = 0

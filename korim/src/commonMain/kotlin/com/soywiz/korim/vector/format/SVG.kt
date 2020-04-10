@@ -2,6 +2,7 @@ package com.soywiz.korim.vector.format
 
 import com.soywiz.kds.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.clone
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*

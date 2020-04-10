@@ -1,6 +1,7 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.*
+import com.soywiz.korim.font.Font
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 

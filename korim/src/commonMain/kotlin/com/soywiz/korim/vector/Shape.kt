@@ -1,9 +1,9 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.iterators.*
-import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*

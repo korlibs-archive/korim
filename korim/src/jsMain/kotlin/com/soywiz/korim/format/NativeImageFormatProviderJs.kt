@@ -2,6 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.TextMetrics
@@ -292,12 +293,12 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 	}
 
 	override fun renderText(
-		state: Context2d.State,
-		font: Font,
-		text: String,
-		x: Double,
-		y: Double,
-		fill: Boolean
+        state: Context2d.State,
+        font: Font,
+        text: String,
+        x: Double,
+        y: Double,
+        fill: Boolean
 	) {
 		keep {
 			setState(state, fill)

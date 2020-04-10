@@ -7,18 +7,25 @@ import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.FontRegistry
+import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korim.vector.TextMetrics
+import com.soywiz.korio.file.VfsFile
 import com.soywiz.korio.lang.UTF16_BE
 import com.soywiz.korio.lang.UTF8
 import com.soywiz.korio.lang.invalidOp
 import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.encoding.hex
+import com.soywiz.korma.geom.Rectangle
 import com.soywiz.korma.geom.vector.lineTo
 import com.soywiz.korma.geom.vector.moveTo
 import com.soywiz.korma.geom.vector.quadTo
 import kotlin.collections.set
+import kotlin.math.max
 
 @Suppress("MemberVisibilityCanBePrivate", "UNUSED_VARIABLE", "LocalVariableName", "unused")
 // Used information from:
@@ -28,10 +35,50 @@ import kotlin.collections.set
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFont private constructor(val s: SyncStream) {
-    var name: String = "TtfFont"
+class TtfFont private constructor(val s: SyncStream, override val name: String = "TtfFont", override val registry: FontRegistry = SystemFontRegistry) : Font {
+    override val size: Double get() = yMax.toDouble()
 
-	data class Table(val id: String, val checksum: Int, val offset: Int, val length: Int) {
+    override fun getTextBounds(text: String, out: TextMetrics): TextMetrics {
+        var maxx = 0.0
+        var maxy = 0.0
+        commonProcess(text, handleBounds = { _maxx, _maxy ->
+            maxx = _maxx
+            maxy = _maxy
+        })
+        return TextMetrics(Rectangle(0, 0, maxx, maxy))
+    }
+    override fun renderText(ctx: Context2d, text: String, x: Double, y: Double, fill: Boolean) {
+        commonProcess(text, handleGlyph = { x, y, g ->
+            g.draw(ctx, size, origin = TtfFont.Origin.TOP)
+            if (fill) ctx.fill() else ctx.stroke()
+        })
+    }
+
+    private inline fun commonProcess(
+        text: String,
+        handleGlyph: (x: Double, y: Double, g: TtfFont.IGlyph) -> Unit = { x, y, g -> },
+        handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
+    ) {
+        var x = 0.0
+        var y = 0.0
+        var maxx = 0.0
+        for (c in text) {
+            if (c == '\n') {
+                x = 0.0
+                y += yMax
+            } else {
+                val glyph = getGlyphByChar(c)
+                if (glyph != null) {
+                    handleGlyph(x, y, glyph)
+                    x += glyph.advanceWidth
+                    maxx = max(maxx, x + glyph.advanceWidth)
+                }
+            }
+        }
+        handleBounds(maxx, y + yMax)
+    }
+
+    data class Table(val id: String, val checksum: Int, val offset: Int, val length: Int) {
 		lateinit var s: SyncStream
 
 		fun open() = s.clone()
@@ -698,3 +745,5 @@ internal inline class Fixed(val data: Int) {
         operator fun invoke(num: Int, den: Int) = 0.insert(num, 0, 16).insert(den, 16, 16)
     }
 }
+
+suspend fun VfsFile.readTtfFont() = TtfFont(this.readAll().openSync())

@@ -3,6 +3,8 @@ package com.soywiz.korim.vector
 import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -456,13 +458,13 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	@Suppress("NOTHING_TO_INLINE") // Number inlining
 	inline fun fillText(
-		text: String,
-		x: Number,
-		y: Number,
-		font: Font? = null,
-		halign: HorizontalAlign? = null,
-		valign: VerticalAlign? = null,
-		color: RGBA? = null
+        text: String,
+        x: Number,
+        y: Number,
+        font: Font? = null,
+        halign: HorizontalAlign? = null,
+        valign: VerticalAlign? = null,
+        color: RGBA? = null
 	): Unit {
 		font(font, halign, valign) {
 			fillStyle(color?.let { createColor(it) } ?: fillStyle) {

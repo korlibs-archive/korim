@@ -3,7 +3,8 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.Font
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.SystemFont
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import java.awt.*
@@ -299,10 +300,10 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	}
 
     fun Font.toAwt() = when (this) {
-        is Font.System -> this.toAwt()
+        is SystemFont -> this.toAwt()
         else -> TODO("Unsupported font toAwt!")
     }
-	fun Font.System.toAwt() = java.awt.Font(this.name, java.awt.Font.PLAIN, this.size.toInt())
+	fun SystemFont.toAwt() = java.awt.Font(this.name, java.awt.Font.PLAIN, this.size.toInt())
 
 	inline fun Graphics2D.keepTransform(callback: () -> Unit) {
 		val old = AffineTransform(this.transform)
@@ -361,12 +362,12 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	}
 
 	override fun renderText(
-		state: Context2d.State,
-		font: Font,
-		text: String,
-		x: Double,
-		y: Double,
-		fill: Boolean
+        state: Context2d.State,
+        font: Font,
+        text: String,
+        x: Double,
+        y: Double,
+        fill: Boolean
 	) {
 		if (text.isEmpty()) return
 		applyState(state, fill)

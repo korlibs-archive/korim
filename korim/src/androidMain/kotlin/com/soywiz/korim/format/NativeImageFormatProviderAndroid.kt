@@ -9,6 +9,7 @@ import com.soywiz.korio.android.androidContext
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
