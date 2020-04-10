@@ -4,9 +4,12 @@ package com.soywiz.korim.format.cg
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.format.*
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlinx.cinterop.*
 import platform.CoreFoundation.*
 import platform.CoreGraphics.*
@@ -56,8 +59,8 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
 
     fun Matrix.toCGAffineTransform() = CGAffineTransformMake(a.cg, b.cg, c.cg, d.cg, tx.cg, ty.cg)
 
-    override fun getBounds(font: Font, text: String, out: TextMetrics) {
-        super.getBounds(font, text, out)
+    override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
+        super.getBounds(font, fontSize, text, out)
     }
 
     private fun cgDrawBitmap(bmp: Bitmap32, ctx: CGContextRef?, colorSpace: CPointer<CGColorSpace>?, tiled: Boolean = false) {
@@ -147,7 +150,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                     memScoped {
                                         val style = if (fill) state.fillStyle else state.strokeStyle
                                         when (style) {
-                                            is Context2d.None -> Unit
+                                            is NonePaint -> Unit
                                             is ColorPaint -> {
                                                 if (fill) {
                                                     CGContextSetFillColorWithColor(
@@ -183,10 +186,10 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                     val start = CGPointMake(style.x0(m).cg, style.y0(m).cg)
                                                     val end = CGPointMake(style.x1(m).cg, style.y1(m).cg)
                                                     when (style.kind) {
-                                                        GradientPaint.Kind.LINEAR -> {
+                                                        GradientKind.LINEAR -> {
                                                             CGContextDrawLinearGradient(ctx, gradient, start, end, options)
                                                         }
-                                                        GradientPaint.Kind.RADIAL -> {
+                                                        GradientKind.RADIAL -> {
                                                             CGContextDrawRadialGradient(ctx, gradient, start, style.r0(m).cg, end, style.r1(m).cg, options)
                                                             CGGradientRelease(gradient)
                                                         }

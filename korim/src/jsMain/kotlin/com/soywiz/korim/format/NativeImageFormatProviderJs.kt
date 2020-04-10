@@ -6,6 +6,7 @@ import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.TextMetrics
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
@@ -171,11 +172,11 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 	fun Paint.toJsStr(): Any? {
 		return when (this) {
-			is Context2d.None -> "none"
+			is NonePaint -> "none"
 			is ColorPaint -> this.color.htmlStringSimple
 			is GradientPaint -> {
 				when (kind) {
-					GradientPaint.Kind.LINEAR -> {
+					GradientKind.LINEAR -> {
 						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -184,7 +185,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						}
 						grad
 					}
-					GradientPaint.Kind.RADIAL -> {
+                    GradientKind.RADIAL -> {
 						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -216,11 +217,14 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
+    private fun setMatrix(t: Matrix) {
+        ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+    }
+
 	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
 		setFont(state.font, state.fontSize)
-		val t = state.transform
-		ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+        setMatrix(state.transform)
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
@@ -240,7 +244,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 	}
 
 	private fun transformPaint(paint: Paint) {
-		if (paint is Context2d.TransformedPaint) {
+		if (paint is TransformedPaint) {
 			val m = paint.transform
 			ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)
 		}
@@ -264,9 +268,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 		//println("beginPath")
 		keep {
-			setState(state, fill, state.fontSize)
 			ctx.beginPath()
 
+            // No apply transform, since points are already translated
 			state.path.visitCmds(
 				moveTo = { x, y -> ctx.moveTo(x, y) },
 				lineTo = { x, y -> ctx.lineTo(x, y) },
@@ -277,7 +281,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 			ctx.save()
 
-			if (fill) {
+            setState(state, fill, state.fontSize)
+
+            if (fill) {
 				transformPaint(state.fillStyle)
 				ctx.fill()
 				//println("fill: $s")
