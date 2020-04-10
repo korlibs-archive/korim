@@ -38,6 +38,9 @@ fun transferBitmap32CGContext(bmp: Bitmap32, ctx: CGContextRef?, toBitmap: Boole
     }
 }
 
+open class CoreGraphicsNativeImage(bmp: Bitmap32) : BitmapNativeImage(bmp)
+
+/*
 class CoreGraphicsNativeImage(bitmap: Bitmap32) : BitmapNativeImage(bitmap) {
     override fun toNonNativeBmp(): Bitmap = bitmap.clone()
 
@@ -261,3 +264,4 @@ internal fun RGBA.toCgColor(releases: Releases, space: CGColorSpaceRef?) = memSc
     releases.colors.add(color)
     color
 }
+*/
