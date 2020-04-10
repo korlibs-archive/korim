@@ -344,7 +344,7 @@ data class PolylineShape(
     ) : this(path, clip, paint, transform, thickness, pixelHinting, scaleMode, startCaps, endCaps, when (joints) {
         null -> LineJoin.MITER
         "MITER", "miter" -> LineJoin.MITER
-        "BEVEL", "bevel" -> LineJoin.SQUARE//LineJoin.BEVEL
+        "BEVEL", "bevel" -> LineJoin.BEVEL
         "SQUARE", "square" -> LineJoin.SQUARE
         "ROUND", "round" -> LineJoin.ROUND
         else -> LineJoin.MITER

@@ -20,7 +20,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     protected open val rendererWidth get() = renderer.width
     protected open val rendererHeight get() = renderer.height
-    protected open fun rendererRender(state: Context2d.State, fill: Boolean) = renderer.render(state, fill)
+    protected open fun rendererRender(state: State, fill: Boolean) = renderer.render(state, fill)
     protected open fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble(), transform: Matrix = Matrix()) = renderer.drawImage(image, x, y, width, height, transform)
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
@@ -73,7 +73,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         abstract fun flushCommands()
 
         data class RenderCommand(
-            val state: Context2d.State,
+            val state: State,
             val fill: Boolean,
             val font: Font? = null,
             val fontSize: Double = 0.0,
@@ -83,7 +83,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         )
         protected val commands = arrayListOf<RenderCommand>()
 
-        final override fun render(state: Context2d.State, fill: Boolean) {
+        final override fun render(state: State, fill: Boolean) {
             commands += RenderCommand(state.clone(), fill)
             if (!isBuffering()) flush()
         }
@@ -139,13 +139,13 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			width: Double = image.width.toDouble(),
 			height: Double = image.height.toDouble(),
 			transform: Matrix = Matrix()
-		): Unit {
+		) {
 			render(State(
                 transform = transform,
-                path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) },
-                fillStyle = Context2d.BitmapPaint(image,
+                path = GraphicsPath().apply { rect(x, y, width, height) },
+                fillStyle = BitmapPaint(image,
                     transform = Matrix()
-                        .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
+                        .scale(width / image.width.toDouble(), height / image.height.toDouble())
                         .translate(x, y)
                 )
             ), fill = true)

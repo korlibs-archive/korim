@@ -302,9 +302,9 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	}
 
 	fun LineJoin.toAwt() = when (this) {
-		LineJoin.SQUARE -> java.awt.BasicStroke.JOIN_BEVEL
-		LineJoin.MITER -> java.awt.BasicStroke.JOIN_MITER
-		LineJoin.ROUND -> java.awt.BasicStroke.JOIN_ROUND
+		LineJoin.BEVEL -> BasicStroke.JOIN_BEVEL
+		LineJoin.MITER -> BasicStroke.JOIN_MITER
+		LineJoin.ROUND -> BasicStroke.JOIN_ROUND
 	}
 
     fun Font.toAwt(size: Double) = when (this) {
@@ -322,10 +322,15 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		}
 	}
 
+    fun AffineTransform.setToMatrix(t: Matrix) {
+        setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+    }
+
 	fun applyState(state: Context2d.State, fill: Boolean) {
 		val t = state.transform
-		awtTransform.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+		awtTransform.setToMatrix(t)
 		g.transform = awtTransform
+        //g.transform = AffineTransform()
 		g.clip = state.clip?.toJava2dPath()
 		if (fill) {
 			g.paint = state.fillStyle.toAwt(awtTransform)

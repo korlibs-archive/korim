@@ -226,7 +226,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		} else {
 			ctx.lineWidth = state.lineWidth
 			ctx.lineJoin = when (state.lineJoin) {
-				LineJoin.SQUARE -> CanvasLineJoin.BEVEL
+				LineJoin.BEVEL -> CanvasLineJoin.BEVEL
 				LineJoin.MITER -> CanvasLineJoin.MITER
 				LineJoin.ROUND -> CanvasLineJoin.ROUND
 			}
