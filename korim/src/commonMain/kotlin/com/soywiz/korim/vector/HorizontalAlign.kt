@@ -8,5 +8,8 @@ inline class HorizontalAlign(val ratio: Double) {
         val RIGHT = HorizontalAlign(1.0)
     }
 
-    fun getOffsetX(width: Double): Double = width * ratio
+    fun getOffsetX(width: Double): Double = when (this) {
+        JUSTIFY -> 0.0
+        else -> width * ratio
+    }
 }

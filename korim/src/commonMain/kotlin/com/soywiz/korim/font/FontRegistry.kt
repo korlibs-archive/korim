@@ -21,3 +21,5 @@ open class DefaultFontRegistry : FontRegistry {
     fun register(font: Font, name: String = font.name) = font.also { registeredFonts[normalizeName(name)] = it }
     override operator fun get(name: String): Font = registeredFonts[normalizeName(name)] ?: SystemFont(name)
 }
+
+fun <T : Font> T.register(registry: DefaultFontRegistry = SystemFontRegistry, name: String = this.name): T = this.also { registry.register(it, name) }

@@ -32,9 +32,8 @@ import kotlin.math.max
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFont private constructor(
-    val b: ByteArray,
-    override val name: String = "TtfFont"
+class TtfFont(
+    val b: ByteArray
 ) : Font {
     val s = b.openSync()
     var numGlyphs = 0
@@ -83,6 +82,7 @@ class TtfFont private constructor(
 
     var horMetrics = listOf<HorMetric>()
     val characterMaps = IntIntMap()
+    val tablesByName = LinkedHashMap<String, Table>()
 
     init {
         readHeaderTables()
@@ -94,6 +94,8 @@ class TtfFont private constructor(
         readCmap()
         readHmtx()
     }
+
+    override val name: String get() = "TtfFont"
 
     override fun getTextBounds(size: Double, text: String, out: TextMetrics): TextMetrics {
         var maxx = 0.0
@@ -159,12 +161,10 @@ class TtfFont private constructor(
 	fun SyncStream.readFixed() = Fixed(readS16LE(), readS16LE())
 	data class HorMetric(val advanceWidth: Int, val lsb: Int)
 
-	val tablesByName = LinkedHashMap<String, Table>()
 	fun openTable(name: String) = tablesByName[name]?.open()
 
 	companion object {
-		operator fun invoke(s: SyncStream, registry: FontRegistry = SystemFontRegistry): TtfFont = TtfFont(s.readAll(), registry)
-        operator fun invoke(b: ByteArray, registry: FontRegistry = SystemFontRegistry): TtfFont = TtfFont(b, registry)
+		operator fun invoke(s: SyncStream): TtfFont = TtfFont(s.readAll())
 	}
 
 	fun readHeaderTables() = s.sliceStart().apply {
