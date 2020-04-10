@@ -1,4 +1,4 @@
-package com.soywiz.korim.vector
+package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.kds.DoubleArrayList
 import com.soywiz.kds.doubleArrayListOf

@@ -1,20 +1,14 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.intArrayListOf
-import com.soywiz.kmem.clamp
-import com.soywiz.kmem.clamp01
 import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.bitmap.Bitmaps
-import com.soywiz.korim.color.Colors
-import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
+import com.soywiz.korim.vector.filler.*
+import com.soywiz.korim.vector.rasterizer.Rasterizer
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.shape.emitPoints
-import com.soywiz.korma.geom.vector.VectorPath
-import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -115,7 +109,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
     }
 
     inner class ScanlineWriter {
-        var filler: BaseFiller = NoneFiller
+        var filler: BaseFiller =
+            NoneFiller
         var ny0 = -1.0
         var ny = -1
         val size = bmp.width
