@@ -164,7 +164,7 @@ object BrowserImage {
 	}
 }
 
-class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Context2d.Renderer() {
+class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.soywiz.korim.vector.renderer.Renderer() {
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 

@@ -23,7 +23,7 @@ import kotlin.math.min
 // - https://hackernoon.com/computer-graphics-scan-line-polygon-fill-algorithm-3cb47283df6
 // - https://nothings.org/gamedev/rasterize/
 // - https://www.mathematik.uni-marburg.de/~thormae/lectures/graphics1/code_v2/RasterPoly/index.html
-class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.Renderer() {
+class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soywiz.korim.vector.renderer.Renderer() {
 	override val width: Int get() = bmp.width
 	override val height: Int get() = bmp.height
 

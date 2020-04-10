@@ -17,7 +17,7 @@ class Context2dTest {
 
 	@Test
 	fun testPropertiesAndKeep() {
-		val ctx = Context2d(Context2d.Renderer.DUMMY)
+		val ctx = Context2d(com.soywiz.korim.vector.renderer.DummyRenderer)
 		ctx.apply {
 			keep {
 				lineWidth = 22.0

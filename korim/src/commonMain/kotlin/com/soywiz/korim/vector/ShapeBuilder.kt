@@ -4,12 +4,13 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.vector.paint.BitmapPaint
+import com.soywiz.korim.vector.renderer.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
 inline fun buildShape(width: Int? = null, height: Int? = null, builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder(width, height).apply(builder).buildShape()
 
-class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Drawable {
+class ShapeBuilder(width: Int?, height: Int?) : Context2d(DummyRenderer), Drawable {
     override val rendererWidth: Int = width ?: 256
     override val rendererHeight: Int = height ?: 256
 

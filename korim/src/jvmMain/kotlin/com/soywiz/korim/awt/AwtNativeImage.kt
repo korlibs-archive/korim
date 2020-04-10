@@ -100,7 +100,7 @@ fun BufferedImage.createGraphics(antialiasing: Boolean): Graphics2D = this.creat
 //	return out
 //}
 
-class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.Renderer() {
+class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean = true, val warningProcessor: ((message: String) -> Unit)? = null) : com.soywiz.korim.vector.renderer.Renderer() {
 	//val nativeImage = AwtNativeImage(awtImage)
 	override val width: Int get() = awtImage.width
 	override val height: Int get() = awtImage.height

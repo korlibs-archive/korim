@@ -115,7 +115,7 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) :
     override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))
 }
 
-class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Renderer() {
+class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.korim.vector.renderer.Renderer() {
     override val width: Int get() = bmp.width
     override val height: Int get() = bmp.height
     //val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {

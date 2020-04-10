@@ -9,6 +9,7 @@ import com.soywiz.korim.font.FontRegistry
 import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.vector.renderer.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -71,99 +72,6 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
             rendererBufferingEnd()
         }
     }
-
-    abstract class BufferedRenderer : Renderer() {
-        abstract fun flushCommands()
-
-        data class RenderCommand(
-            val state: State,
-            val fill: Boolean,
-            val font: Font? = null,
-            val fontSize: Double = 0.0,
-            val text: String? = null,
-            val x: Double = 0.0,
-            val y: Double = 0.0
-        )
-        protected val commands = arrayListOf<RenderCommand>()
-
-        final override fun render(state: State, fill: Boolean) {
-            commands += RenderCommand(state.clone(), fill)
-            if (!isBuffering()) flush()
-        }
-
-        final override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
-            commands += RenderCommand(state.clone(), fill, font, fontSize, text, x, y)
-            if (!isBuffering()) flush()
-        }
-
-        final override fun flush() = flushCommands()
-    }
-
-	abstract class Renderer {
-		companion object {
-			val DUMMY = object : Renderer() {
-				override val width: Int = 128
-				override val height: Int = 128
-			}
-		}
-
-        var debug: Boolean = false
-		abstract val width: Int
-		abstract val height: Int
-
-        inline fun <T> buffering(callback: () -> T): T {
-            bufferingStart()
-            try {
-                return callback()
-            } finally {
-                bufferingEnd()
-            }
-        }
-
-        private var bufferingLevel = 0
-        protected fun isBuffering() = bufferingLevel > 0
-        open protected fun flush() = Unit
-        fun bufferingStart() = bufferingLevel++
-        fun bufferingEnd() {
-            bufferingLevel--
-            if (bufferingLevel == 0) {
-                flush()
-            }
-        }
-		open fun render(state: State, fill: Boolean): Unit = Unit
-		open fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
-		open fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit =
-			run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
-
-		open fun drawImage(
-			image: Bitmap,
-			x: Double,
-			y: Double,
-			width: Double = image.width.toDouble(),
-			height: Double = image.height.toDouble(),
-			transform: Matrix = Matrix()
-		) {
-			render(State(
-                transform = transform,
-                path = GraphicsPath().apply { rect(x, y, width, height) },
-                fillStyle = BitmapPaint(image,
-                    transform = Matrix()
-                        .scale(width / image.width.toDouble(), height / image.height.toDouble())
-                        .translate(x, y)
-                )
-            ), fill = true)
-		}
-
-        inline fun drawImage(
-            image: Bitmap,
-            x: Number, y: Number, width: Number = image.width, height: Number = image.height,
-            transform: Matrix = Matrix()
-        ) = drawImage(image, x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble(), transform)
-
-		open fun dispose(): Unit {
-            flush()
-		}
-	}
 
 	data class State constructor(
         var transform: Matrix = Matrix(),

@@ -53,7 +53,7 @@ private inline fun <T> cgKeepState(ctx: CGContextRef?, callback: () -> T): T {
     }
 }
 
-class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.BufferedRenderer() {
+class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : com.soywiz.korim.vector.renderer.BufferedRenderer() {
     override val width: Int get() = bmp.width
     override val height: Int get() = bmp.height
 
