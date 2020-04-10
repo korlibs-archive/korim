@@ -2,6 +2,7 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.test.*
@@ -18,8 +19,8 @@ class ShapeTest {
 				close()
 			},
 			clip = null,
-			//paint = Context2d.Color(Colors.GREEN),
-			paint = Context2d.BitmapPaint(Bitmap32(100, 100, Colors.RED, premultiplied = false), Matrix()),
+			//paint = ColorPaint(Colors.GREEN),
+			paint = BitmapPaint(Bitmap32(100, 100, Colors.RED, premultiplied = false), Matrix()),
 			transform = Matrix()
 		)
 		assertEquals(

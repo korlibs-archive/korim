@@ -5,9 +5,12 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.SystemFont
+import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import java.awt.*
+import java.awt.Paint
 import java.awt.Rectangle
 import java.awt.RenderingHints.*
 import java.awt.font.*
@@ -203,32 +206,32 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
-	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
+	fun com.soywiz.korim.vector.paint.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
 		this.toAwtUnsafe(transform)
 	} catch (e: Throwable) {
-        warningProcessor?.invoke("Context2d.Paint.toAwt: $e")
+        warningProcessor?.invoke("Paint.toAwt: $e")
 		Color.PINK
 	}
 
-	//fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
+	//fun Paint.toAwt(transform: AffineTransform): java.awt.Paint = this.toAwtUnsafe(transform)
 
 	fun Matrix.toAwt() = AffineTransform(this.a, this.b, this.c, this.d, this.tx, this.ty)
 
-	fun Context2d.Gradient.InterpolationMethod.toAwt() = when (this) {
-		Context2d.Gradient.InterpolationMethod.LINEAR -> MultipleGradientPaint.ColorSpaceType.LINEAR_RGB
-		Context2d.Gradient.InterpolationMethod.NORMAL -> MultipleGradientPaint.ColorSpaceType.SRGB
+	fun GradientInterpolationMethod.toAwt() = when (this) {
+        GradientInterpolationMethod.LINEAR -> MultipleGradientPaint.ColorSpaceType.LINEAR_RGB
+        GradientInterpolationMethod.NORMAL -> MultipleGradientPaint.ColorSpaceType.SRGB
 	}
 
-	fun Context2d.Paint.toAwtUnsafe(transform: AffineTransform): java.awt.Paint = when (this) {
-		is Context2d.Color -> convertColor(this.color)
-		is Context2d.TransformedPaint -> {
+	fun com.soywiz.korim.vector.paint.Paint.toAwtUnsafe(transform: AffineTransform): java.awt.Paint = when (this) {
+		is ColorPaint -> convertColor(this.color)
+		is TransformedPaint -> {
 			val t1 = AffineTransform(this.transform.toAwt())
             t1.concatenate(transform)
 			//t1.preConcatenate(this.transform.toAwt())
 			//t1.preConcatenate(transform)
 
 			when (this) {
-				is Context2d.Gradient -> {
+				is GradientPaint -> {
 					val pairs = this.stops.map(Double::toFloat).zip(this.colors.map { convertColor(RGBA(it)) })
 						.distinctBy { it.first }
 					val stops = pairs.map { it.first }.toFloatArray()
@@ -236,7 +239,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 					val defaultColor = colors.firstOrNull() ?: Color.PINK
 
 					when (this.kind) {
-						Context2d.Gradient.Kind.LINEAR -> {
+                        GradientKind.LINEAR -> {
 							val valid = (pairs.size >= 2) && ((x0 != x1) || (y0 != y1))
 							if (valid) {
 								java.awt.LinearGradientPaint(
@@ -252,7 +255,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 								defaultColor
 							}
 						}
-						Context2d.Gradient.Kind.RADIAL -> {
+						GradientKind.RADIAL -> {
 							val valid = (pairs.size >= 2)
 							if (valid) {
 								java.awt.RadialGradientPaint(
@@ -272,7 +275,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 					}
 
 				}
-				is Context2d.BitmapPaint -> {
+				is BitmapPaint -> {
 					object : java.awt.TexturePaint(
 						this.bitmap.toAwt(),
 						Rectangle2D.Double(0.0, 0.0, this.bitmap.width.toDouble(), this.bitmap.height.toDouble())

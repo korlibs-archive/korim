@@ -5,6 +5,9 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.paint.BitmapPaint
+import com.soywiz.korim.vector.paint.GradientKind
+import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
@@ -23,13 +26,13 @@ class Bitmap32Context2dTest {
         for (bmp in bitmaps) {
             bmp.context2d {
             //bmp.getContext2d().apply {
-                //fill(Context2d.Color(Colors.BLUE))
+                //fill(ColorPaint(Colors.BLUE))
                 keep {
                     scale(2.0, 1.0)
                     rotateDeg(15.0)
                     fill(
-                        Context2d.Gradient(
-                            Context2d.Gradient.Kind.LINEAR,
+                        GradientPaint(
+                            GradientKind.LINEAR,
                             8.0, 8.0, 0.0,
                             32.0, 32.0, 1.0,
                             //32.0, 8.0, 1.0,
@@ -75,7 +78,7 @@ class Bitmap32Context2dTest {
 
         val rendered = NativeImage(128, 128).context2d {
             rect(0, 0, 100, 100)
-            fill(Context2d.BitmapPaint(img, Matrix()))
+            fill(BitmapPaint(img, Matrix()))
         }
         val bmp = rendered.toBMP32()
 

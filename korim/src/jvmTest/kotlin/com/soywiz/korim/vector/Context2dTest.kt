@@ -4,6 +4,7 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.format.SVG
+import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korio.async.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korma.geom.vector.*
@@ -54,11 +55,11 @@ class Context2dTest {
 					fill();                     // Draw it
 				}
 
-				fillStyle = Context2d.Color(Colors.GREEN)
+				fillStyle = ColorPaint(Colors.GREEN)
 				fillRect(0.0, 0.0, 50.0, 50.0)
 
 				beginPath()
-				fillStyle = Context2d.Color(Colors.GREEN)
+				fillStyle = ColorPaint(Colors.GREEN)
 				lineWidth = 10.0
 				lineCap = LineCap.ROUND
 				moveTo(100.0, 100.0)

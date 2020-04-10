@@ -10,6 +10,7 @@ import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.HorizontalAlign
 import com.soywiz.korim.vector.TextMetrics
 import com.soywiz.korim.vector.VerticalAlign
+import com.soywiz.korim.vector.paint.DefaultPaint
 import com.soywiz.korio.dynamic.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
@@ -56,7 +57,7 @@ class BitmapFont(
 
         //println("texX: $texX, texY: $texY")
 
-        if (ctx.fillStyle == Context2d.DefaultPaint) {
+        if (ctx.fillStyle == DefaultPaint) {
             ctx.drawImage(bmpAlpha, texX, texY, metrics.width * scale, metrics.height * scale)
         } else {
             val bmpFill = Bitmap32(metrics.width.toInt(), metrics.height.toInt())

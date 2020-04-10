@@ -8,6 +8,9 @@ import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.paint.BitmapPaint
+import com.soywiz.korim.vector.paint.ColorPaint
+import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korma.geom.*
 
 abstract class BaseFiller {
@@ -21,7 +24,7 @@ object NoneFiller : BaseFiller() {
 class ColorFiller : BaseFiller() {
     private var color: RGBAPremultiplied = Colors.RED.premultiplied
 
-    fun set(fill: Context2d.Color, state: Context2d.State) = this.apply {
+    fun set(fill: ColorPaint, state: Context2d.State) = this.apply {
         this.color = fill.color.premultiplied
         //println("ColorFiller: $color")
     }
@@ -39,7 +42,7 @@ class BitmapFiller : BaseFiller() {
     private val fillTrans = Matrix()
     private val compTrans = Matrix()
 
-    fun set(fill: Context2d.BitmapPaint, state: Context2d.State) = this.apply {
+    fun set(fill: BitmapPaint, state: Context2d.State) = this.apply {
         this.texture = fill.bmp32
         this.transform = fill.transform
         this.linear = fill.smooth
@@ -83,12 +86,12 @@ class BitmapFiller : BaseFiller() {
 class GradientFiller : BaseFiller() {
     private val NCOLORS = 256
     private val colors = RgbaPremultipliedArray(NCOLORS)
-    private lateinit var fill: Context2d.Gradient
+    private lateinit var fill: GradientPaint
     private val stateInv: Matrix = Matrix()
 
     private fun stopN(n: Int): Int = (fill.stops[n] * NCOLORS).toInt()
 
-    fun set(fill: Context2d.Gradient, state: Context2d.State) = this.apply {
+    fun set(fill: GradientPaint, state: Context2d.State) = this.apply {
         this.fill = fill
         state.transform.inverted(this.stateInv)
 

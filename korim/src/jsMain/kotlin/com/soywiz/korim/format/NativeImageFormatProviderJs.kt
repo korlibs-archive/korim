@@ -169,13 +169,13 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 	val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
 
-	fun Context2d.Paint.toJsStr(): Any? {
+	fun Paint.toJsStr(): Any? {
 		return when (this) {
 			is Context2d.None -> "none"
-			is Context2d.Color -> this.color.htmlStringSimple
-			is Context2d.Gradient -> {
+			is ColorPaint -> this.color.htmlStringSimple
+			is GradientPaint -> {
 				when (kind) {
-					Context2d.Gradient.Kind.LINEAR -> {
+					GradientPaint.Kind.LINEAR -> {
 						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -184,7 +184,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						}
 						grad
 					}
-					Context2d.Gradient.Kind.RADIAL -> {
+					GradientPaint.Kind.RADIAL -> {
 						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -195,7 +195,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 					}
 				}
 			}
-			is Context2d.BitmapPaint -> {
+			is BitmapPaint -> {
 				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), if (this.repeat) "repeat" else "no-repeat")
 				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
@@ -239,7 +239,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	private fun transformPaint(paint: Context2d.Paint) {
+	private fun transformPaint(paint: Paint) {
 		if (paint is Context2d.TransformedPaint) {
 			val m = paint.transform
 			ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)

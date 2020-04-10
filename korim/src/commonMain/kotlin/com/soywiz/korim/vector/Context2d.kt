@@ -8,6 +8,7 @@ import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.FontRegistry
 import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.font.SystemFontRegistry
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -367,8 +368,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	fun getBounds(out: Rectangle = Rectangle()) = state.path.getBounds(out)
 
-	fun stroke() = run { if (state.strokeStyle != None) rendererRender(state, fill = false) }
-    fun fill() = run { if (state.fillStyle != None) rendererRender(state, fill = true) }
+	fun stroke() = run { if (state.strokeStyle != NonePaint) rendererRender(state, fill = false) }
+    fun fill() = run { if (state.fillStyle != NonePaint) rendererRender(state, fill = true) }
 
     fun fill(paint: Paint) {
 		this.fillStyle(paint) {
@@ -384,7 +385,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     inline fun fill(color: RGBA, block: () -> Unit) {
         block()
-        fill(Color(color))
+        fill(ColorPaint(color))
     }
 
     inline fun fill(paint: Paint, block: () -> Unit) {
@@ -405,7 +406,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         this.lineWidth = lineWidth
         this.lineCap = lineCap
         this.lineJoin = lineJoin
-		stroke(Color(color))
+		stroke(ColorPaint(color))
 	}
 
     inline fun fillStroke(fill: Paint, stroke: Paint, callback: () -> Unit) {
@@ -453,25 +454,23 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	}
 
 	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) =
-		Gradient(Gradient.Kind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
+		GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
 
 	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) =
-		Gradient(Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
+        GradientPaint(GradientKind.RADIAL, x0, y0, r0, x1, y1, r1)
 
-    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: Gradient.() -> Unit = {}) =
-        Gradient(Gradient.Kind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
-    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: Gradient.() -> Unit = {}) =
-        Gradient(Gradient.Kind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
+    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: GradientPaint.() -> Unit = {}) =
+        GradientPaint(GradientKind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
+    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: GradientPaint.() -> Unit = {}) =
+        GradientPaint(GradientKind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
 
-    fun createColor(color: RGBA) = Color(color)
+    fun createColor(color: RGBA) = ColorPaint(color)
 	fun createPattern(
 		bitmap: Bitmap,
 		repeat: Boolean = false,
 		smooth: Boolean = true,
 		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
-
-	val none = None
 
 	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics {
         return font.getTextBounds(fontSize, text, out)
@@ -515,138 +514,6 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     inline fun drawImage(image: Bitmap, x: Number, y: Number, width: Number = image.width.toDouble(), height: Number = image.height.toDouble())
         = drawImage(image, x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 
-    interface Paint
-
-	object None : Paint
-
-	open class Color(val color: RGBA) : Paint
-
-    object DefaultPaint : Color(Colors.BLACK)
-
-    interface TransformedPaint : Paint {
-		val transform: Matrix
-	}
-
-	data class Gradient(
-		val kind: Kind,
-		val x0: Double,
-		val y0: Double,
-		val r0: Double,
-		val x1: Double,
-		val y1: Double,
-		val r1: Double,
-		val stops: DoubleArrayList = DoubleArrayList(),
-		val colors: IntArrayList = IntArrayList(),
-		val cycle: CycleMethod = CycleMethod.NO_CYCLE,
-		override val transform: Matrix = Matrix(),
-		val interpolationMethod: InterpolationMethod = InterpolationMethod.NORMAL,
-		val units: Units = Units.OBJECT_BOUNDING_BOX
-	) : TransformedPaint {
-        fun x0(m: Matrix) = m.transformX(x0, y0)
-        fun y0(m: Matrix) = m.transformY(x0, y0)
-        fun r0(m: Matrix) = m.transformX(r0, r0)
-
-        fun x1(m: Matrix) = m.transformX(x1, y1)
-        fun y1(m: Matrix) = m.transformY(x1, y1)
-        fun r1(m: Matrix) = m.transformX(r1, r1)
-
-        enum class Kind {
-			LINEAR, RADIAL
-		}
-
-		enum class Units {
-			USER_SPACE_ON_USE, OBJECT_BOUNDING_BOX
-		}
-
-		enum class InterpolationMethod {
-			LINEAR, NORMAL
-		}
-
-		val numberOfStops get() = stops.size
-
-		fun addColorStop(stop: Double, color: RGBA): Gradient = add(stop, color)
-
-        fun add(stop: Double, color: RGBA): Gradient = this.apply {
-            stops += stop
-            colors += color.value
-            return this
-        }
-
-        val gradientMatrix = Matrix().apply {
-            translate(-x0, -y0)
-            scale(1.0 / Point.distance(x0, y0, x1, y1).clamp(1.0, 16000.0))
-            rotate(-Angle.between(x0, y0, x1, y1))
-            premultiply(transform)
-        }
-
-        val gradientMatrixInv = gradientMatrix.inverted()
-
-        // @TODO
-        fun getRatioAt(x: Double, y: Double): Double {
-            if (kind == Kind.RADIAL) {
-                // @TODO
-            }
-            return gradientMatrix.transformX(x, y)
-        }
-
-        fun getRatioAt(x: Double, y: Double, m: Matrix): Double = getRatioAt(m.transformX(x, y), m.transformY(x, y))
-
-        fun applyMatrix(m: Matrix): Gradient = Gradient(
-			kind,
-			m.transformX(x0, y0),
-			m.transformY(x0, y0),
-			r0,
-			m.transformX(x1, y1),
-			m.transformY(x1, y1),
-			r1,
-			DoubleArrayList(stops),
-			IntArrayList(colors),
-			cycle,
-			Matrix(),
-			interpolationMethod,
-			units
-		)
-
-		override fun toString(): String = when (kind) {
-			Kind.LINEAR -> "LinearGradient($x0, $y0, $x1, $y1, $stops, $colors)"
-			Kind.RADIAL -> "RadialGradient($x0, $y0, $r0, $x1, $y1, $r1, $stops, $colors)"
-		}
-	}
-
-	class BitmapPaint(
-		val bitmap: Bitmap,
-		override val transform: Matrix,
-		val repeat: Boolean = false,
-		val smooth: Boolean = true
-	) : TransformedPaint {
-        val bmp32 = bitmap.toBMP32()
-    }
-
-	interface Drawable {
-		fun draw(c: Context2d)
-	}
-
-	interface SizedDrawable : Drawable {
-		val width: Int
-		val height: Int
-	}
-
-    interface BoundsDrawable : SizedDrawable {
-        val bounds: Rectangle
-        val left: Int get() = bounds.left.toInt()
-        val top: Int get() = bounds.top.toInt()
-        override val width: Int get() = bounds.width.toInt()
-        override val height: Int get() = bounds.height.toInt()
-    }
-
-    class FuncDrawable(val action: Context2d.() -> Unit) : Context2d.Drawable {
-		override fun draw(c: Context2d) {
-			c.keep {
-				action(c)
-			}
-		}
-	}
-
     data class StrokeInfo(
         val thickness: Double = 1.0, val pixelHinting: Boolean = false,
         val scaleMode: LineScaleMode = LineScaleMode.NORMAL,
@@ -657,12 +524,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     )
 }
 
-fun RGBA.toFill() = Context2d.Color(this)
+fun RGBA.toFill() = ColorPaint(this)
 
-fun Context2d.Drawable.renderTo(ctx: Context2d) = ctx.draw(this)
+fun Drawable.renderTo(ctx: Context2d) = ctx.draw(this)
 
-fun Context2d.SizedDrawable.filled(paint: Context2d.Paint): Context2d.SizedDrawable {
-	return object : Context2d.SizedDrawable by this {
+fun SizedDrawable.filled(paint: Paint): SizedDrawable {
+	return object : SizedDrawable by this {
 		override fun draw(c: Context2d) {
 			c.fillStyle = paint
 			this@filled.draw(c)
@@ -671,8 +538,8 @@ fun Context2d.SizedDrawable.filled(paint: Context2d.Paint): Context2d.SizedDrawa
 	}
 }
 
-fun Context2d.SizedDrawable.scaled(sx: Number = 1.0, sy: Number = sx): Context2d.SizedDrawable {
-	return object : Context2d.SizedDrawable by this {
+fun SizedDrawable.scaled(sx: Number = 1.0, sy: Number = sx): SizedDrawable {
+	return object : SizedDrawable by this {
 		override val width: Int = abs(this@scaled.width.toDouble() * sx.toDouble()).toInt()
 		override val height: Int = abs(this@scaled.height.toDouble() * sy.toDouble()).toInt()
 
@@ -683,8 +550,8 @@ fun Context2d.SizedDrawable.scaled(sx: Number = 1.0, sy: Number = sx): Context2d
 	}
 }
 
-fun Context2d.SizedDrawable.translated(tx: Number = 0.0, ty: Number = tx): Context2d.SizedDrawable {
-	return object : Context2d.SizedDrawable by this {
+fun SizedDrawable.translated(tx: Number = 0.0, ty: Number = tx): SizedDrawable {
+	return object : SizedDrawable by this {
 		override fun draw(c: Context2d) {
 			c.translate(tx.toDouble(), ty.toDouble())
 			this@translated.draw(c)
@@ -692,21 +559,21 @@ fun Context2d.SizedDrawable.translated(tx: Number = 0.0, ty: Number = tx): Conte
 	}
 }
 
-fun Context2d.SizedDrawable.render(): NativeImage {
+fun SizedDrawable.render(): NativeImage {
 	val image = NativeImage(this.width, this.height)
 	val ctx = image.getContext2d()
 	this.draw(ctx)
 	return image
 }
 
-fun Context2d.SizedDrawable.renderNoNative(): Bitmap32 {
+fun SizedDrawable.renderNoNative(): Bitmap32 {
 	val image = Bitmap32(this.width, this.height)
 	val ctx = image.getContext2d()
 	this.draw(ctx)
 	return image
 }
 
-fun Context2d.Drawable.renderToImage(width: Int, height: Int): NativeImage {
+fun Drawable.renderToImage(width: Int, height: Int): NativeImage {
 	val image = NativeImage(width, height)
 	val ctx = image.getContext2d()
 	this.draw(ctx)

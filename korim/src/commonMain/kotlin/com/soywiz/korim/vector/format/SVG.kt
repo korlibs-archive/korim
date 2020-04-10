@@ -3,6 +3,7 @@ package com.soywiz.korim.vector.format
 import com.soywiz.kds.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
@@ -10,7 +11,7 @@ import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
 
-class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : Context2d.SizedDrawable {
+class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : SizedDrawable {
 	//constructor(@Language("xml") str: String) : this(Xml(str))
 	constructor(str: String) : this(Xml(str))
 
@@ -40,7 +41,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		OBJECT_BOUNDING_BOX,
 	}
 
-	val defs = hashMapOf<String, Context2d.Paint>()
+	val defs = hashMapOf<String, Paint>()
 
 	//interface Def
 
@@ -75,18 +76,18 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				val stops = parseStops(def)
 				val href = def.strNull("xlink:href")
 
-				val g: Context2d.Gradient = if (type == "lineargradient") {
+				val g: GradientPaint = if (type == "lineargradient") {
 					//println("Linear: ($x0,$y0)-($x1-$y1)")
-					Context2d.Gradient(Context2d.Gradient.Kind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
+					GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
 				} else {
 					val r0 = def.double("r0", 0.0)
 					val r1 = def.double("r1", 0.0)
-					Context2d.Gradient(Context2d.Gradient.Kind.RADIAL, x0, y0, r0, x1, y1, r1)
+					GradientPaint(GradientKind.RADIAL, x0, y0, r0, x1, y1, r1)
 				}
 
 				def.strNull("xlink:href")?.let {
 					val id = it.trim('#')
-					val original = defs[id] as? Context2d.Gradient?
+					val original = defs[id] as? GradientPaint?
 					//println("href: $it --> $original")
 					original?.let {
 						g.stops.add(original.stops)
@@ -125,8 +126,8 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
 	override fun draw(c: Context2d) {
 		c.keep {
-			c.strokeStyle = Context2d.None
-			c.fillStyle = Context2d.None
+			c.strokeStyle = NonePaint
+			c.fillStyle = NonePaint
 			drawElement(root, c)
 		}
 	}
@@ -137,7 +138,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 
-	fun parseFillStroke(c: Context2d, str2: String, bounds: Rectangle): Context2d.Paint {
+	fun parseFillStroke(c: Context2d, str2: String, bounds: Rectangle): Paint {
 		val str = str2.toLowerCase().trim()
 		val res = when {
             str.startsWith("url(") -> {
@@ -149,23 +150,23 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                         println(defs)
                         println("Can't find svg definition '$idName'")
                     }
-                    def ?: c.none
+                    def ?: NonePaint
                 } else {
                     println("Unsupported $str")
-                    c.none
+                    NonePaint
                 }
             }
             str.startsWith("rgba(") -> {
                 val components = str.removePrefix("rgba(").removeSuffix(")").split(",").map { it.trim().toDoubleOrNull() ?: 0.0 }
-                Context2d.Color(RGBA(components[0].toInt(), components[1].toInt(), components[2].toInt(), (components[3] * 255).toInt()))
+                ColorPaint(RGBA(components[0].toInt(), components[1].toInt(), components[2].toInt(), (components[3] * 255).toInt()))
             }
             else -> when (str) {
-                "none" -> c.none
+                "none" -> NonePaint
                 else -> c.createColor(Colors.Default[str])
             }
         }
         return when (res) {
-            is Context2d.Gradient -> {
+            is GradientPaint -> {
                 val m = Matrix()
                 m.scale(bounds.width, bounds.height)
                 val out = res.applyMatrix(m)

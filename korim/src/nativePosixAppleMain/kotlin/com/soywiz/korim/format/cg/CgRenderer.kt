@@ -148,7 +148,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                         val style = if (fill) state.fillStyle else state.strokeStyle
                                         when (style) {
                                             is Context2d.None -> Unit
-                                            is Context2d.Color -> {
+                                            is ColorPaint -> {
                                                 if (fill) {
                                                     CGContextSetFillColorWithColor(
                                                         ctx,
@@ -163,7 +163,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                     CGContextStrokePath(ctx)
                                                 }
                                             }
-                                            is Context2d.Gradient -> {
+                                            is GradientPaint -> {
                                                 if (fill) {
                                                     val nelements = style.colors.size
                                                     val colors = CFArrayCreate(null, null, 0, null)
@@ -183,10 +183,10 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                     val start = CGPointMake(style.x0(m).cg, style.y0(m).cg)
                                                     val end = CGPointMake(style.x1(m).cg, style.y1(m).cg)
                                                     when (style.kind) {
-                                                        Context2d.Gradient.Kind.LINEAR -> {
+                                                        GradientPaint.Kind.LINEAR -> {
                                                             CGContextDrawLinearGradient(ctx, gradient, start, end, options)
                                                         }
-                                                        Context2d.Gradient.Kind.RADIAL -> {
+                                                        GradientPaint.Kind.RADIAL -> {
                                                             CGContextDrawRadialGradient(ctx, gradient, start, style.r0(m).cg, end, style.r1(m).cg, options)
                                                             CGGradientRelease(gradient)
                                                         }
@@ -194,7 +194,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                     CGGradientRelease(gradient)
                                                 }
                                             }
-                                            is Context2d.BitmapPaint -> {
+                                            is BitmapPaint -> {
                                                 CGContextClip(ctx)
                                                 cgKeepState(ctx) {
                                                     CGContextConcatCTM(ctx, state.transform.toCGAffineTransform())

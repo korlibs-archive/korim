@@ -155,24 +155,24 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         return out
     }
 
-    fun convertPaint(c: Context2d.Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
+    fun convertPaint(c: Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
         when (c) {
             is Context2d.None -> {
                 out.shader = null
             }
-            is Context2d.Color -> {
+            is ColorPaint -> {
                 out.color = BGRA.packRGBA(c.color)
                 out.shader = null
             }
-            is Context2d.Gradient -> {
+            is GradientPaint -> {
                 when (c.kind) {
-                    Context2d.Gradient.Kind.LINEAR ->
+                    GradientPaint.Kind.LINEAR ->
                         out.shader = LinearGradient(
                             c.x0(m).toFloat(), c.y0(m).toFloat(),
                             c.x1(m).toFloat(), c.y1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
                         )
-                    Context2d.Gradient.Kind.RADIAL ->
+                    GradientPaint.Kind.RADIAL ->
                         out.shader = RadialGradient(
                             c.x1(m).toFloat(), c.y1(m).toFloat(), c.r1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP

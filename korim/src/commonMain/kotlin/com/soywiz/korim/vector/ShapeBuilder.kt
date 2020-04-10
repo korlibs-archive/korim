@@ -3,12 +3,13 @@ package com.soywiz.korim.vector
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.SystemFont
+import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
 inline fun buildShape(width: Int? = null, height: Int? = null, builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder(width, height).apply(builder).buildShape()
 
-class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Context2d.Drawable {
+class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Drawable {
     override val rendererWidth: Int = width ?: 256
     override val rendererHeight: Int = height ?: 256
 
@@ -18,12 +19,18 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Conte
         if (state.path.isEmpty()) return
 
         if (fill) {
-            shapes += FillShape(path = state.path?.clone(), clip = state.clip?.clone(), paint = state.fillStyle, transform = state.transform.clone())
+            shapes += FillShape(
+                path = state.path.clone(),
+                clip = state.clip?.clone(),
+                paint = state.fillStyle.transformed(state.transform),
+                transform = state.transform.clone()
+            )
         } else {
             shapes += PolylineShape(
                 path = state.path.clone(),
                 clip = state.clip?.clone(),
-                paint = state.strokeStyle,
+                paint = state.strokeStyle.transformed(state.transform),
+                //transform = Matrix(),
                 transform = state.transform.clone(),
                 thickness = state.lineWidth,
                 pixelHinting = true,
@@ -48,6 +55,7 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Conte
             stroke = if (fill) null else state.strokeStyle,
             halign = state.horizontalAlign,
             valign = state.verticalAlign,
+            //transform = Matrix()
             transform = state.transform.clone()
         )
     }
@@ -56,7 +64,7 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Conte
         rendererRender(State(
             transform = transform,
             path = GraphicsPath().apply { rect(x, y, width.toDouble(), height.toDouble()) },
-            fillStyle = Context2d.BitmapPaint(image,
+            fillStyle = BitmapPaint(image,
                 transform = Matrix()
                     .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())
                     .translate(x, y)

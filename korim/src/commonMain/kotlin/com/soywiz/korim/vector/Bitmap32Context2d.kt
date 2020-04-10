@@ -6,6 +6,10 @@ import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
 import com.soywiz.korim.vector.filler.*
+import com.soywiz.korim.vector.paint.BitmapPaint
+import com.soywiz.korim.vector.paint.ColorPaint
+import com.soywiz.korim.vector.paint.GradientPaint
+import com.soywiz.korim.vector.paint.NonePaint
 import com.soywiz.korim.vector.rasterizer.Rasterizer
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.shape.emitPoints
@@ -34,10 +38,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
 		//println("RENDER")
 		val style = if (fill) state.fillStyle else state.strokeStyle
 		val filler = when (style) {
-			is Context2d.None -> NoneFiller
-			is Context2d.Color -> colorFiller.set(style, state)
-			is Context2d.Gradient -> gradientFiller.set(style, state)
-			is Context2d.BitmapPaint -> bitmapFiller.set(style, state)
+			is NonePaint -> NoneFiller
+			is ColorPaint -> colorFiller.set(style, state)
+			is GradientPaint -> gradientFiller.set(style, state)
+			is BitmapPaint -> bitmapFiller.set(style, state)
 			else -> TODO()
 		}
 

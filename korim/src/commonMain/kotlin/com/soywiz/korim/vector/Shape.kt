@@ -5,6 +5,7 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.SVG
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -57,7 +58,7 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 	}
 }
 
-fun buildSvgXml(width: Int? = null, height: Int? = null, block: ShapeBuilder.() -> Unit): Xml = buildShape { block() }.toSvg()
+fun buildSvgXml(width: Int? = null, height: Int? = null, block: ShapeBuilder.() -> Unit): Xml = buildShape(width, height) { block() }.toSvg()
 
 private fun Matrix.toSvg() = this.run {
 	when (getType()) {
@@ -102,7 +103,7 @@ fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1):
 //	return parts.joinToString("")
 //}
 
-interface Shape : Context2d.BoundsDrawable {
+interface Shape : BoundsDrawable {
 	fun addBounds(bb: BoundsBuilder): Unit
 	fun buildSvg(svg: SvgBuilder): Unit = Unit
 
@@ -118,16 +119,16 @@ fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
 }
 
 fun Shape.toSvg(scale: Double = 1.0): Xml = SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
-fun Context2d.Drawable.toShape(width: Int, height: Int): Shape = buildShape(width, height) { draw(this@toShape) }
-fun Context2d.Drawable.toSvg(width: Int, height: Int, scale: Double = 1.0): Xml = toShape(width, height).toSvg(scale)
+fun Drawable.toShape(width: Int, height: Int): Shape = buildShape(width, height) { draw(this@toShape) }
+fun Drawable.toSvg(width: Int, height: Int, scale: Double = 1.0): Xml = toShape(width, height).toSvg(scale)
 
-fun Context2d.SizedDrawable.toShape(): Shape = toShape(width, height)
-fun Context2d.SizedDrawable.toSvg(scale: Double = 1.0): Xml = toSvg(width, height, scale)
+fun SizedDrawable.toShape(): Shape = toShape(width, height)
+fun SizedDrawable.toSvg(scale: Double = 1.0): Xml = toSvg(width, height, scale)
 
 interface StyledShape : Shape {
 	val path: GraphicsPath? get() = null
 	val clip: GraphicsPath?
-	val paint: Context2d.Paint
+	val paint: Paint
 	val transform: Matrix
 
 	override fun addBounds(bb: BoundsBuilder): Unit {
@@ -205,17 +206,17 @@ private fun colorToSvg(color: RGBA): String {
 	return "rgba($r,$g,$b,$af)"
 }
 
-fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
+fun Paint.toSvg(svg: SvgBuilder): String {
 	val id = svg.defs.size
 	/*
 	svg.defs += when (this) {
-		is Context2d.Paint.
+		is Paint.
 		Xml.Tag("")
 	}
 	return "url(#def$id)"
 	*/
 	when (this) {
-		is Context2d.Gradient -> {
+		is GradientPaint -> {
 			val stops = (0 until numberOfStops).map {
 				val ratio = this.stops[it]
 				val color = RGBA(this.colors[it])
@@ -223,9 +224,9 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			}
 
 			when (this) {
-				is Context2d.Gradient -> {
+				is GradientPaint -> {
 					when (this.kind) {
-						Context2d.Gradient.Kind.LINEAR -> {
+						GradientKind.LINEAR -> {
 							svg.defs += Xml.Tag(
 								"linearGradient",
 								mapOf(
@@ -237,7 +238,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 								stops
 							)
 						}
-						Context2d.Gradient.Kind.RADIAL -> {
+                        GradientKind.RADIAL -> {
 							svg.defs += Xml.Tag(
 								"radialGradient",
 								mapOf(
@@ -255,7 +256,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			}
 			return "url(#def$id)"
 		}
-		is Context2d.BitmapPaint -> {
+		is BitmapPaint -> {
 			//<pattern id="img1" patternUnits="userSpaceOnUse" width="100" height="100">
 			//<image xlink:href="wall.jpg" x="0" y="0" width="100" height="100" />
 			//</pattern>
@@ -282,7 +283,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			)
 			return "url(#def$id)"
 		}
-		is Context2d.Color -> {
+		is ColorPaint -> {
 			return colorToSvg(color)
 		}
 		else -> return "red"
@@ -292,8 +293,8 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
-	override val paint: Context2d.Paint,
-	override val transform: Matrix
+	override val paint: Paint,
+	override val transform: Matrix = Matrix()
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
@@ -314,7 +315,7 @@ data class FillShape(
 data class PolylineShape(
     override val path: GraphicsPath,
     override val clip: GraphicsPath?,
-    override val paint: Context2d.Paint,
+    override val paint: Paint,
     override val transform: Matrix,
     val thickness: Double,
     val pixelHinting: Boolean,
@@ -332,7 +333,7 @@ data class PolylineShape(
     constructor(
         path: GraphicsPath,
         clip: GraphicsPath?,
-        paint: Context2d.Paint,
+        paint: Paint,
         transform: Matrix,
         thickness: Double,
         pixelHinting: Boolean,
@@ -405,13 +406,13 @@ class TextShape(
     val font: Font,
     val fontSize: Double,
     override val clip: GraphicsPath?,
-    val fill: Context2d.Paint?,
-    val stroke: Context2d.Paint?,
+    val fill: Paint?,
+    val stroke: Paint?,
     val halign: HorizontalAlign = HorizontalAlign.LEFT,
     val valign: VerticalAlign = VerticalAlign.TOP,
     override val transform: Matrix = Matrix()
 ) : StyledShape {
-    override val paint: Context2d.Paint get() = fill ?: stroke ?: Context2d.None
+    override val paint: Paint get() = fill ?: stroke ?: NonePaint
 
     override fun addBounds(bb: BoundsBuilder) {
         bb.add(x, y)
