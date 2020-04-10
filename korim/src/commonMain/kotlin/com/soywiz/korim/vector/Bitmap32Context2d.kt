@@ -106,9 +106,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
             val i1 = b.coerceIn(0, width1)
 
             if (ny != y) {
-                if (y >= 0) {
-                    flush()
-                }
+                if (y >= 0) flush()
                 ny = y
                 reset()
             }
@@ -118,19 +116,18 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
             }
             segments.add(i0, i1)
             if (i0 == i1) {
-                val pixelSize = (x1 - x0).absoluteValue
-                put(i0, pixelSize)
+                put(i0, (x1 - x0).absoluteValue)
             } else {
-                val first = (x0 - i0).absoluteValue
-                val last = (x1 - i1).absoluteValue
-                put(i0, first)
-                put(i1, last)
+                put(i0, computeAlpha(i0, x0))
+                put(i1, computeAlpha(i1, x1))
                 for (x in i0 + 1 until i1) {
                     put(x, 1.0)
                 }
             }
             //alphaCount++
         }
+
+        private fun computeAlpha(v: Int, p: Double): Double = if (v > p) (v - p) else 1.0 - (p - v)
 
         fun put(x: Int, ratio: Double) {
             val mask = 1 shl subRowCount
@@ -168,9 +165,9 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : Context2
                 filler.fill(color, xmin, xmax, ny)
                 for (x in xmin..xmax) {
                     val rx = row + x
-                    val ialpha = this.alpha[x]
-                    if (ialpha > 0) {
-                        val alpha = ialpha * scale
+                    val ualpha = this.alpha[x]
+                    if (ualpha > 0) {
+                        val alpha = ualpha * scale
                         val col = color[x]
                         val scaled = col.scaled(alpha)
                         //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
