@@ -7,16 +7,11 @@ import com.soywiz.korma.geom.vector.*
 class GraphicsPath(
 	commands: IntArrayList = IntArrayList(),
 	data: DoubleArrayList = DoubleArrayList(),
-	winding: VectorPath.Winding = VectorPath.Winding.EVEN_ODD
-) : VectorPath(commands, data, winding), Context2d.SizedDrawable {
-
+	winding: Winding = Winding.EVEN_ODD
+) : VectorPath(commands, data, winding), SizedDrawable {
 	override val width: Int get() = this.getBounds().width.toInt()
 	override val height: Int get() = this.getBounds().height.toInt()
-
-	override fun draw(c: Context2d) {
-		c.state.path.write(this)
-	}
-
+	override fun draw(c: Context2d) = c.path(this)
 	override fun clone() = GraphicsPath(IntArrayList(commands), DoubleArrayList(data), winding)
+    override fun toString(): String = "GraphicsPath(\"${this.toSvgPathString()}\")"
 }
-

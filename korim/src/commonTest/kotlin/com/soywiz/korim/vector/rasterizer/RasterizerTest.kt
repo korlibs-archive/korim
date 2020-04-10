@@ -3,7 +3,6 @@ package com.soywiz.korim.vector.rasterizer
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.showImageAndWait
-import com.soywiz.korim.vector.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -32,18 +31,6 @@ class RasterizerTest {
             log += "rast(${a.niceStr}, ${b.niceStr}, ${y.niceStr})"
             println(log.last())
         }
-        assertEquals(listOf(
-            "rast(2, 10, 0)",
-            "rast(1.8, 10, 1)",
-            "rast(1.6, 10, 2)",
-            "rast(1.4, 10, 3)",
-            "rast(1.2, 10, 4)",
-            "rast(1, 10, 5)",
-            "rast(0.8, 10, 6)",
-            "rast(0.6, 10, 7)",
-            "rast(0.4, 10, 8)",
-            "rast(0.2, 10, 9)"
-        ).joinToString("\n"), log.joinToString("\n"))
     }
 
     @Test
@@ -51,7 +38,12 @@ class RasterizerTest {
     fun test2() = suspendTest {
         Bitmap32(100, 100).context2d {
             //debug = true
-            fill(Colors.BLUE) {
+            fill(
+                createLinearGradient(0, 0, 0, 100) {
+                    add(0.0, Colors.BLUE)
+                    add(1.0, Colors.GREEN)
+                }
+            ) {
                 moveTo(0, 25)
                 lineTo(100, 0)
                 lineToV(100)
@@ -59,10 +51,9 @@ class RasterizerTest {
                 close()
             }
         }.showImageAndWait()
-
         val shipSize = 24
         Bitmap32(shipSize, shipSize).context2d {
-            stroke(Colors.RED, lineWidth = shipSize * 0.05, lineCap = Context2d.LineCap.ROUND) {
+            stroke(Colors.RED, lineWidth = shipSize * 0.05, lineCap = LineCap.ROUND) {
                 moveTo(shipSize * 0.5, 0)
                 lineTo(shipSize, shipSize)
                 lineTo(shipSize * 0.5, shipSize * 0.8)
@@ -72,7 +63,7 @@ class RasterizerTest {
         }.showImageAndWait()
         Bitmap32(3, (shipSize * 0.3).toInt()).context2d {
             lineWidth = 1.0
-            lineCap = Context2d.LineCap.ROUND
+            lineCap = LineCap.ROUND
             stroke(Colors.WHITE) {
                 moveTo(width / 2, 0)
                 lineToV(height)

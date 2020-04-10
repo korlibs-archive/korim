@@ -4,9 +4,12 @@ package com.soywiz.korim.format.cg
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.format.*
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlinx.cinterop.*
 import platform.CoreFoundation.*
 import platform.CoreGraphics.*
@@ -35,6 +38,9 @@ fun transferBitmap32CGContext(bmp: Bitmap32, ctx: CGContextRef?, toBitmap: Boole
     }
 }
 
+open class CoreGraphicsNativeImage(bmp: Bitmap32) : BitmapNativeImage(bmp)
+
+/*
 class CoreGraphicsNativeImage(bitmap: Bitmap32) : BitmapNativeImage(bitmap) {
     override fun toNonNativeBmp(): Bitmap = bitmap.clone()
 
@@ -50,14 +56,14 @@ private inline fun <T> cgKeepState(ctx: CGContextRef?, callback: () -> T): T {
     }
 }
 
-class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Context2d.BufferedRenderer() {
+class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : com.soywiz.korim.vector.renderer.BufferedRenderer() {
     override val width: Int get() = bmp.width
     override val height: Int get() = bmp.height
 
     fun Matrix.toCGAffineTransform() = CGAffineTransformMake(a.cg, b.cg, c.cg, d.cg, tx.cg, ty.cg)
 
-    override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
-        super.getBounds(font, text, out)
+    override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
+        super.getBounds(font, fontSize, text, out)
     }
 
     private fun cgDrawBitmap(bmp: Bitmap32, ctx: CGContextRef?, colorSpace: CPointer<CGColorSpace>?, tiled: Boolean = false) {
@@ -118,30 +124,12 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                 cgKeepState(ctx) {
                                     CGContextSetAllowsAntialiasing(ctx, antialiasing)
                                     CGContextSetAlpha(ctx, state.globalAlpha.cg)
-                                    CGContextConcatCTM(ctx, state.transform.toCGAffineTransform())
+                                    //CGContextConcatCTM(ctx, state.transform.toCGAffineTransform()) // Points already transformed
                                     state.path.visitCmds(
                                         moveTo = { x, y -> CGContextMoveToPoint(ctx, x.cg, y.cg) },
                                         lineTo = { x, y -> CGContextAddLineToPoint(ctx, x.cg, y.cg) },
-                                        quadTo = { cx, cy, ax, ay ->
-                                            CGContextAddQuadCurveToPoint(
-                                                ctx,
-                                                cx.cg,
-                                                cy.cg,
-                                                ax.cg,
-                                                ay.cg
-                                            )
-                                        },
-                                        cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
-                                            CGContextAddCurveToPoint(
-                                                ctx,
-                                                cx1.cg,
-                                                cy1.cg,
-                                                cx2.cg,
-                                                cy2.cg,
-                                                ax.cg,
-                                                ay.cg
-                                            )
-                                        },
+                                        quadTo = { cx, cy, ax, ay -> CGContextAddQuadCurveToPoint(ctx, cx.cg, cy.cg, ax.cg, ay.cg) },
+                                        cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> CGContextAddCurveToPoint(ctx, cx1.cg, cy1.cg, cx2.cg, cy2.cg, ax.cg, ay.cg) },
                                         close = { CGContextClosePath(ctx) }
                                     )
                                     if (!fill) {
@@ -149,24 +137,24 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                         CGContextSetMiterLimit(ctx, state.miterLimit.cg)
                                         CGContextSetLineJoin(
                                             ctx, when (state.lineJoin) {
-                                                Context2d.LineJoin.BEVEL -> CGLineJoin.kCGLineJoinBevel
-                                                Context2d.LineJoin.MITER -> CGLineJoin.kCGLineJoinMiter
-                                                Context2d.LineJoin.ROUND -> CGLineJoin.kCGLineJoinRound
+                                                LineJoin.BEVEL -> CGLineJoin.kCGLineJoinBevel
+                                                LineJoin.MITER -> CGLineJoin.kCGLineJoinMiter
+                                                LineJoin.ROUND -> CGLineJoin.kCGLineJoinRound
                                             }
                                         )
                                         CGContextSetLineCap(
                                             ctx, when (state.lineCap) {
-                                                Context2d.LineCap.BUTT -> CGLineCap.kCGLineCapButt
-                                                Context2d.LineCap.ROUND -> CGLineCap.kCGLineCapRound
-                                                Context2d.LineCap.SQUARE -> CGLineCap.kCGLineCapSquare
+                                                LineCap.BUTT -> CGLineCap.kCGLineCapButt
+                                                LineCap.ROUND -> CGLineCap.kCGLineCapRound
+                                                LineCap.SQUARE -> CGLineCap.kCGLineCapSquare
                                             }
                                         )
                                     }
                                     memScoped {
                                         val style = if (fill) state.fillStyle else state.strokeStyle
                                         when (style) {
-                                            is Context2d.None -> Unit
-                                            is Context2d.Color -> {
+                                            is NonePaint -> Unit
+                                            is ColorPaint -> {
                                                 if (fill) {
                                                     CGContextSetFillColorWithColor(
                                                         ctx,
@@ -181,7 +169,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                     CGContextStrokePath(ctx)
                                                 }
                                             }
-                                            is Context2d.Gradient -> {
+                                            is GradientPaint -> {
                                                 if (fill) {
                                                     val nelements = style.colors.size
                                                     val colors = CFArrayCreate(null, null, 0, null)
@@ -196,37 +184,23 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                         kCGGradientDrawsBeforeStartLocation or kCGGradientDrawsAfterEndLocation
 
                                                     CGContextClip(ctx)
-                                                    val gradient =
-                                                        CGGradientCreateWithColors(colorSpace, colors, locations)
-                                                    val start = CGPointMake(style.x0.cg, style.y0.cg)
-                                                    val end = CGPointMake(style.x1.cg, style.y1.cg)
+                                                    val m = state.transform
+                                                    val gradient = CGGradientCreateWithColors(colorSpace, colors, locations)
+                                                    val start = CGPointMake(style.x0(m).cg, style.y0(m).cg)
+                                                    val end = CGPointMake(style.x1(m).cg, style.y1(m).cg)
                                                     when (style.kind) {
-                                                        Context2d.Gradient.Kind.LINEAR -> {
-                                                            CGContextDrawLinearGradient(
-                                                                ctx,
-                                                                gradient,
-                                                                start,
-                                                                end,
-                                                                options
-                                                            )
+                                                        GradientKind.LINEAR -> {
+                                                            CGContextDrawLinearGradient(ctx, gradient, start, end, options)
                                                         }
-                                                        Context2d.Gradient.Kind.RADIAL -> {
-                                                            CGContextDrawRadialGradient(
-                                                                ctx,
-                                                                gradient,
-                                                                start,
-                                                                style.r0.cg,
-                                                                end,
-                                                                style.r1.cg,
-                                                                options
-                                                            )
+                                                        GradientKind.RADIAL -> {
+                                                            CGContextDrawRadialGradient(ctx, gradient, start, style.r0(m).cg, end, style.r1(m).cg, options)
                                                             CGGradientRelease(gradient)
                                                         }
                                                     }
                                                     CGGradientRelease(gradient)
                                                 }
                                             }
-                                            is Context2d.BitmapPaint -> {
+                                            is BitmapPaint -> {
                                                 CGContextClip(ctx)
                                                 cgKeepState(ctx) {
                                                     CGContextConcatCTM(ctx, state.transform.toCGAffineTransform())
@@ -290,3 +264,4 @@ internal fun RGBA.toCgColor(releases: Releases, space: CGColorSpaceRef?) = memSc
     releases.colors.add(color)
     color
 }
+*/

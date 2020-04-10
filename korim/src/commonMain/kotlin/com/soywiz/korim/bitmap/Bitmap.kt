@@ -14,6 +14,7 @@ abstract class Bitmap(
     var premultiplied: Boolean,
     val backingArray: Any?
 ) : Sizeable, Extra by Extra.Mixin() {
+    var contentVersion: Int = 0
 	var texture: Any? = null
 
 	val stride: Int get() = (width * bpp) / 8

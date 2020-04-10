@@ -1,14 +1,15 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.iterators.*
-import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
+import com.soywiz.korim.format.SVG
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.shape.*
+import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -57,6 +58,8 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 	}
 }
 
+fun buildSvgXml(width: Int? = null, height: Int? = null, block: ShapeBuilder.() -> Unit): Xml = buildShape(width, height) { block() }.toSvg()
+
 private fun Matrix.toSvg() = this.run {
 	when (getType()) {
 		Matrix.Type.IDENTITY -> "translate()"
@@ -100,7 +103,7 @@ fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1):
 //	return parts.joinToString("")
 //}
 
-interface Shape : Context2d.BoundsDrawable {
+interface Shape : BoundsDrawable {
 	fun addBounds(bb: BoundsBuilder): Unit
 	fun buildSvg(svg: SvgBuilder): Unit = Unit
 
@@ -116,20 +119,22 @@ fun Shape.getBounds(out: Rectangle = Rectangle()) = out.apply {
 }
 
 fun Shape.toSvg(scale: Double = 1.0): Xml = SvgBuilder(this.getBounds(), scale).apply { buildSvg(this) }.toXml()
-fun Context2d.Drawable.toShape(width: Int, height: Int): Shape = buildShape(width, height) { draw(this@toShape) }
-fun Context2d.Drawable.toSvg(width: Int, height: Int, scale: Double = 1.0): Xml = toShape(width, height).toSvg(scale)
+fun Drawable.toShape(width: Int, height: Int): Shape = buildShape(width, height) { draw(this@toShape) }
+fun Drawable.toSvg(width: Int, height: Int, scale: Double = 1.0): Xml = toShape(width, height).toSvg(scale)
 
-fun Context2d.SizedDrawable.toShape(): Shape = toShape(width, height)
-fun Context2d.SizedDrawable.toSvg(scale: Double = 1.0): Xml = toSvg(width, height, scale)
+fun SizedDrawable.toShape(): Shape = toShape(width, height)
+fun SizedDrawable.toSvg(scale: Double = 1.0): Xml = toSvg(width, height, scale)
 
 interface StyledShape : Shape {
 	val path: GraphicsPath? get() = null
 	val clip: GraphicsPath?
-	val paint: Context2d.Paint
+	val paint: Paint
 	val transform: Matrix
 
 	override fun addBounds(bb: BoundsBuilder): Unit {
-        path?.let { bb.add(it) }
+        path?.let { path ->
+            bb.add(path, transform)
+        }
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
@@ -163,6 +168,36 @@ interface StyledShape : Shape {
 	}
 }
 
+// @TODO: Once KorMA updated remove
+private fun BoundsBuilder.add(x: Double, y: Double, transform: Matrix) = add(transform.transformX(x, y), transform.transformY(x, y))
+private fun BoundsBuilder.add(rect: Rectangle, transform: Matrix) = this.apply {
+    if (rect.isNotEmpty) {
+        add(rect.left, rect.top, transform)
+        add(rect.right, rect.bottom, transform)
+    }
+}
+
+private fun BoundsBuilder.add(path: VectorPath, transform: Matrix) {
+    val bb = this
+    var lx = 0.0
+    var ly = 0.0
+
+    val bezierTemp = Bezier.Temp()
+    path.visitCmds(
+        moveTo = { x, y -> bb.add(x, y, transform).also { lx = x }.also { ly = y } },
+        lineTo = { x, y -> bb.add(x, y, transform).also { lx = x }.also { ly = y } },
+        quadTo = { cx, cy, ax, ay ->
+            bb.add(Bezier.quadBounds(lx, ly, cx, cy, ax, ay, bb.tempRect), transform)
+                .also { lx = ax }.also { ly = ay }
+        },
+        cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
+            bb.add(Bezier.cubicBounds(lx, ly, cx1, cy1, cx2, cy2, ax, ay, bb.tempRect, bezierTemp), transform)
+                .also { lx = ax }.also { ly = ay }
+        },
+        close = {}
+    )
+}
+
 private fun colorToSvg(color: RGBA): String {
 	val r = color.r
 	val g = color.g
@@ -171,17 +206,17 @@ private fun colorToSvg(color: RGBA): String {
 	return "rgba($r,$g,$b,$af)"
 }
 
-fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
+fun Paint.toSvg(svg: SvgBuilder): String {
 	val id = svg.defs.size
 	/*
 	svg.defs += when (this) {
-		is Context2d.Paint.
+		is Paint.
 		Xml.Tag("")
 	}
 	return "url(#def$id)"
 	*/
 	when (this) {
-		is Context2d.Gradient -> {
+		is GradientPaint -> {
 			val stops = (0 until numberOfStops).map {
 				val ratio = this.stops[it]
 				val color = RGBA(this.colors[it])
@@ -189,9 +224,9 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			}
 
 			when (this) {
-				is Context2d.Gradient -> {
+				is GradientPaint -> {
 					when (this.kind) {
-						Context2d.Gradient.Kind.LINEAR -> {
+						GradientKind.LINEAR -> {
 							svg.defs += Xml.Tag(
 								"linearGradient",
 								mapOf(
@@ -203,7 +238,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 								stops
 							)
 						}
-						Context2d.Gradient.Kind.RADIAL -> {
+                        GradientKind.RADIAL -> {
 							svg.defs += Xml.Tag(
 								"radialGradient",
 								mapOf(
@@ -221,7 +256,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			}
 			return "url(#def$id)"
 		}
-		is Context2d.BitmapPaint -> {
+		is BitmapPaint -> {
 			//<pattern id="img1" patternUnits="userSpaceOnUse" width="100" height="100">
 			//<image xlink:href="wall.jpg" x="0" y="0" width="100" height="100" />
 			//</pattern>
@@ -248,7 +283,7 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 			)
 			return "url(#def$id)"
 		}
-		is Context2d.Color -> {
+		is ColorPaint -> {
 			return colorToSvg(color)
 		}
 		else -> return "red"
@@ -258,8 +293,8 @@ fun Context2d.Paint.toSvg(svg: SvgBuilder): String {
 data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,
-	override val paint: Context2d.Paint,
-	override val transform: Matrix
+	override val paint: Paint,
+	override val transform: Matrix = Matrix()
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
@@ -278,41 +313,42 @@ data class FillShape(
 }
 
 data class PolylineShape(
-	override val path: GraphicsPath,
-	override val clip: GraphicsPath?,
-	override val paint: Context2d.Paint,
-	override val transform: Matrix,
-	val thickness: Double,
-	val pixelHinting: Boolean,
-	val scaleMode: Context2d.ScaleMode,
-	val startCaps: Context2d.LineCap,
-	val endCaps: Context2d.LineCap,
-	val lineJoin: Context2d.LineJoin,
-	val miterLimit: Double
+    override val path: GraphicsPath,
+    override val clip: GraphicsPath?,
+    override val paint: Paint,
+    override val transform: Matrix,
+    val thickness: Double,
+    val pixelHinting: Boolean,
+    val scaleMode: LineScaleMode,
+    val startCaps: LineCap,
+    val endCaps: LineCap,
+    val lineJoin: LineJoin,
+    val miterLimit: Double
 ) : StyledShape {
     @Suppress("unused")
     @Deprecated("Use lineJoin instead", replaceWith = ReplaceWith("lineJoin.name"))
     val joints: String? = lineJoin.name
 
-    @Deprecated("Use constructor with lineJoin: Context2d.LineJoin")
+    @Deprecated("Use constructor with lineJoin: LineJoin")
     constructor(
         path: GraphicsPath,
         clip: GraphicsPath?,
-        paint: Context2d.Paint,
+        paint: Paint,
         transform: Matrix,
         thickness: Double,
         pixelHinting: Boolean,
-        scaleMode: Context2d.ScaleMode,
-        startCaps: Context2d.LineCap,
-        endCaps: Context2d.LineCap,
+        scaleMode: LineScaleMode,
+        startCaps: LineCap,
+        endCaps: LineCap,
         joints: String?,
         miterLimit: Double
     ) : this(path, clip, paint, transform, thickness, pixelHinting, scaleMode, startCaps, endCaps, when (joints) {
-        null -> Context2d.LineJoin.MITER
-        "MITER", "miter" -> Context2d.LineJoin.MITER
-        "BEVEL", "bevel" -> Context2d.LineJoin.BEVEL
-        "ROUND", "round" -> Context2d.LineJoin.ROUND
-        else -> Context2d.LineJoin.MITER
+        null -> LineJoin.MITER
+        "MITER", "miter" -> LineJoin.MITER
+        "BEVEL", "bevel" -> LineJoin.BEVEL
+        "SQUARE", "square" -> LineJoin.SQUARE
+        "ROUND", "round" -> LineJoin.ROUND
+        else -> LineJoin.MITER
     }, miterLimit)
 
     private val tempBB = BoundsBuilder()
@@ -367,19 +403,20 @@ class TextShape(
     val text: String,
     val x: Double,
     val y: Double,
-    val font: Context2d.Font,
+    val font: Font,
+    val fontSize: Double,
     override val clip: GraphicsPath?,
-    val fill: Context2d.Paint?,
-    val stroke: Context2d.Paint?,
-    val halign: Context2d.HorizontalAlign = Context2d.HorizontalAlign.LEFT,
-    val valign: Context2d.VerticalAlign = Context2d.VerticalAlign.TOP,
+    val fill: Paint?,
+    val stroke: Paint?,
+    val halign: HorizontalAlign = HorizontalAlign.LEFT,
+    val valign: VerticalAlign = VerticalAlign.TOP,
     override val transform: Matrix = Matrix()
 ) : StyledShape {
-    override val paint: Context2d.Paint get() = fill ?: stroke ?: Context2d.None
+    override val paint: Paint get() = fill ?: stroke ?: NonePaint
 
     override fun addBounds(bb: BoundsBuilder) {
         bb.add(x, y)
-        bb.add(x + font.size * text.length, y + font.size) // @TODO: this is not right since we don't have information about Glyph metrics
+        bb.add(x + fontSize * text.length, y + fontSize) // @TODO: this is not right since we don't have information about Glyph metrics
     }
     override fun drawInternal(c: Context2d) {
         c.font(font, halign, valign) {
@@ -395,17 +432,20 @@ class TextShape(
                 "fill" to (fill?.toSvg(svg) ?: "none"),
                 "stroke" to (stroke?.toSvg(svg) ?: "none"),
                 "font-family" to font.name,
-                "font-size" to "${font.size}px",
+                "font-size" to "${fontSize}px",
                 "text-anchor" to when (halign) {
-                    Context2d.HorizontalAlign.LEFT -> "start"
-                    Context2d.HorizontalAlign.CENTER -> "middle"
-                    Context2d.HorizontalAlign.RIGHT -> "end"
+                    HorizontalAlign.JUSTIFY -> "justify"
+                    HorizontalAlign.LEFT -> "start"
+                    HorizontalAlign.CENTER -> "middle"
+                    HorizontalAlign.RIGHT -> "end"
+                    else -> "${(halign.ratio * 100)}%"
                 },
                 "alignment-baseline" to when (valign) {
-                    Context2d.VerticalAlign.TOP -> "hanging"
-                    Context2d.VerticalAlign.MIDDLE -> "middle"
-                    Context2d.VerticalAlign.BASELINE -> "baseline"
-                    Context2d.VerticalAlign.BOTTOM -> "bottom"
+                    VerticalAlign.TOP -> "hanging"
+                    VerticalAlign.MIDDLE -> "middle"
+                    VerticalAlign.BASELINE -> "baseline"
+                    VerticalAlign.BOTTOM -> "bottom"
+                    else -> "${(valign.ratio * 100)}%"
                 },
                 "transform" to transform.toSvg()
             ), listOf(

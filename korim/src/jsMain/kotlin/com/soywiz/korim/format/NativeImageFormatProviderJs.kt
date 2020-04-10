@@ -2,8 +2,11 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.TextMetrics
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
@@ -98,7 +101,7 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 
 	override fun mipmap(bmp: Bitmap): NativeImage {
 		val out = NativeImage(ceil(bmp.width * 0.5).toInt(), ceil(bmp.height * 0.5).toInt())
-		out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0, 0, out.width, out.height)
+		out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0.0, 0.0, out.width.toDouble(), out.height.toDouble())
 		return out
 	}
 }
@@ -161,19 +164,19 @@ object BrowserImage {
 	}
 }
 
-class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Context2d.Renderer() {
+class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.soywiz.korim.vector.renderer.Renderer() {
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
 	val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
 
-	fun Context2d.Paint.toJsStr(): Any? {
+	fun Paint.toJsStr(): Any? {
 		return when (this) {
-			is Context2d.None -> "none"
-			is Context2d.Color -> this.color.htmlStringSimple
-			is Context2d.Gradient -> {
+			is NonePaint -> "none"
+			is ColorPaint -> this.color.htmlStringSimple
+			is GradientPaint -> {
 				when (kind) {
-					Context2d.Gradient.Kind.LINEAR -> {
+					GradientKind.LINEAR -> {
 						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -182,7 +185,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						}
 						grad
 					}
-					Context2d.Gradient.Kind.RADIAL -> {
+                    GradientKind.RADIAL -> {
 						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -193,7 +196,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 					}
 				}
 			}
-			is Context2d.BitmapPaint -> {
+			is BitmapPaint -> {
 				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), if (this.repeat) "repeat" else "no-repeat")
 				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
@@ -210,50 +213,50 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	private fun setFont(font: Context2d.Font) {
-		ctx.font = "${font.size}px '${font.name}'"
+	private fun setFont(font: Font, fontSize: Double) {
+		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
-	private fun setState(state: Context2d.State, fill: Boolean) {
+    private fun setMatrix(t: Matrix) {
+        ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+    }
+
+	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
-		setFont(state.font)
-		val t = state.transform
-		ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+		setFont(state.font, state.fontSize)
+        setMatrix(state.transform)
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
 			ctx.lineWidth = state.lineWidth
 			ctx.lineJoin = when (state.lineJoin) {
-				Context2d.LineJoin.BEVEL -> CanvasLineJoin.BEVEL
-				Context2d.LineJoin.MITER -> CanvasLineJoin.MITER
-				Context2d.LineJoin.ROUND -> CanvasLineJoin.ROUND
+				LineJoin.BEVEL -> CanvasLineJoin.BEVEL
+				LineJoin.MITER -> CanvasLineJoin.MITER
+				LineJoin.ROUND -> CanvasLineJoin.ROUND
 			}
 			ctx.lineCap = when (state.lineCap) {
-				Context2d.LineCap.BUTT -> CanvasLineCap.BUTT
-				Context2d.LineCap.ROUND -> CanvasLineCap.ROUND
-				Context2d.LineCap.SQUARE -> CanvasLineCap.SQUARE
+				LineCap.BUTT -> CanvasLineCap.BUTT
+				LineCap.ROUND -> CanvasLineCap.ROUND
+				LineCap.SQUARE -> CanvasLineCap.SQUARE
 			}
 			ctx.strokeStyle = state.strokeStyle.toJsStr()
 		}
 	}
 
-	private fun transformPaint(paint: Context2d.Paint) {
-		if (paint is Context2d.TransformedPaint) {
+	private fun transformPaint(paint: Paint) {
+		if (paint is TransformedPaint) {
 			val m = paint.transform
 			ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)
 		}
 	}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
+	override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
 		ctx.save()
 		try {
 			transform.run { ctx.setTransform(a, b, c, d, tx, ty) }
 			ctx.drawImage(
 				(image.ensureNative() as HtmlNativeImage).texSource.unsafeCast<CanvasImageSource>(),
-				x.toDouble(),
-				y.toDouble(),
-				width.toDouble(),
-				height.toDouble()
+                x, y, width, height
 			)
 		} finally {
 			ctx.restore()
@@ -265,9 +268,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 		//println("beginPath")
 		keep {
-			setState(state, fill)
 			ctx.beginPath()
 
+            // No apply transform, since points are already translated
 			state.path.visitCmds(
 				moveTo = { x, y -> ctx.moveTo(x, y) },
 				lineTo = { x, y -> ctx.lineTo(x, y) },
@@ -278,7 +281,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 			ctx.save()
 
-			if (fill) {
+            setState(state, fill, state.fontSize)
+
+            if (fill) {
 				transformPaint(state.fillStyle)
 				ctx.fill()
 				//println("fill: $s")
@@ -294,26 +299,30 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 	}
 
 	override fun renderText(
-		state: Context2d.State,
-		font: Context2d.Font,
-		text: String,
-		x: Double,
-		y: Double,
-		fill: Boolean
+        state: Context2d.State,
+        font: Font,
+        fontSize: Double,
+        text: String,
+        x: Double,
+        y: Double,
+        fill: Boolean
 	) {
 		keep {
-			setState(state, fill)
+			setState(state, fill, fontSize)
 
 			ctx.textBaseline = when (state.verticalAlign) {
-				Context2d.VerticalAlign.TOP -> CanvasTextBaseline.TOP
-				Context2d.VerticalAlign.MIDDLE -> CanvasTextBaseline.MIDDLE
-				Context2d.VerticalAlign.BASELINE -> CanvasTextBaseline.ALPHABETIC
-				Context2d.VerticalAlign.BOTTOM -> CanvasTextBaseline.BOTTOM
+				VerticalAlign.TOP -> CanvasTextBaseline.TOP
+				VerticalAlign.MIDDLE -> CanvasTextBaseline.MIDDLE
+				VerticalAlign.BASELINE -> CanvasTextBaseline.ALPHABETIC
+				VerticalAlign.BOTTOM -> CanvasTextBaseline.BOTTOM
+                else -> CanvasTextBaseline.TOP
 			}
 			ctx.textAlign = when (state.horizontalAlign) {
-				Context2d.HorizontalAlign.LEFT -> CanvasTextAlign.LEFT
-				Context2d.HorizontalAlign.CENTER -> CanvasTextAlign.CENTER
-				Context2d.HorizontalAlign.RIGHT -> CanvasTextAlign.RIGHT
+				HorizontalAlign.LEFT -> CanvasTextAlign.LEFT
+				HorizontalAlign.CENTER -> CanvasTextAlign.CENTER
+				HorizontalAlign.RIGHT -> CanvasTextAlign.RIGHT
+                HorizontalAlign.JUSTIFY -> CanvasTextAlign.LEFT
+                else -> CanvasTextAlign.LEFT
 			}
 
 			if (fill) {
@@ -324,12 +333,12 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+	override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
 		keep {
-			setFont(font)
+			setFont(font, fontSize)
 			val metrics = ctx.measureText(text)
 			val width = metrics.width.toInt()
-			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, font.size)
+			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, fontSize)
 		}
 	}
 }

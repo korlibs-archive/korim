@@ -99,8 +99,8 @@ fun BitmapSliceCompat(
 ) = BitmapSlice(bmp, frame.toInt(), name = name, rotated = rotated)
 
 fun <T : Bitmap> T.slice(bounds: RectangleInt = RectangleInt(0, 0, width, height), name: String = "unknown"): BitmapSlice<T> = BitmapSlice<T>(this, bounds, name)
-fun <T : Bitmap> T.sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): BitmapSlice<T> = slice(createRectangleInt(0, 0, this.width, this.height, left, top, right, bottom))
-fun <T : Bitmap> T.sliceWithSize(x: Int, y: Int, width: Int, height: Int): BitmapSlice<T> = sliceWithBounds(x, y, x + width, y + height)
+fun <T : Bitmap> T.sliceWithBounds(left: Int, top: Int, right: Int, bottom: Int, name: String = "unknown"): BitmapSlice<T> = slice(createRectangleInt(0, 0, this.width, this.height, left, top, right, bottom), name)
+fun <T : Bitmap> T.sliceWithSize(x: Int, y: Int, width: Int, height: Int, name: String = "unknown"): BitmapSlice<T> = sliceWithBounds(x, y, x + width, y + height, name)
 
 private fun createRectangleInt(
     bleft: Int, btop: Int, bright: Int, bbottom: Int,

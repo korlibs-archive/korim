@@ -2,6 +2,8 @@ package com.soywiz.korim.font.ttf
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.font.TtfFont
+import com.soywiz.korim.font.fillText
 import com.soywiz.korim.format.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.file.*

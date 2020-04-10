@@ -212,7 +212,7 @@ inline class ColorAdd(val rgba: Int) {
 
 fun RGBA.toColorAdd() = ColorAdd(r, g, b, a)
 
-inline fun ColorTransform(multiply: RGBA, add: ColorAdd) =
+inline fun ColorTransform(multiply: RGBA, add: ColorAdd = ColorAdd(0, 0, 0, 0)) =
 	ColorTransform(multiply.rf, multiply.gf, multiply.bf, multiply.af, add.r, add.g, add.b, add.a)
 
 @Suppress("NOTHING_TO_INLINE")

@@ -32,6 +32,8 @@ class Bitmap32(
     fun copyTo(other: Bitmap32): Bitmap32 = checkMatchDimensions(other).also { arraycopy(this.data, 0, other.data, 0, this.data.size) }
 
     override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+        if (dst !is Bitmap32) return super.copy(srcX, srcY, dst, dstX, dstY, width, height)
+
 		val src = this
 
         val srcX0 = src.clampWidth(srcX)

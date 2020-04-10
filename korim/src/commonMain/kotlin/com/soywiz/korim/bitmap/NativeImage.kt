@@ -30,7 +30,7 @@ fun NativeImage(width: Int, height: Int) = nativeImageFormatProvider.create(widt
 fun NativeImage(
 	width: Int,
 	height: Int,
-	d: Context2d.Drawable,
+	d: Drawable,
 	scaleX: Double = 1.0,
 	scaleY: Double = scaleX
 ): NativeImage {
@@ -47,7 +47,7 @@ fun NativeImage(
 	return bmp
 }
 
-fun NativeImage(d: Context2d.SizedDrawable, scaleX: Double = 1.0, scaleY: Double = scaleX): NativeImage =
+fun NativeImage(d: SizedDrawable, scaleX: Double = 1.0, scaleY: Double = scaleX): NativeImage =
     NativeImage((d.width * scaleX).toInt(), (d.height * scaleY).toInt(), d, scaleX, scaleY)
 
 fun Bitmap.ensureNative() = when (this) {
@@ -55,4 +55,4 @@ fun Bitmap.ensureNative() = when (this) {
 	else -> nativeImageFormatProvider.copy(this)
 }
 
-fun Context2d.SizedDrawable.raster(scaleX: Double = 1.0, scaleY: Double = scaleX) = NativeImage(this, scaleX, scaleY)
+fun SizedDrawable.raster(scaleX: Double = 1.0, scaleY: Double = scaleX) = NativeImage(this, scaleX, scaleY)

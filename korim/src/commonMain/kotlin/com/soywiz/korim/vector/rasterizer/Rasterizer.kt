@@ -1,4 +1,4 @@
-package com.soywiz.korim.vector
+package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.kds.DoubleArrayList
 import com.soywiz.kds.doubleArrayListOf
@@ -143,7 +143,7 @@ class Rasterizer {
             }
             xPoints.sort()
             if (xPoints.size >= 2) {
-                for (i in 0 until xPoints.size step 2) {
+                for (i in 0 until xPoints.size - 1 step 2) {
                     val a = xPoints[i]
                     val b = xPoints[i + 1]
                     callback(a, b, y)
