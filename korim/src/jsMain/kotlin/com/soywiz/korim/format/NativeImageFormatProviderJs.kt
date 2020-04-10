@@ -99,7 +99,7 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 
 	override fun mipmap(bmp: Bitmap): NativeImage {
 		val out = NativeImage(ceil(bmp.width * 0.5).toInt(), ceil(bmp.height * 0.5).toInt())
-		out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0, 0, out.width, out.height)
+		out.getContext2d(antialiasing = true).renderer.drawImage(bmp, 0.0, 0.0, out.width.toDouble(), out.height.toDouble())
 		return out
 	}
 }
@@ -245,16 +245,13 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
+	override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
 		ctx.save()
 		try {
 			transform.run { ctx.setTransform(a, b, c, d, tx, ty) }
 			ctx.drawImage(
 				(image.ensureNative() as HtmlNativeImage).texSource.unsafeCast<CanvasImageSource>(),
-				x.toDouble(),
-				y.toDouble(),
-				width.toDouble(),
-				height.toDouble()
+                x, y, width, height
 			)
 		} finally {
 			ctx.restore()

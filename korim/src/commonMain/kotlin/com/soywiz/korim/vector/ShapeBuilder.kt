@@ -35,7 +35,7 @@ class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context
         super.rendererRender(state, fill)
     }
 
-    override fun rendererRenderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
+    override fun Renderer.rendererRenderSystemText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
         shapes += TextShape(
             text = text,
             x = x, y = y,
@@ -49,10 +49,10 @@ class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context
         )
     }
 
-    override fun rendererDrawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
+    override fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
         rendererRender(State(
             transform = transform,
-            path = GraphicsPath().apply { rect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble()) },
+            path = GraphicsPath().apply { rect(x, y, width.toDouble(), height.toDouble()) },
             fillStyle = Context2d.BitmapPaint(image,
                 transform = Matrix()
                     .scale(width.toDouble() / image.width.toDouble(), height.toDouble() / image.height.toDouble())

@@ -1,15 +1,23 @@
 package com.soywiz.korim.font.ttf
 
-import com.soywiz.kds.*
-import com.soywiz.klock.*
-import com.soywiz.kmem.*
-import com.soywiz.korim.color.*
-import com.soywiz.korim.vector.*
-import com.soywiz.korio.lang.*
+import com.soywiz.kds.IntArrayList
+import com.soywiz.kds.IntIntMap
+import com.soywiz.kmem.extract16Signed
+import com.soywiz.kmem.insert
+import com.soywiz.kmem.unsigned
+import com.soywiz.korim.color.Colors
+import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korio.lang.UTF16_BE
+import com.soywiz.korio.lang.UTF8
+import com.soywiz.korio.lang.invalidOp
+import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.*
-import com.soywiz.korio.util.encoding.*
-import com.soywiz.korma.geom.vector.*
+import com.soywiz.korio.util.encoding.hex
+import com.soywiz.korma.geom.vector.lineTo
+import com.soywiz.korma.geom.vector.moveTo
+import com.soywiz.korma.geom.vector.quadTo
 import kotlin.collections.set
 
 @Suppress("MemberVisibilityCanBePrivate", "UNUSED_VARIABLE", "LocalVariableName", "unused")
@@ -43,8 +51,6 @@ class TtfFont private constructor(val s: SyncStream) {
 			val names = values()
 		}
 	}
-
-	data class Fixed(val num: Int, val den: Int)
 
 	fun SyncStream.readFixed() = Fixed(readS16LE(), readS16LE())
 	data class HorMetric(val advanceWidth: Int, val lsb: Int)
@@ -97,7 +103,7 @@ class TtfFont private constructor(val s: SyncStream) {
 	var glyphDataFormat = 0
 
 	var horMetrics = listOf<HorMetric>()
-	val characterMaps = LinkedHashMap<Int, Int>()
+	val characterMaps = IntIntMap()
 
 	companion object {
 		operator fun invoke(s: SyncStream): TtfFont {
@@ -340,11 +346,18 @@ class TtfFont private constructor(val s: SyncStream) {
 		//println(tables)
 	}
 
-	fun getCharIndexFromCodePoint(codePoint: Int): Int? = characterMaps[codePoint]
-	fun getCharIndexFromChar(char: Char): Int? = characterMaps[char.toInt()]
+	fun getCharIndexFromCodePoint(codePoint: Int): Int? = characterMaps[codePoint].takeIf { it >= 0 }
+	fun getCharIndexFromChar(char: Char): Int? = characterMaps[char.toInt()].takeIf { it >= 0 }
 
-	fun getGlyphByCodePoint(codePoint: Int): IGlyph? = characterMaps[codePoint]?.let { getGlyphByIndex(it) }
+	fun getGlyphByCodePoint(codePoint: Int): IGlyph? = if (codePoint in characterMaps) {
+        getGlyphByIndex(characterMaps[codePoint])
+    } else {
+        null
+    }
 	fun getGlyphByChar(char: Char): IGlyph? = getGlyphByCodePoint(char.toInt())
+
+    operator fun get(char: Char) = getGlyphByChar(char)
+    operator fun get(codePoint: Int) = getGlyphByCodePoint(codePoint)
 
 	fun getGlyphByIndex(index: Int): IGlyph? = runTable("glyf") {
 		val start = locs.getOrNull(index)?.unsigned ?: 0
@@ -365,7 +378,7 @@ class TtfFont private constructor(val s: SyncStream) {
 		val xMax: Int
 		val yMax: Int
 		val advanceWidth: Int
-		fun fill(c: Context2d, size: Double, origin: Origin, color: RGBA)
+		fun draw(c: Context2d, size: Double, origin: Origin)
 	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
@@ -396,7 +409,9 @@ class TtfFont private constructor(val s: SyncStream) {
 		for (char in text) {
 			val g = getGlyphByChar(char)
 			if (g != null) {
-				g.fill(this, size, TtfFont.Origin.TOP, color)
+                c.fill(Context2d.Color(color)) {
+                    g.draw(this, size, Origin.TOP)
+                }
 				translate(scale * g.advanceWidth, 0.0)
 			}
 		}
@@ -417,14 +432,13 @@ class TtfFont private constructor(val s: SyncStream) {
 		val refs: List<GlyphReference>,
 		override val advanceWidth: Int
 	) : IGlyph {
-		override fun fill(c: Context2d, size: Double, origin: Origin, color: RGBA) {
+		override fun draw(c: Context2d, size: Double, origin: Origin) {
 			val scale = size / unitsPerEm.toDouble()
 			c.keep {
 				for (ref in refs) {
 					c.keep {
 						c.translate((ref.x - xMin) * scale, (-ref.y - yMin) * scale)
 						c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
-						ref.glyph.fill(c, size, origin, color)
 					}
 				}
 			}
@@ -448,7 +462,7 @@ class TtfFont private constructor(val s: SyncStream) {
 			onCurve = onCurve(n)
 		}
 
-		override fun fill(c: Context2d, size: Double, origin: Origin, color: RGBA) {
+		override fun draw(c: Context2d, size: Double, origin: Origin) {
 			val font = this@TtfFont
 			val scale = size / font.unitsPerEm.toDouble()
 			c.apply {
@@ -461,7 +475,6 @@ class TtfFont private constructor(val s: SyncStream) {
 					scale(scale, -scale)
 					beginPath()
 					draw(createGraphicsPath())
-					fill(com.soywiz.korim.vector.Context2d.Color(color))
 				}
 			}
 		}
@@ -678,3 +691,10 @@ fun Context2d.fillText(
 	font.fillText(this, text, size, x, y, color, origin)
 }
 
+internal inline class Fixed(val data: Int) {
+    val num: Int get() = data.extract16Signed(0)
+    val den: Int get() = data.extract16Signed(16)
+    companion object {
+        operator fun invoke(num: Int, den: Int) = 0.insert(num, 0, 16).insert(den, 16, 16)
+    }
+}

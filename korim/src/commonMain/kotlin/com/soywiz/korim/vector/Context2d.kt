@@ -17,9 +17,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open val rendererWidth get() = renderer.width
     protected open val rendererHeight get() = renderer.height
     protected open fun rendererRender(state: Context2d.State, fill: Boolean) = renderer.render(state, fill)
-    protected open fun rendererRenderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) =
+    open fun Renderer.rendererRenderSystemText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) =
         renderer.renderText(state, font, text, x, y, fill)
-    protected open fun rendererDrawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height, transform: Matrix = Matrix()) = renderer.drawImage(image, x, y, width, height, transform)
+    protected open fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble(), transform: Matrix = Matrix()) = renderer.drawImage(image, x, y, width, height, transform)
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
@@ -53,7 +53,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			adjustState(state) { parent.renderText(state, font, text, x, y, fill) }
 
 		override fun getBounds(font: Font, text: String, out: TextMetrics): Unit = parent.getBounds(font, text, out)
-		override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix): Unit {
+		override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix): Unit {
 			adjustMatrix(transform) { parent.drawImage(image, x, y, width, height, transform) }
 		}
 	}
@@ -131,10 +131,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 		open fun drawImage(
 			image: Bitmap,
-			x: Int,
-			y: Int,
-			width: Int = image.width,
-			height: Int = image.height,
+			x: Double,
+			y: Double,
+			width: Double = image.width.toDouble(),
+			height: Double = image.height.toDouble(),
 			transform: Matrix = Matrix()
 		): Unit {
 			render(State(
@@ -147,6 +147,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
                 )
             ), fill = true)
 		}
+
+        inline fun drawImage(
+            image: Bitmap,
+            x: Number, y: Number, width: Number = image.width, height: Number = image.height,
+            transform: Matrix = Matrix()
+        ) = drawImage(image, x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble(), transform)
 
 		open fun dispose(): Unit {
             flush()
@@ -406,7 +412,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 				}
 				keepTransform {
 					setTransform(Matrix())
-					this.rendererDrawImage(renderBi, 0, 0)
+					this.rendererDrawImage(renderBi, 0.0, 0.0)
 				}
 				//} finally {
 				//	bi.lineScale = oldLineScale
@@ -436,8 +442,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	val none = None
 
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
-		out.apply { rendererGetBounds(font, text, out) }
+	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics {
+        return font.getTextBounds(text, out)
+    }
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
 	inline fun fillText(text: String, x: Number, y: Number): Unit =
@@ -464,12 +471,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-    open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit =
-		run { rendererRenderText(state, font, text, x, y, fill) }
+    open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit {
+        font.renderText(this, text, x, y, fill)
+    }
 
-    open fun drawImage(image: Bitmap, x: Int, y: Int, width: Int = image.width, height: Int = image.height) {
-		rendererDrawImage(image, x, y, width, height, state.transform)
-	}
+    open fun drawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble()) =
+        rendererDrawImage(image, x, y, width, height, state.transform)
+
+    inline fun drawImage(image: Bitmap, x: Number, y: Number, width: Number = image.width.toDouble(), height: Number = image.height.toDouble())
+        = drawImage(image, x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 
     interface Paint
 

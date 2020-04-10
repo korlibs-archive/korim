@@ -69,7 +69,9 @@ class BitmapFont(
 		val xoffset: Int,
 		val yoffset: Int,
 		val xadvance: Int
-	)
+	) {
+        val bmp by lazy { texture.extract() }
+    }
 
 	val dummyGlyph by lazy { Glyph(-1, Bitmaps.transparent, 0, 0, 0) }
 	val anyGlyph: Glyph by lazy { glyphs[glyphs.keys.iterator().next()] ?: dummyGlyph }

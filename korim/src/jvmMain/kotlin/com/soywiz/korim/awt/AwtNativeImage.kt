@@ -180,10 +180,10 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	//	}
 	//}
 
-	override fun drawImage(image: Bitmap, x: Int, y: Int, width: Int, height: Int, transform: Matrix) {
+	override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
 		//transform.toAwt()
 		//BufferedImageOp
-		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x, y, width, height, null)
+		this.g.drawImage((image.ensureNative() as AwtNativeImage).awtImage, x.toInt(), y.toInt(), width.toInt(), height.toInt(), null)
 	}
 
 	fun convertColor(c: RGBA): java.awt.Color = java.awt.Color(c.r, c.g, c.b, c.a)
