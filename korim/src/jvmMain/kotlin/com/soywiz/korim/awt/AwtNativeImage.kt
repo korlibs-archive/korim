@@ -3,6 +3,7 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.Font
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import java.awt.*
@@ -107,7 +108,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	fun GraphicsPath.toJava2dPaths(): List<java.awt.geom.Path2D.Double> {
 		if (this.isEmpty()) return listOf()
 		val winding =
-			if (winding == VectorPath.Winding.EVEN_ODD) java.awt.geom.GeneralPath.WIND_EVEN_ODD else java.awt.geom.GeneralPath.WIND_NON_ZERO
+			if (winding == Winding.EVEN_ODD) java.awt.geom.GeneralPath.WIND_EVEN_ODD else java.awt.geom.GeneralPath.WIND_NON_ZERO
 		//val winding = java.awt.geom.GeneralPath.WIND_NON_ZERO
 		//val winding = java.awt.geom.GeneralPath.WIND_EVEN_ODD
 		val polylines = ArrayList<java.awt.geom.Path2D.Double>()
@@ -156,12 +157,12 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		return toJava2dPaths().firstOrNull()
 	}
 
-	//override fun renderShape(shape: Shape, transform: Matrix, shapeRasterizerMethod: Context2d.ShapeRasterizerMethod) {
+	//override fun renderShape(shape: Shape, transform: Matrix, shapeRasterizerMethod: ShapeRasterizerMethod) {
 	//	when (shapeRasterizerMethod) {
-	//		Context2d.ShapeRasterizerMethod.NONE -> {
+	//		ShapeRasterizerMethod.NONE -> {
 	//			super.renderShape(shape, transform, shapeRasterizerMethod)
 	//		}
-	//		Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
+	//		ShapeRasterizerMethod.X1, ShapeRasterizerMethod.X2, ShapeRasterizerMethod.X4 -> {
 	//			val scale = shapeRasterizerMethod.scale
 	//			val newBi = BufferedImage(Math.ceil(awtImage.width * scale).toInt(), Math.ceil(awtImage.height * scale).toInt(), awtImage.type)
 	//			val bi = Context2d(AwtContext2dRender(newBi, antialiasing = false))
@@ -169,9 +170,9 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	//			bi.transform(transform)
 	//			bi.draw(shape)
 	//			val renderBi = when (shapeRasterizerMethod) {
-	//				Context2d.ShapeRasterizerMethod.X1 -> newBi
-	//				Context2d.ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
-	//				Context2d.ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
+	//				ShapeRasterizerMethod.X1 -> newBi
+	//				ShapeRasterizerMethod.X2 -> newBi.scaled(0.5)
+	//				ShapeRasterizerMethod.X4 -> newBi.scaled(0.5).scaled(0.5)
 	//				else -> newBi
 	//			}
 	//			this.g.drawImage(renderBi, 0, 0, null)
@@ -187,10 +188,10 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	fun convertColor(c: RGBA): java.awt.Color = java.awt.Color(c.r, c.g, c.b, c.a)
 
-	fun Context2d.CycleMethod.toAwt() = when (this) {
-		Context2d.CycleMethod.NO_CYCLE -> MultipleGradientPaint.CycleMethod.NO_CYCLE
-		Context2d.CycleMethod.REPEAT -> MultipleGradientPaint.CycleMethod.REPEAT
-		Context2d.CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
+	fun CycleMethod.toAwt() = when (this) {
+		CycleMethod.NO_CYCLE -> MultipleGradientPaint.CycleMethod.NO_CYCLE
+		CycleMethod.REPEAT -> MultipleGradientPaint.CycleMethod.REPEAT
+		CycleMethod.REFLECT -> MultipleGradientPaint.CycleMethod.REFLECT
 	}
 
 	fun Context2d.Paint.toAwt(transform: AffineTransform): java.awt.Paint = try {
@@ -285,19 +286,23 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		else -> java.awt.Color(Colors.BLACK.value)
 	}
 
-	fun Context2d.LineCap.toAwt() = when (this) {
-		Context2d.LineCap.BUTT -> BasicStroke.CAP_BUTT
-		Context2d.LineCap.ROUND -> BasicStroke.CAP_ROUND
-		Context2d.LineCap.SQUARE -> BasicStroke.CAP_SQUARE
+	fun LineCap.toAwt() = when (this) {
+		LineCap.BUTT -> BasicStroke.CAP_BUTT
+		LineCap.ROUND -> BasicStroke.CAP_ROUND
+		LineCap.SQUARE -> BasicStroke.CAP_SQUARE
 	}
 
-	fun Context2d.LineJoin.toAwt() = when (this) {
-		Context2d.LineJoin.BEVEL -> java.awt.BasicStroke.JOIN_BEVEL
-		Context2d.LineJoin.MITER -> java.awt.BasicStroke.JOIN_MITER
-		Context2d.LineJoin.ROUND -> java.awt.BasicStroke.JOIN_ROUND
+	fun LineJoin.toAwt() = when (this) {
+		LineJoin.SQUARE -> java.awt.BasicStroke.JOIN_BEVEL
+		LineJoin.MITER -> java.awt.BasicStroke.JOIN_MITER
+		LineJoin.ROUND -> java.awt.BasicStroke.JOIN_ROUND
 	}
 
-	fun Context2d.Font.toAwt() = Font(this.name, Font.PLAIN, this.size.toInt())
+    fun Font.toAwt() = when (this) {
+        is Font.System -> this.toAwt()
+        else -> TODO("Unsupported font toAwt!")
+    }
+	fun Font.System.toAwt() = java.awt.Font(this.name, java.awt.Font.PLAIN, this.size.toInt())
 
 	inline fun Graphics2D.keepTransform(callback: () -> Unit) {
 		val old = AffineTransform(this.transform)
@@ -357,7 +362,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 
 	override fun renderText(
 		state: Context2d.State,
-		font: Context2d.Font,
+		font: Font,
 		text: String,
 		x: Double,
 		y: Double,
@@ -370,7 +375,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		val at = AffineTransform()
 		val fm = g.fontMetrics
 		val bounds = tl.bounds
-		val metrics = Context2d.TextMetrics()
+		val metrics = TextMetrics()
 		getBounds(font, text, metrics)
 		//println("text: $text")
 		//println("leading:${fm.leading}, ascent:${fm.ascent}, maxAscent:${fm.maxAscent}")
@@ -395,7 +400,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		}
 	}
 
-	override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+	override fun getBounds(font: Font, text: String, out: TextMetrics) {
 		val fm = g.getFontMetrics(font.toAwt())
 		val bounds = fm.getStringBounds(text, g)
 		out.bounds.setTo(bounds.x, bounds.y, bounds.width, bounds.height)

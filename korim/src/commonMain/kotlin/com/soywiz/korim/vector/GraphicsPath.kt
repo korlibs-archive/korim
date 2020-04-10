@@ -19,4 +19,3 @@ class GraphicsPath(
 
 	override fun clone() = GraphicsPath(IntArrayList(commands), DoubleArrayList(data), winding)
 }
-

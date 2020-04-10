@@ -48,8 +48,8 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
             value,
             x - 2,
             y,
-            halign = Context2d.HorizontalAlign.RIGHT,
-            valign = Context2d.VerticalAlign.BOTTOM,
+            halign = HorizontalAlign.RIGHT,
+            valign = VerticalAlign.BOTTOM,
             color = Colors.DARKGREY
         )
     }
@@ -96,13 +96,13 @@ open class ChartBars(val list: List<DataPoint>) : Chart() {
             keep {
                 translate(rx + barWidth * 0.5, rect.bottom + 4)
                 rotateDeg(fit.angle)
-                //fillText(item.name, rx + barWidth * 0.5, rect.bottom, halign = Context2d.HorizontalAlign.CENTER, valign = Context2d.VerticalAlign.TOP)
+                //fillText(item.name, rx + barWidth * 0.5, rect.bottom, halign = HorizontalAlign.CENTER, valign = VerticalAlign.TOP)
                 fillText(
                     item.name,
                     0,
                     0,
-                    halign = if (fit == Fit.FULL) Context2d.HorizontalAlign.CENTER else Context2d.HorizontalAlign.RIGHT,
-                    valign = Context2d.VerticalAlign.MIDDLE,
+                    halign = if (fit == Fit.FULL) HorizontalAlign.CENTER else HorizontalAlign.RIGHT,
+                    valign = VerticalAlign.MIDDLE,
                     color = Colors.DARKSLATEGRAY
                 )
             }

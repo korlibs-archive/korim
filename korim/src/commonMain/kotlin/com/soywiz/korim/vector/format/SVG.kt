@@ -351,18 +351,18 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 		if (xml.hasAttribute("text-anchor")) {
 			horizontalAlign = when (xml.str("text-anchor").toLowerCase().trim()) {
-				"left" -> Context2d.HorizontalAlign.LEFT
-				"center", "middle" -> Context2d.HorizontalAlign.CENTER
-				"right", "end" -> Context2d.HorizontalAlign.RIGHT
+				"left" -> HorizontalAlign.LEFT
+				"center", "middle" -> HorizontalAlign.CENTER
+				"right", "end" -> HorizontalAlign.RIGHT
 				else -> horizontalAlign
 			}
 		}
         if (xml.hasAttribute("alignment-baseline")) {
             verticalAlign = when (xml.str("alignment-baseline").toLowerCase().trim()) {
-                "hanging" -> Context2d.VerticalAlign.TOP
-                "center", "middle" -> Context2d.VerticalAlign.MIDDLE
-                "baseline" -> Context2d.VerticalAlign.BASELINE
-                "bottom" -> Context2d.VerticalAlign.BOTTOM
+                "hanging" -> VerticalAlign.TOP
+                "center", "middle" -> VerticalAlign.MIDDLE
+                "baseline" -> VerticalAlign.BASELINE
+                "bottom" -> VerticalAlign.BOTTOM
                 else -> verticalAlign
             }
         }

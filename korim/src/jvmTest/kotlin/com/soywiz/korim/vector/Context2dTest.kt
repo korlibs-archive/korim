@@ -60,7 +60,7 @@ class Context2dTest {
 				beginPath()
 				fillStyle = Context2d.Color(Colors.GREEN)
 				lineWidth = 10.0
-				lineCap = Context2d.LineCap.ROUND
+				lineCap = LineCap.ROUND
 				moveTo(100.0, 100.0)
 				lineTo(120, 120)
 				rect(20.0, 20.0, 100.0, 100.0)

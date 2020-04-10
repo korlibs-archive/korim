@@ -56,7 +56,7 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
 
     fun Matrix.toCGAffineTransform() = CGAffineTransformMake(a.cg, b.cg, c.cg, d.cg, tx.cg, ty.cg)
 
-    override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+    override fun getBounds(font: Font, text: String, out: TextMetrics) {
         super.getBounds(font, text, out)
     }
 
@@ -149,16 +149,16 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                         CGContextSetMiterLimit(ctx, state.miterLimit.cg)
                                         CGContextSetLineJoin(
                                             ctx, when (state.lineJoin) {
-                                                Context2d.LineJoin.BEVEL -> CGLineJoin.kCGLineJoinBevel
-                                                Context2d.LineJoin.MITER -> CGLineJoin.kCGLineJoinMiter
-                                                Context2d.LineJoin.ROUND -> CGLineJoin.kCGLineJoinRound
+                                                LineJoin.BEVEL -> CGLineJoin.kCGLineJoinBevel
+                                                LineJoin.MITER -> CGLineJoin.kCGLineJoinMiter
+                                                LineJoin.ROUND -> CGLineJoin.kCGLineJoinRound
                                             }
                                         )
                                         CGContextSetLineCap(
                                             ctx, when (state.lineCap) {
-                                                Context2d.LineCap.BUTT -> CGLineCap.kCGLineCapButt
-                                                Context2d.LineCap.ROUND -> CGLineCap.kCGLineCapRound
-                                                Context2d.LineCap.SQUARE -> CGLineCap.kCGLineCapSquare
+                                                LineCap.BUTT -> CGLineCap.kCGLineCapButt
+                                                LineCap.ROUND -> CGLineCap.kCGLineCapRound
+                                                LineCap.SQUARE -> CGLineCap.kCGLineCapSquare
                                             }
                                         )
                                     }

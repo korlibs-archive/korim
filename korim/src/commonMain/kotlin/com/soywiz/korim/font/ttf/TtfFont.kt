@@ -21,6 +21,8 @@ import kotlin.collections.set
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
 class TtfFont private constructor(val s: SyncStream) {
+    var name: String = "TtfFont"
+
 	data class Table(val id: String, val checksum: Int, val offset: Int, val length: Int) {
 		lateinit var s: SyncStream
 

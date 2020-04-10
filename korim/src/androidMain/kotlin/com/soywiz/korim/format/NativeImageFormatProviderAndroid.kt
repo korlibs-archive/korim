@@ -232,13 +232,13 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
 
     override fun renderText(
         state: Context2d.State,
-        font: Context2d.Font,
+        font: Font,
         text: String,
         x: Double,
         y: Double,
         fill: Boolean
     ) {
-        val metrics = Context2d.TextMetrics()
+        val metrics = TextMetrics()
         val bounds = metrics.bounds
         paint.typeface = Typeface.create(font.name, Typeface.NORMAL)
         paint.textSize = font.size.toFloat()
@@ -255,7 +255,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         canvas.drawText(text, 0, text.length, (x - ox).toFloat(), (y + baseline - oy).toFloat(), paint)
     }
 
-    override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+    override fun getBounds(font: Font, text: String, out: TextMetrics) {
         val rect = Rect()
         paint.getTextBounds(text, 0, text.length, rect)
         out.bounds.setTo(rect.left.toDouble(), rect.top.toDouble(), rect.width().toDouble(), rect.height().toDouble())

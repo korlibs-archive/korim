@@ -23,6 +23,8 @@ class BitmapFont(
 	val glyphs: IntMap<Glyph>,
 	val kernings: IntMap<Kerning>
 ) : Extra by Extra.Mixin() {
+    var name: String = "BitmapFont"
+
 	fun measureWidth(text: String): Int {
 		var x = 0
 		for (c in text) {

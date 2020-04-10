@@ -51,7 +51,12 @@ class RasterizerTest {
     fun test2() = suspendTest {
         Bitmap32(100, 100).context2d {
             //debug = true
-            fill(Colors.BLUE) {
+            fill(
+                createLinearGradient(0, 0, 0, 100) {
+                    add(0.0, Colors.BLUE)
+                    add(1.0, Colors.GREEN)
+                }
+            ) {
                 moveTo(0, 25)
                 lineTo(100, 0)
                 lineToV(100)
@@ -59,10 +64,9 @@ class RasterizerTest {
                 close()
             }
         }.showImageAndWait()
-
         val shipSize = 24
         Bitmap32(shipSize, shipSize).context2d {
-            stroke(Colors.RED, lineWidth = shipSize * 0.05, lineCap = Context2d.LineCap.ROUND) {
+            stroke(Colors.RED, lineWidth = shipSize * 0.05, lineCap = LineCap.ROUND) {
                 moveTo(shipSize * 0.5, 0)
                 lineTo(shipSize, shipSize)
                 lineTo(shipSize * 0.5, shipSize * 0.8)
@@ -72,7 +76,7 @@ class RasterizerTest {
         }.showImageAndWait()
         Bitmap32(3, (shipSize * 0.3).toInt()).context2d {
             lineWidth = 1.0
-            lineCap = Context2d.LineCap.ROUND
+            lineCap = LineCap.ROUND
             stroke(Colors.WHITE) {
                 moveTo(width / 2, 0)
                 lineToV(height)

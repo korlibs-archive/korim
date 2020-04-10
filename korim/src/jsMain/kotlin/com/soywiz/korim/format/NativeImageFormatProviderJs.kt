@@ -4,6 +4,7 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.TextMetrics
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
@@ -210,7 +211,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	private fun setFont(font: Context2d.Font) {
+	private fun setFont(font: Font) {
 		ctx.font = "${font.size}px '${font.name}'"
 	}
 
@@ -224,14 +225,14 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		} else {
 			ctx.lineWidth = state.lineWidth
 			ctx.lineJoin = when (state.lineJoin) {
-				Context2d.LineJoin.BEVEL -> CanvasLineJoin.BEVEL
-				Context2d.LineJoin.MITER -> CanvasLineJoin.MITER
-				Context2d.LineJoin.ROUND -> CanvasLineJoin.ROUND
+				LineJoin.SQUARE -> CanvasLineJoin.BEVEL
+				LineJoin.MITER -> CanvasLineJoin.MITER
+				LineJoin.ROUND -> CanvasLineJoin.ROUND
 			}
 			ctx.lineCap = when (state.lineCap) {
-				Context2d.LineCap.BUTT -> CanvasLineCap.BUTT
-				Context2d.LineCap.ROUND -> CanvasLineCap.ROUND
-				Context2d.LineCap.SQUARE -> CanvasLineCap.SQUARE
+				LineCap.BUTT -> CanvasLineCap.BUTT
+				LineCap.ROUND -> CanvasLineCap.ROUND
+				LineCap.SQUARE -> CanvasLineCap.SQUARE
 			}
 			ctx.strokeStyle = state.strokeStyle.toJsStr()
 		}
@@ -295,7 +296,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 	override fun renderText(
 		state: Context2d.State,
-		font: Context2d.Font,
+		font: Font,
 		text: String,
 		x: Double,
 		y: Double,
@@ -305,15 +306,18 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 			setState(state, fill)
 
 			ctx.textBaseline = when (state.verticalAlign) {
-				Context2d.VerticalAlign.TOP -> CanvasTextBaseline.TOP
-				Context2d.VerticalAlign.MIDDLE -> CanvasTextBaseline.MIDDLE
-				Context2d.VerticalAlign.BASELINE -> CanvasTextBaseline.ALPHABETIC
-				Context2d.VerticalAlign.BOTTOM -> CanvasTextBaseline.BOTTOM
+				VerticalAlign.TOP -> CanvasTextBaseline.TOP
+				VerticalAlign.MIDDLE -> CanvasTextBaseline.MIDDLE
+				VerticalAlign.BASELINE -> CanvasTextBaseline.ALPHABETIC
+				VerticalAlign.BOTTOM -> CanvasTextBaseline.BOTTOM
+                else -> CanvasTextBaseline.TOP
 			}
 			ctx.textAlign = when (state.horizontalAlign) {
-				Context2d.HorizontalAlign.LEFT -> CanvasTextAlign.LEFT
-				Context2d.HorizontalAlign.CENTER -> CanvasTextAlign.CENTER
-				Context2d.HorizontalAlign.RIGHT -> CanvasTextAlign.RIGHT
+				HorizontalAlign.LEFT -> CanvasTextAlign.LEFT
+				HorizontalAlign.CENTER -> CanvasTextAlign.CENTER
+				HorizontalAlign.RIGHT -> CanvasTextAlign.RIGHT
+                HorizontalAlign.JUSTIFY -> CanvasTextAlign.LEFT
+                else -> CanvasTextAlign.LEFT
 			}
 
 			if (fill) {
@@ -324,7 +328,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
-	override fun getBounds(font: Context2d.Font, text: String, out: Context2d.TextMetrics) {
+	override fun getBounds(font: Font, text: String, out: TextMetrics) {
 		keep {
 			setFont(font)
 			val metrics = ctx.measureText(text)

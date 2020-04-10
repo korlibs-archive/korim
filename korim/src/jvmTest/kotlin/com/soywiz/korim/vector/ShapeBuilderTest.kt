@@ -20,7 +20,7 @@ class ShapeBuilderTest {
             fillStroke(Context2d.Color(Colors.RED), Context2d.Color(Colors.BLUE)) {
                 rect(0, 0, 64, 64)
             }
-            fillText("HELLO", 32, 32, font = Context2d.Font("Helvetica", 16.0), halign = Context2d.HorizontalAlign.CENTER, valign = Context2d.VerticalAlign.MIDDLE, color = Colors.GREEN)
+            fillText("HELLO", 32, 32, font = Font("Helvetica", 16.0), halign = HorizontalAlign.CENTER, valign = VerticalAlign.MIDDLE, color = Colors.GREEN)
         }
         println(shape.toSvg())
          */

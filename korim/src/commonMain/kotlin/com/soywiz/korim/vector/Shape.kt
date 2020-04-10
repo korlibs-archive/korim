@@ -7,8 +7,6 @@ import com.soywiz.korim.color.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.shape.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -278,23 +276,23 @@ data class FillShape(
 }
 
 data class PolylineShape(
-	override val path: GraphicsPath,
-	override val clip: GraphicsPath?,
-	override val paint: Context2d.Paint,
-	override val transform: Matrix,
-	val thickness: Double,
-	val pixelHinting: Boolean,
-	val scaleMode: Context2d.ScaleMode,
-	val startCaps: Context2d.LineCap,
-	val endCaps: Context2d.LineCap,
-	val lineJoin: Context2d.LineJoin,
-	val miterLimit: Double
+    override val path: GraphicsPath,
+    override val clip: GraphicsPath?,
+    override val paint: Context2d.Paint,
+    override val transform: Matrix,
+    val thickness: Double,
+    val pixelHinting: Boolean,
+    val scaleMode: LineScaleMode,
+    val startCaps: LineCap,
+    val endCaps: LineCap,
+    val lineJoin: LineJoin,
+    val miterLimit: Double
 ) : StyledShape {
     @Suppress("unused")
     @Deprecated("Use lineJoin instead", replaceWith = ReplaceWith("lineJoin.name"))
     val joints: String? = lineJoin.name
 
-    @Deprecated("Use constructor with lineJoin: Context2d.LineJoin")
+    @Deprecated("Use constructor with lineJoin: LineJoin")
     constructor(
         path: GraphicsPath,
         clip: GraphicsPath?,
@@ -302,17 +300,18 @@ data class PolylineShape(
         transform: Matrix,
         thickness: Double,
         pixelHinting: Boolean,
-        scaleMode: Context2d.ScaleMode,
-        startCaps: Context2d.LineCap,
-        endCaps: Context2d.LineCap,
+        scaleMode: LineScaleMode,
+        startCaps: LineCap,
+        endCaps: LineCap,
         joints: String?,
         miterLimit: Double
     ) : this(path, clip, paint, transform, thickness, pixelHinting, scaleMode, startCaps, endCaps, when (joints) {
-        null -> Context2d.LineJoin.MITER
-        "MITER", "miter" -> Context2d.LineJoin.MITER
-        "BEVEL", "bevel" -> Context2d.LineJoin.BEVEL
-        "ROUND", "round" -> Context2d.LineJoin.ROUND
-        else -> Context2d.LineJoin.MITER
+        null -> LineJoin.MITER
+        "MITER", "miter" -> LineJoin.MITER
+        "BEVEL", "bevel" -> LineJoin.SQUARE//LineJoin.BEVEL
+        "SQUARE", "square" -> LineJoin.SQUARE
+        "ROUND", "round" -> LineJoin.ROUND
+        else -> LineJoin.MITER
     }, miterLimit)
 
     private val tempBB = BoundsBuilder()
@@ -367,12 +366,12 @@ class TextShape(
     val text: String,
     val x: Double,
     val y: Double,
-    val font: Context2d.Font,
+    val font: Font,
     override val clip: GraphicsPath?,
     val fill: Context2d.Paint?,
     val stroke: Context2d.Paint?,
-    val halign: Context2d.HorizontalAlign = Context2d.HorizontalAlign.LEFT,
-    val valign: Context2d.VerticalAlign = Context2d.VerticalAlign.TOP,
+    val halign: HorizontalAlign = HorizontalAlign.LEFT,
+    val valign: VerticalAlign = VerticalAlign.TOP,
     override val transform: Matrix = Matrix()
 ) : StyledShape {
     override val paint: Context2d.Paint get() = fill ?: stroke ?: Context2d.None
@@ -397,15 +396,18 @@ class TextShape(
                 "font-family" to font.name,
                 "font-size" to "${font.size}px",
                 "text-anchor" to when (halign) {
-                    Context2d.HorizontalAlign.LEFT -> "start"
-                    Context2d.HorizontalAlign.CENTER -> "middle"
-                    Context2d.HorizontalAlign.RIGHT -> "end"
+                    HorizontalAlign.JUSTIFY -> "justify"
+                    HorizontalAlign.LEFT -> "start"
+                    HorizontalAlign.CENTER -> "middle"
+                    HorizontalAlign.RIGHT -> "end"
+                    else -> "${(halign.ratio * 100)}%"
                 },
                 "alignment-baseline" to when (valign) {
-                    Context2d.VerticalAlign.TOP -> "hanging"
-                    Context2d.VerticalAlign.MIDDLE -> "middle"
-                    Context2d.VerticalAlign.BASELINE -> "baseline"
-                    Context2d.VerticalAlign.BOTTOM -> "bottom"
+                    VerticalAlign.TOP -> "hanging"
+                    VerticalAlign.MIDDLE -> "middle"
+                    VerticalAlign.BASELINE -> "baseline"
+                    VerticalAlign.BOTTOM -> "bottom"
+                    else -> "${(valign.ratio * 100)}%"
                 },
                 "transform" to transform.toSvg()
             ), listOf(

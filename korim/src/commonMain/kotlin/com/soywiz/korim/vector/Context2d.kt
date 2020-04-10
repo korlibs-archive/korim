@@ -28,14 +28,6 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     open val width: Int get() = rendererWidth
     open val height: Int get() = rendererHeight
 
-	enum class LineCap { BUTT, ROUND, SQUARE }
-	enum class LineJoin { BEVEL, MITER, ROUND }
-	enum class CycleMethod { NO_CYCLE, REFLECT, REPEAT }
-
-	enum class ShapeRasterizerMethod(val scale: Double) {
-		NONE(0.0), X1(1.0), X2(2.0), X4(4.0)
-	}
-
 	override fun dispose() {
 		rendererDispose()
 	}
@@ -81,7 +73,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         data class RenderCommand(
             val state: Context2d.State,
             val fill: Boolean,
-            val font: Context2d.Font? = null,
+            val font: Font? = null,
             val text: String? = null,
             val x: Double = 0.0,
             val y: Double = 0.0
@@ -161,41 +153,22 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-	enum class VerticalAlign(val ratio: Double) {
-		TOP(0.0), MIDDLE(0.5), BASELINE(1.0), BOTTOM(1.0);
-
-		fun getOffsetY(height: Double, baseline: Double): Double = when (this) {
-			BASELINE -> baseline
-			else -> -height * ratio
-		}
-	}
-
-	enum class HorizontalAlign(val ratio: Double) {
-		LEFT(0.0), CENTER(0.5), RIGHT(1.0);
-
-		fun getOffsetX(width: Double): Double = width * ratio
-	}
-
-	enum class ScaleMode(val hScale: Boolean, val vScale: Boolean) {
-		NONE(false, false), HORIZONTAL(true, false), VERTICAL(false, true), NORMAL(true, true);
-	}
-
 	data class State constructor(
-		var transform: Matrix = Matrix(),
-		var clip: GraphicsPath? = null,
-		var path: GraphicsPath = GraphicsPath(),
-		var lineScaleMode: ScaleMode = ScaleMode.NORMAL,
-		var lineWidth: Double = 1.0,
-		var startLineCap: LineCap = LineCap.BUTT,
+        var transform: Matrix = Matrix(),
+        var clip: GraphicsPath? = null,
+        var path: GraphicsPath = GraphicsPath(),
+        var lineScaleMode: LineScaleMode = LineScaleMode.NORMAL,
+        var lineWidth: Double = 1.0,
+        var startLineCap: LineCap = LineCap.BUTT,
         var endLineCap: LineCap = LineCap.BUTT,
-		var lineJoin: LineJoin = LineJoin.MITER,
-		var miterLimit: Double = 4.0,
-		var strokeStyle: Paint = Color(Colors.BLACK),
-		var fillStyle: Paint = Color(Colors.BLACK),
-		var font: Font = Font("sans-serif", 10.0),
-		var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
-		var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
-		var globalAlpha: Double = 1.0
+        var lineJoin: LineJoin = LineJoin.MITER,
+        var miterLimit: Double = 4.0,
+        var strokeStyle: Paint = Color(Colors.BLACK),
+        var fillStyle: Paint = Color(Colors.BLACK),
+        var font: Font = Font("sans-serif", 10.0),
+        var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
+        var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
+        var globalAlpha: Double = 1.0
 	) {
         var lineCap: LineCap
             get() = startLineCap
@@ -214,7 +187,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	var state = State()
 	private val stack = Stack<State>()
 
-	var lineScaleMode: ScaleMode by { state::lineScaleMode }.redirected()
+	var lineScaleMode: LineScaleMode by { state::lineScaleMode }.redirected()
 	var lineWidth: Double by { state::lineWidth }.redirected()
 	var lineCap: LineCap by { state::lineCap }.redirected()
     var startLineCap: LineCap by { state::startLineCap }.redirected()
@@ -409,13 +382,13 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     fun drawShape(
 		shape: Shape,
-		rasterizerMethod: Context2d.ShapeRasterizerMethod = Context2d.ShapeRasterizerMethod.X4
+		rasterizerMethod: ShapeRasterizerMethod = ShapeRasterizerMethod.X4
 	) {
 		when (rasterizerMethod) {
-			Context2d.ShapeRasterizerMethod.NONE -> {
+			ShapeRasterizerMethod.NONE -> {
 				shape.draw(this)
 			}
-			Context2d.ShapeRasterizerMethod.X1, Context2d.ShapeRasterizerMethod.X2, Context2d.ShapeRasterizerMethod.X4 -> {
+			ShapeRasterizerMethod.X1, ShapeRasterizerMethod.X2, ShapeRasterizerMethod.X4 -> {
 				val scale = rasterizerMethod.scale
 				val newBi = NativeImage(ceil(rendererWidth * scale).toInt(), ceil(rendererHeight * scale).toInt())
 				val bi = newBi.getContext2d(antialiasing = false)
@@ -426,9 +399,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 				bi.transform(state.transform)
 				bi.draw(shape)
 				val renderBi = when (rasterizerMethod) {
-					Context2d.ShapeRasterizerMethod.X1 -> newBi
-					Context2d.ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
-					Context2d.ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
+					ShapeRasterizerMethod.X1 -> newBi
+					ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
+					ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
 					else -> newBi
 				}
 				keepTransform {
@@ -462,9 +435,6 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
 	val none = None
-
-	data class Font(val name: String, val size: Double)
-	data class TextMetrics(val bounds: Rectangle = Rectangle())
 
 	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
 		out.apply { rendererGetBounds(font, text, out) }
@@ -606,10 +576,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
     data class StrokeInfo(
         val thickness: Double = 1.0, val pixelHinting: Boolean = false,
-        val scaleMode: Context2d.ScaleMode = Context2d.ScaleMode.NORMAL,
-        val startCap: Context2d.LineCap = Context2d.LineCap.BUTT,
-        val endCap: Context2d.LineCap = Context2d.LineCap.BUTT,
-        val lineJoin: Context2d.LineJoin = Context2d.LineJoin.MITER,
+        val scaleMode: LineScaleMode = LineScaleMode.NORMAL,
+        val startCap: LineCap = LineCap.BUTT,
+        val endCap: LineCap = LineCap.BUTT,
+        val lineJoin: LineJoin = LineJoin.MITER,
         val miterLimit: Double = 20.0
     )
 }
