@@ -6,11 +6,11 @@ import com.soywiz.korim.font.SystemFont
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
-inline fun buildShape(width: Int = 256, height: Int = 256, builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder(width, height).apply(builder).buildShape()
+inline fun buildShape(width: Int? = null, height: Int? = null, builder: ShapeBuilder.() -> Unit): Shape = ShapeBuilder(width, height).apply(builder).buildShape()
 
-class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context2d.Drawable {
-    override val rendererWidth: Int = width
-    override val rendererHeight: Int = height
+class ShapeBuilder(width: Int?, height: Int?) : Context2d(Renderer.DUMMY), Context2d.Drawable {
+    override val rendererWidth: Int = width ?: 256
+    override val rendererHeight: Int = height ?: 256
 
     val shapes = arrayListOf<Shape>()
 

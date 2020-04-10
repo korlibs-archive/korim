@@ -4,9 +4,11 @@ import com.soywiz.kds.iterators.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
+import com.soywiz.korim.format.SVG
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -54,6 +56,8 @@ class SvgBuilder(val bounds: Rectangle, val scale: Double) {
 		)
 	}
 }
+
+fun buildSvgXml(width: Int? = null, height: Int? = null, block: ShapeBuilder.() -> Unit): Xml = buildShape { block() }.toSvg()
 
 private fun Matrix.toSvg() = this.run {
 	when (getType()) {
@@ -127,7 +131,9 @@ interface StyledShape : Shape {
 	val transform: Matrix
 
 	override fun addBounds(bb: BoundsBuilder): Unit {
-        path?.let { bb.add(it) }
+        path?.let { path ->
+            bb.add(path, transform)
+        }
 	}
 
 	override fun buildSvg(svg: SvgBuilder) {
@@ -159,6 +165,36 @@ interface StyledShape : Shape {
 
 	fun drawInternal(c: Context2d) {
 	}
+}
+
+// @TODO: Once KorMA updated remove
+private fun BoundsBuilder.add(x: Double, y: Double, transform: Matrix) = add(transform.transformX(x, y), transform.transformY(x, y))
+private fun BoundsBuilder.add(rect: Rectangle, transform: Matrix) = this.apply {
+    if (rect.isNotEmpty) {
+        add(rect.left, rect.top, transform)
+        add(rect.right, rect.bottom, transform)
+    }
+}
+
+private fun BoundsBuilder.add(path: VectorPath, transform: Matrix) {
+    val bb = this
+    var lx = 0.0
+    var ly = 0.0
+
+    val bezierTemp = Bezier.Temp()
+    path.visitCmds(
+        moveTo = { x, y -> bb.add(x, y, transform).also { lx = x }.also { ly = y } },
+        lineTo = { x, y -> bb.add(x, y, transform).also { lx = x }.also { ly = y } },
+        quadTo = { cx, cy, ax, ay ->
+            bb.add(Bezier.quadBounds(lx, ly, cx, cy, ax, ay, bb.tempRect), transform)
+                .also { lx = ax }.also { ly = ay }
+        },
+        cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
+            bb.add(Bezier.cubicBounds(lx, ly, cx1, cy1, cx2, cy2, ax, ay, bb.tempRect, bezierTemp), transform)
+                .also { lx = ax }.also { ly = ay }
+        },
+        close = {}
+    )
 }
 
 private fun colorToSvg(color: RGBA): String {
