@@ -13,15 +13,17 @@ class FontTest {
     @Test
     @Ignore
     fun test() = suspendTest {
-        val font = resourcesVfs["tinymce-small.ttf"].readTtfFont()
+        //val font = resourcesVfs["tinymce-small.ttf"].readTtfFont()
+        //val font = SystemFont("Arial")
+        SystemFontRegistry.register(BitmapFont(SystemFont("Arial"), 48.0, chars = CharacterSet.LATIN_ALL), "Arial2")
         //val font = SystemFont("Arial", 24)
-        //val font = BitmapFont(SystemFont("Arial", 24))
         //val font = SystemFont("Arial", 24)
         val image = NativeImage(128, 128).context2d {
-            this.fillStyle = createLinearGradient(0, 0, 0, 24).add(0.0, Colors.BLUE).add(1.0, Colors.GREEN)
+            this.fillStyle = createLinearGradient(0, 0, 0, 48).add(0.0, Colors.BLUE).add(1.0, Colors.GREEN)
             //this.fillStyle = createColor(Colors.BLACK)
-            this.font = font
-            fillText("Hello World!", 16, 16)
+            this.fontName = "Arial2"
+            this.fontSize = 48.0
+            fillText("12 Hello World!", 16, 16)
         }
         image.showImageAndWait()
     }

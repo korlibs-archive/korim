@@ -299,11 +299,11 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		LineJoin.ROUND -> java.awt.BasicStroke.JOIN_ROUND
 	}
 
-    fun Font.toAwt() = when (this) {
-        is SystemFont -> this.toAwt()
+    fun Font.toAwt(size: Double) = when (this) {
+        is SystemFont -> this.toAwt(size)
         else -> TODO("Unsupported font toAwt!")
     }
-	fun SystemFont.toAwt() = java.awt.Font(this.name, java.awt.Font.PLAIN, this.size.toInt())
+	fun SystemFont.toAwt(size: Double) = java.awt.Font(this.name, java.awt.Font.PLAIN, size.toInt())
 
 	inline fun Graphics2D.keepTransform(callback: () -> Unit) {
 		val old = AffineTransform(this.transform)
@@ -364,6 +364,7 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 	override fun renderText(
         state: Context2d.State,
         font: Font,
+        fontSize: Double,
         text: String,
         x: Double,
         y: Double,
@@ -372,12 +373,12 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		if (text.isEmpty()) return
 		applyState(state, fill)
 		val frc = g.fontRenderContext
-		val tl = TextLayout(text, font.toAwt(), frc)
+		val tl = TextLayout(text, font.toAwt(fontSize), frc)
 		val at = AffineTransform()
 		val fm = g.fontMetrics
 		val bounds = tl.bounds
 		val metrics = TextMetrics()
-		getBounds(font, text, metrics)
+		getBounds(font, fontSize, text, metrics)
 		//println("text: $text")
 		//println("leading:${fm.leading}, ascent:${fm.ascent}, maxAscent:${fm.maxAscent}")
 		//println(metrics.bounds)
@@ -401,8 +402,8 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		}
 	}
 
-	override fun getBounds(font: Font, text: String, out: TextMetrics) {
-		val fm = g.getFontMetrics(font.toAwt())
+	override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
+		val fm = g.getFontMetrics(font.toAwt(fontSize))
 		val bounds = fm.getStringBounds(text, g)
 		out.bounds.setTo(bounds.x, bounds.y, bounds.width, bounds.height)
 	}

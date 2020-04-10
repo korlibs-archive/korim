@@ -2,6 +2,7 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.SystemFont
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
@@ -36,11 +37,12 @@ class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context
         super.rendererRender(state, fill)
     }
 
-    override fun Renderer.rendererRenderSystemText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
+    override fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
         shapes += TextShape(
             text = text,
             x = x, y = y,
             font = font,
+            fontSize = fontSize,
             clip = state.clip?.clone(),
             fill = if (fill) state.fillStyle else null,
             stroke = if (fill) null else state.strokeStyle,
@@ -72,8 +74,8 @@ class ShapeBuilder(width: Int, height: Int) : Context2d(Renderer.DUMMY), Context
     override fun rendererBufferingEnd() {
     }
 
-    override fun rendererGetBounds(font: Font, text: String, out: TextMetrics) {
-        super.rendererGetBounds(font, text, out)
+    override fun rendererSystemGetBounds(font: SystemFont, fontSize: Double, text: String, out: TextMetrics) {
+        super.rendererSystemGetBounds(font, fontSize, text, out)
     }
 
     fun clear() {

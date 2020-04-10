@@ -234,6 +234,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
     override fun renderText(
         state: Context2d.State,
         font: Font,
+        fontSize: Double,
         text: String,
         x: Double,
         y: Double,
@@ -242,7 +243,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         val metrics = TextMetrics()
         val bounds = metrics.bounds
         paint.typeface = Typeface.create(font.name, Typeface.NORMAL)
-        paint.textSize = font.size.toFloat()
+        paint.textSize = fontSize.toFloat()
         val fm = paint.fontMetrics
         getBounds(font, text, metrics)
 

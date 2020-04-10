@@ -367,6 +367,7 @@ class TextShape(
     val x: Double,
     val y: Double,
     val font: Font,
+    val fontSize: Double,
     override val clip: GraphicsPath?,
     val fill: Context2d.Paint?,
     val stroke: Context2d.Paint?,
@@ -378,7 +379,7 @@ class TextShape(
 
     override fun addBounds(bb: BoundsBuilder) {
         bb.add(x, y)
-        bb.add(x + font.size * text.length, y + font.size) // @TODO: this is not right since we don't have information about Glyph metrics
+        bb.add(x + fontSize * text.length, y + fontSize) // @TODO: this is not right since we don't have information about Glyph metrics
     }
     override fun drawInternal(c: Context2d) {
         c.font(font, halign, valign) {
@@ -394,7 +395,7 @@ class TextShape(
                 "fill" to (fill?.toSvg(svg) ?: "none"),
                 "stroke" to (stroke?.toSvg(svg) ?: "none"),
                 "font-family" to font.name,
-                "font-size" to "${font.size}px",
+                "font-size" to "${fontSize}px",
                 "text-anchor" to when (halign) {
                     HorizontalAlign.JUSTIFY -> "justify"
                     HorizontalAlign.LEFT -> "start"

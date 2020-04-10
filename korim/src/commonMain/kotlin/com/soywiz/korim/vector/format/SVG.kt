@@ -2,7 +2,6 @@ package com.soywiz.korim.vector.format
 
 import com.soywiz.kds.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.font.clone
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
@@ -339,10 +338,10 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
 		if (xml.hasAttribute("font-size")) {
-			font = font.clone(size = parseSizeAsDouble(xml.str("font-size")))
+            fontSize = parseSizeAsDouble(xml.str("font-size"))
 		}
 		if (xml.hasAttribute("font-family")) {
-			font = font.clone(name = xml.str("font-family"))
+			font = fontRegistry[xml.str("font-family")]
 		}
 		if (xml.hasAttribute("style")) {
 			applyStyle(c, SvgStyle.parse(xml.str("style"), warningProcessor), bounds)

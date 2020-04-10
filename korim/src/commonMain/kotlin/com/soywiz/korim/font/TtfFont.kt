@@ -32,8 +32,11 @@ import kotlin.math.max
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFont private constructor(val s: SyncStream, override val name: String = "TtfFont", override val registry: FontRegistry = SystemFontRegistry) : Font {
-
+class TtfFont private constructor(
+    val b: ByteArray,
+    override val name: String = "TtfFont"
+) : Font {
+    val s = b.openSync()
     var numGlyphs = 0
     var maxPoints = 0
     var maxContours = 0
@@ -92,9 +95,7 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
         readHmtx()
     }
 
-    override val size: Double get() = yMax.toDouble()
-
-    override fun getTextBounds(text: String, out: TextMetrics): TextMetrics {
+    override fun getTextBounds(size: Double, text: String, out: TextMetrics): TextMetrics {
         var maxx = 0.0
         var maxy = 0.0
         commonProcess(text, handleBounds = { _maxx, _maxy ->
@@ -103,7 +104,7 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
         })
         return TextMetrics(Rectangle(0, 0, maxx, maxy))
     }
-    override fun renderText(ctx: Context2d, text: String, x: Double, y: Double, fill: Boolean) {
+    override fun renderText(ctx: Context2d, size: Double, text: String, x: Double, y: Double, fill: Boolean) {
         commonProcess(text, handleGlyph = { x, y, g ->
             g.draw(ctx, size, origin = Origin.TOP)
             if (fill) ctx.fill() else ctx.stroke()
@@ -162,9 +163,8 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 	fun openTable(name: String) = tablesByName[name]?.open()
 
 	companion object {
-		operator fun invoke(s: SyncStream): TtfFont {
-			return TtfFont(s)
-		}
+		operator fun invoke(s: SyncStream, registry: FontRegistry = SystemFontRegistry): TtfFont = TtfFont(s.readAll(), registry)
+        operator fun invoke(b: ByteArray, registry: FontRegistry = SystemFontRegistry): TtfFont = TtfFont(b, registry)
 	}
 
 	fun readHeaderTables() = s.sliceStart().apply {
@@ -759,4 +759,4 @@ internal inline class Fixed(val data: Int) {
     }
 }
 
-suspend fun VfsFile.readTtfFont() = TtfFont(this.readAll().openSync())
+suspend fun VfsFile.readTtfFont() = TtfFont(this.readAll())

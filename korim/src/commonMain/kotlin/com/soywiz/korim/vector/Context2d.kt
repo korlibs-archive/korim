@@ -4,6 +4,8 @@ import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.FontRegistry
+import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
@@ -19,13 +21,13 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open val rendererWidth get() = renderer.width
     protected open val rendererHeight get() = renderer.height
     protected open fun rendererRender(state: Context2d.State, fill: Boolean) = renderer.render(state, fill)
-    open fun Renderer.rendererRenderSystemText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) =
-        renderer.renderText(state, font, text, x, y, fill)
     protected open fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble(), transform: Matrix = Matrix()) = renderer.drawImage(image, x, y, width, height, transform)
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
-    protected open fun rendererGetBounds(font: Font, text: String, out: TextMetrics): Unit = renderer.getBounds(font, text, out)
+    open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
+        renderer.renderText(state, font, fontSize, text, x, y, fill)
+    protected open fun rendererSystemGetBounds(font: SystemFont, fontSize: Double, text: String, out: TextMetrics): Unit = renderer.getBounds(font, fontSize, text, out)
 
     open val width: Int get() = rendererWidth
     open val height: Int get() = rendererHeight
@@ -51,10 +53,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			adjustMatrix(state.transform) { callback() }
 
 		override fun render(state: State, fill: Boolean): Unit = adjustState(state) { parent.render(state, fill) }
-		override fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit =
-			adjustState(state) { parent.renderText(state, font, text, x, y, fill) }
+		override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit =
+			adjustState(state) { parent.renderText(state, font, fontSize, text, x, y, fill) }
 
-		override fun getBounds(font: Font, text: String, out: TextMetrics): Unit = parent.getBounds(font, text, out)
+		override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit = parent.getBounds(font, fontSize, text, out)
 		override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix): Unit {
 			adjustMatrix(transform) { parent.drawImage(image, x, y, width, height, transform) }
 		}
@@ -76,6 +78,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
             val state: Context2d.State,
             val fill: Boolean,
             val font: Font? = null,
+            val fontSize: Double = 0.0,
             val text: String? = null,
             val x: Double = 0.0,
             val y: Double = 0.0
@@ -87,8 +90,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
             if (!isBuffering()) flush()
         }
 
-        final override fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean) {
-            commands += RenderCommand(state.clone(), fill, font, text, x, y)
+        final override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
+            commands += RenderCommand(state.clone(), fill, font, fontSize, text, x, y)
             if (!isBuffering()) flush()
         }
 
@@ -127,8 +130,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
             }
         }
 		open fun render(state: State, fill: Boolean): Unit = Unit
-		open fun renderText(state: State, font: Font, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
-		open fun getBounds(font: Font, text: String, out: TextMetrics): Unit =
+		open fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
+		open fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit =
 			run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
 
 		open fun drawImage(
@@ -173,7 +176,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var miterLimit: Double = 4.0,
         var strokeStyle: Paint = DefaultPaint,
         var fillStyle: Paint = DefaultPaint,
+        var fontRegistry: FontRegistry = SystemFontRegistry,
         var font: Font = SystemFontRegistry.DEFAULT_FONT,
+        var fontSize: Double = 24.0,
         var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
         var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
         var globalAlpha: Double = 1.0
@@ -203,7 +208,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     var lineJoin: LineJoin by { state::lineJoin }.redirected()
 	var strokeStyle: Paint by { state::strokeStyle }.redirected()
 	var fillStyle: Paint by { state::fillStyle }.redirected()
+    var fontRegistry: FontRegistry by { state::fontRegistry }.redirected()
 	var font: Font by { state::font }.redirected()
+    var fontName: String
+        get() = font.name
+        set(value) = run { font = fontRegistry[value] }
+    var fontSize: Double by { state::fontSize }.redirected()
 	var verticalAlign: VerticalAlign by { state::verticalAlign }.redirected()
 	var horizontalAlign: HorizontalAlign by { state::horizontalAlign }.redirected()
 	var globalAlpha: Double by { state::globalAlpha }.redirected()
@@ -445,7 +455,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	val none = None
 
 	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics {
-        return font.getTextBounds(text, out)
+        return font.getTextBounds(fontSize, text, out)
     }
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
@@ -474,7 +484,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	}
 
     open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit {
-        font.renderText(this, text, x, y, fill)
+        font.renderText(this, fontSize, text, x, y, fill)
     }
 
     open fun drawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble()) =
