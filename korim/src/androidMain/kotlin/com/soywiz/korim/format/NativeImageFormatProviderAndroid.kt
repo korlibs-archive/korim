@@ -11,6 +11,10 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.vector.*
+import com.soywiz.korim.vector.paint.ColorPaint
+import com.soywiz.korim.vector.paint.GradientKind
+import com.soywiz.korim.vector.paint.GradientPaint
+import com.soywiz.korim.vector.paint.NonePaint
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 
@@ -155,9 +159,9 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
         return out
     }
 
-    fun convertPaint(c: Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
+    fun convertPaint(c: com.soywiz.korim.vector.paint.Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
         when (c) {
-            is Context2d.None -> {
+            is NonePaint -> {
                 out.shader = null
             }
             is ColorPaint -> {
@@ -166,13 +170,13 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : Context2d.Ren
             }
             is GradientPaint -> {
                 when (c.kind) {
-                    GradientPaint.Kind.LINEAR ->
+                    GradientKind.LINEAR ->
                         out.shader = LinearGradient(
                             c.x0(m).toFloat(), c.y0(m).toFloat(),
                             c.x1(m).toFloat(), c.y1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
                         )
-                    GradientPaint.Kind.RADIAL ->
+                    GradientKind.RADIAL ->
                         out.shader = RadialGradient(
                             c.x1(m).toFloat(), c.y1(m).toFloat(), c.r1(m).toFloat(),
                             c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
