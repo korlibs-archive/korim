@@ -51,8 +51,8 @@ class BitmapFont(
             bmpAlpha.draw(g.bmp, (x - metrics.left).toInt(), (y - metrics.top).toInt())
         })
         //println("SCALE: $scale")
-        val texX = x + metrics.left - ctx.horizontalAlign.getOffsetX(metrics.width)
-        val texY = y + metrics.top - ctx.verticalAlign.getOffsetY(metrics.height, this.base.toDouble())
+        val texX = x + (metrics.left - ctx.horizontalAlign.getOffsetX(metrics.width)) * scale
+        val texY = y + (metrics.top - ctx.verticalAlign.getOffsetY(metrics.height, this.base.toDouble())) * scale
 
         //println("texX: $texX, texY: $texY")
 

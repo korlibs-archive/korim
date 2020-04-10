@@ -42,12 +42,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		override val width: Int get() = (parent.width / scaleX).toInt()
 		override val height: Int get() = (parent.height / scaleY).toInt()
 
-		private inline fun <T> adjustMatrix(transform: Matrix, callback: () -> T): T {
-			return transform.keep {
-				transform.scale(scaleX, scaleY)
-				callback()
-			}
-		}
+		private inline fun <T> adjustMatrix(transform: Matrix, callback: () -> T): T = transform.keep {
+            transform.scale(scaleX, scaleY)
+            callback()
+        }
 
 		private inline fun <T> adjustState(state: State, callback: () -> T): T =
 			adjustMatrix(state.transform) { callback() }
@@ -238,17 +236,26 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-	inline fun font(font: Font?, halign: HorizontalAlign? = null, valign: VerticalAlign? = null, callback: () -> Unit) {
+	inline fun font(
+        font: Font = this.font,
+        halign: HorizontalAlign = this.horizontalAlign,
+        valign: VerticalAlign = this.verticalAlign,
+        fontSize: Double = this.fontSize,
+        callback: () -> Unit
+    ) {
 		val oldFont = this.font
+        val oldFontSize = this.fontSize
 		val oldHalign = this.horizontalAlign
 		val oldValign = this.verticalAlign
 		try {
-			if (font != null) this.font = font
-			if (halign != null) this.horizontalAlign = halign
-			if (valign != null) this.verticalAlign = valign
+            this.font = font
+            this.fontSize = fontSize
+            this.horizontalAlign = halign
+            this.verticalAlign = valign
 			callback()
 		} finally {
 			this.font = oldFont
+            this.fontSize = oldFontSize
 			this.horizontalAlign = oldHalign
 			this.verticalAlign = oldValign
 		}
@@ -291,6 +298,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	inline fun rotateDeg(degs: Number) = rotateDeg(degs.toDouble())
 
 	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
+    fun rotate(angle: Angle) = run { state.transform.prerotate(angle) }
 	fun rotate(angle: Double) = run { state.transform.prerotate(angle.radians) }
 	fun rotateDeg(degs: Double) = run { state.transform.prerotate(degs.degrees) }
 
@@ -471,12 +479,13 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         text: String,
         x: Number,
         y: Number,
-        font: Font? = null,
-        halign: HorizontalAlign? = null,
-        valign: VerticalAlign? = null,
+        font: Font = this.font,
+        fontSize: Double = this.fontSize,
+        halign: HorizontalAlign = this.horizontalAlign,
+        valign: VerticalAlign = this.verticalAlign,
         color: RGBA? = null
 	): Unit {
-		font(font, halign, valign) {
+		font(font, halign, valign, fontSize) {
 			fillStyle(color?.let { createColor(it) } ?: fillStyle) {
 				renderText(text, x.toDouble(), y.toDouble(), fill = true)
 			}
@@ -487,9 +496,11 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         font.renderText(this, fontSize, text, x, y, fill)
     }
 
+    // @TODO: Fix this!
     open fun drawImage(image: Bitmap, x: Double, y: Double, width: Double = image.width.toDouble(), height: Double = image.height.toDouble()) =
         rendererDrawImage(image, x, y, width, height, state.transform)
 
+    // @TODO: Fix this!
     inline fun drawImage(image: Bitmap, x: Number, y: Number, width: Number = image.width.toDouble(), height: Number = image.height.toDouble())
         = drawImage(image, x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
 
