@@ -42,8 +42,12 @@ class NativeRenderTest {
             assertEquals(0, image[19, 42].a)
         } catch (e: Throwable) {
             val file = tempVfs["output.$name.png"]
-            println("Failed image saved to: " + file.fullPathNormalized)
-            image.writeTo(file, PNG)
+            try {
+                image.writeTo(file, PNG)
+                println("Failed image saved to: " + file.fullPathNormalized)
+            } catch (e: Throwable) {
+                println("Couldn't save failing image")
+            }
             throw e
         }
     }
