@@ -1,21 +1,66 @@
 package com.soywiz.korim.format
 
+import com.soywiz.klock.*
+import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
+import com.soywiz.korio.util.encoding.*
 import kotlin.math.*
 
+object GIF : ImageFormat("gif") {
+    override fun decodeHeader(s: SyncStream, props: ImageDecodingProps): ImageInfo? {
+        try {
+            val gif = GifDec.gd_open_gif(s.clone())
+            return ImageInfo().also {
+                it.bitsPerPixel = 32
+                it.width = gif.width
+                it.height = gif.height
+                GifDec.gd_close_gif(gif)
+            }
+        } catch (e: Throwable) {
+            e.printStackTrace()
+            return null
+        }
+    }
+
+    override fun readImage(s: SyncStream, props: ImageDecodingProps): ImageData {
+        val gif = GifDec.gd_open_gif(s.clone())
+        val frames = arrayListOf<ImageFrame>()
+        while (GifDec.gd_get_frame(gif) >= 1) {
+            val out = Bitmap32(gif.width, gif.height)
+            val time = ((gif.gce.delay + 1) * 10).milliseconds
+            try {
+                GifDec.gd_render_frame(gif, out.data)
+                frames.add(ImageFrame(out, time = time, main = (frames.size == 0)))
+            } catch (e: Throwable) {
+                e.printStackTrace()
+            }
+        }
+        return ImageData(frames, gif.loop_count)
+    }
+
+    override fun writeImage(image: ImageData, s: SyncStream, props: ImageEncodingProps) {
+        super.writeImage(image, s, props)
+    }
+
+    override fun toString(): String {
+        return super.toString()
+    }
+}
+
 // https://github.com/lecram/gifdec/blob/master/gifdec.c
-@ExperimentalUnsignedTypes
+@OptIn(ExperimentalUnsignedTypes::class)
 object GifDec {
     class gd_Palette(
         var size: Int = 0,
         val colors: RgbaArray = RgbaArray(0x100) // @TODO: Convert into RgbaArray once working
     )
 
+    // _GifGraphicsControlExtension
     class gd_GCE(
-        var delay: Int = 0,
+        var delay: Int = 0, // Hundredths of seconds to wait
         var tindex: Int = 0,
         var disposal: Int = 0,
         var input: Int = 0,
@@ -77,12 +122,10 @@ object GifDec {
         /* Header */
         val sigver1 = fd.readBytes(3)
 
-        if (sigver1.eqbytes("GIF")) {
-            error("invalid signature")
-        };
+        if (!sigver1.eqbytes("GIF")) error("invalid signature: ${sigver1.hex}");
         /* Version */
         val sigver2 = fd.readBytes(3)
-        if (sigver2.eqbytes("89a")) error("invalid version")
+        if (!sigver2.eqbytes("89a")) error("invalid version: ${sigver2.hex}")
         /* Width x Height */
         val width  = read_num(fd);
         val height = read_num(fd);
@@ -222,32 +265,6 @@ object GifDec {
             (1 shl key_size) + 2,
             Array(init_bulk) { Entry(1, 0xFFF, it) }
         )
-    }
-
-    interface BasePointer {
-        fun add(offset: Int)
-        fun incr() = add(+1)
-        fun decr() = add(-1)
-    }
-
-    data class Pointer<T>(val array: Array<T>, var offset: Int) : BasePointer {
-        fun get() = array[offset]
-        fun set(value: T) {
-            array[offset] = value
-        }
-        override fun add(offset: Int) = run {
-            this.offset += offset
-        }
-    }
-
-    data class UByteArrayPointer(val array: UByteArray, var offset: Int) : BasePointer {
-        fun get() = array[offset]
-        fun set(value: UByte) {
-            array[offset] = value
-        }
-        override fun add(offset: Int) = run {
-            this.offset += offset
-        }
     }
 
     /* Add table entry. Return value:
@@ -413,20 +430,13 @@ object GifDec {
         for (j in 0 until gif.fh) {
             for (k in 0 until gif.fw) {
                 val index = gif.frame[(gif.fy + j) * gif.width + gif.fx + k].toInt()
-                val color = gif.palette.colors[index*3];
+                val color = gif.palette.colors[index];
                 if (!gif.gce.transparency || index != gif.gce.tindex) {
                     buffer[i+k] = color
                 }
             }
             i += gif.width;
         }
-    }
-
-    fun UByteArray.ptr(index: Int) = UByteArrayPointer(this, index)
-    fun <T> Array<T>.ptr(index: Int) = Pointer(this, index)
-
-    fun memcpy(dst: BasePointer, src: BasePointer, count: Int) {
-        TODO()
     }
 
     fun dispose(gif: gd_GIF) {

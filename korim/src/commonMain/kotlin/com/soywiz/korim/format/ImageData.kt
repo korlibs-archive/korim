@@ -4,7 +4,10 @@ import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 
 open class ImageData(
-    val frames: List<ImageFrame>
+    val frames: List<ImageFrame>,
+    val loopCount: Int = 0,
+    val width: Int = frames.firstOrNull()?.width ?: 1,
+    val height: Int = frames.firstOrNull()?.height ?: 1
 ) : Extra by Extra.Mixin() {
     val area: Int get() = frames.area
 

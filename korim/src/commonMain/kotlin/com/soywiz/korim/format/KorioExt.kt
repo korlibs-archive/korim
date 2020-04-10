@@ -64,6 +64,8 @@ suspend fun VfsFile.readImageData(formats: ImageFormat): ImageData =
 suspend fun VfsFile.readBitmapListNoNative(formats: ImageFormat): List<Bitmap> =
 	this.readImageData(formats).frames.map { it.bitmap }
 
+suspend fun VfsFile.readBitmapImageData(formats: ImageFormat) = readImageData(formats)
+
 suspend fun AsyncInputStream.readBitmap(basename: String, formats: ImageFormat): Bitmap {
 	return readBitmap(formats, ImageDecodingProps(basename))
 }
