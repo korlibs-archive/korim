@@ -171,8 +171,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var endLineCap: LineCap = LineCap.BUTT,
         var lineJoin: LineJoin = LineJoin.MITER,
         var miterLimit: Double = 4.0,
-        var strokeStyle: Paint = Color(Colors.BLACK),
-        var fillStyle: Paint = Color(Colors.BLACK),
+        var strokeStyle: Paint = DefaultPaint,
+        var fillStyle: Paint = DefaultPaint,
         var font: Font = SystemFontRegistry.DEFAULT_FONT,
         var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
         var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
@@ -487,9 +487,11 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	object None : Paint
 
-	data class Color(val color: RGBA) : Paint
+	open class Color(val color: RGBA) : Paint
 
-	interface TransformedPaint : Paint {
+    object DefaultPaint : Color(Colors.BLACK)
+
+    interface TransformedPaint : Paint {
 		val transform: Matrix
 	}
 

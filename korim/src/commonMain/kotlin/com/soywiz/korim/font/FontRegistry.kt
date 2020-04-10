@@ -1,11 +1,11 @@
 package com.soywiz.korim.font
 
 import com.soywiz.kds.CopyOnWriteFrozenMap
-import com.soywiz.korim.font.ttf.TtfFont
 import kotlin.native.concurrent.ThreadLocal
 
 interface FontRegistry {
-    fun get(name: String, size: Double): Font = SystemFont(name, size, this)
+    fun get(name: String, size: Double): Font =
+        SystemFont(name, size, this)
     companion object {
         operator fun invoke(): DefaultFontRegistry =
             DefaultFontRegistry()
@@ -22,5 +22,9 @@ open class DefaultFontRegistry : FontRegistry {
     private val registeredFonts = CopyOnWriteFrozenMap<String, Font>()
     fun register(font: Font, name: String = font.name) = font.also { registeredFonts[name] = it }
     override fun get(name: String, size: Double): Font =
-        registeredFonts[name]?.clone(size = size) ?: SystemFont(name, size, this)
+        registeredFonts[name]?.clone(size = size) ?: SystemFont(
+            name,
+            size,
+            this
+        )
 }

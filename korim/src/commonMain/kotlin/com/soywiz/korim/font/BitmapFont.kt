@@ -1,17 +1,21 @@
 package com.soywiz.korim.font
 
 import com.soywiz.kds.*
+import com.soywiz.klock.measureTimeWithResult
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.HorizontalAlign
 import com.soywiz.korim.vector.TextMetrics
+import com.soywiz.korim.vector.VerticalAlign
 import com.soywiz.korio.dynamic.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.geom.RectangleInt
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -20,12 +24,12 @@ import kotlin.math.max
 //e: java.lang.UnsupportedOperationException: Class literal annotation arguments are not yet supported: Factory
 //@AsyncFactoryClass(BitmapFontAsyncFactory::class)
 class BitmapFont(
-	val atlas: Bitmap,
-	val fontSize: Int,
-	val lineHeight: Int,
-	val base: Int,
-	val glyphs: IntMap<Glyph>,
-	val kernings: IntMap<Kerning>,
+    val atlas: Bitmap,
+    val fontSize: Int,
+    val lineHeight: Int,
+    val base: Int,
+    val glyphs: IntMap<Glyph>,
+    val kernings: IntMap<Kerning>,
     override val name: String = "BitmapFont",
     override val registry: FontRegistry = SystemFontRegistry
 ) : Extra by Extra.Mixin(), Font {
@@ -41,13 +45,26 @@ class BitmapFont(
         return TextMetrics(Rectangle(0, 0, maxx, maxy))
     }
     override fun renderText(ctx: Context2d, text: String, x: Double, y: Double, fill: Boolean) {
+        val metrics = getTextBounds(text)
+        val bmpAlpha = Bitmap32(metrics.width.toInt(), metrics.height.toInt())
         commonProcess(text, handleGlyph = { x, y, g ->
-            ctx.drawImage(g.bmp, x, y)
+            bmpAlpha.draw(g.bmp, (x - metrics.left).toInt(), (y - metrics.top).toInt())
         })
+        if (ctx.fillStyle == Context2d.DefaultPaint) {
+            ctx.drawImage(bmpAlpha, metrics.left, metrics.top)
+        } else {
+            val bmpFill = Bitmap32(metrics.width.toInt(), metrics.height.toInt())
+            bmpFill.context2d {
+                this.fillStyle = ctx.fillStyle
+                fillRect(0, 0, width, height)
+            }
+            bmpFill.writeChannel(BitmapChannel.ALPHA, bmpAlpha, BitmapChannel.ALPHA)
+            ctx.drawImage(bmpFill, metrics.left, metrics.top)
+        }
     }
     private inline fun commonProcess(
         text: String,
-        handleGlyph: (x: Double, y: Double, g: BitmapFont.Glyph) -> Unit = { x, y, g -> },
+        handleGlyph: (x: Double, y: Double, g: Glyph) -> Unit = { x, y, g -> },
         handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
     ) {
         var x = 0.0
@@ -93,7 +110,10 @@ class BitmapFont(
 	}
 
 	fun getKerning(first: Char, second: Char): Kerning? = getKerning(first.toInt(), second.toInt())
-	fun getKerning(first: Int, second: Int): Kerning? = kernings[BitmapFont.Kerning.buildKey(first, second)]
+	fun getKerning(first: Int, second: Int): Kerning? = kernings[Kerning.buildKey(
+        first,
+        second
+    )]
 
 	class Kerning(
 		val first: Int,
@@ -112,10 +132,18 @@ class BitmapFont(
 		val yoffset: Int,
 		val xadvance: Int
 	) {
-        val bmp by lazy { texture.extract() }
+        val bmp = texture.extract().toBMP32()
     }
 
-	val dummyGlyph by lazy { Glyph(-1, Bitmaps.transparent, 0, 0, 0) }
+	val dummyGlyph by lazy {
+        Glyph(
+            -1,
+            Bitmaps.transparent,
+            0,
+            0,
+            0
+        )
+    }
 	val anyGlyph: Glyph by lazy { glyphs[glyphs.keys.iterator().next()] ?: dummyGlyph }
 	val baseBmp: Bitmap by lazy { anyGlyph.texture.bmp }
 
@@ -123,6 +151,24 @@ class BitmapFont(
 	operator fun get(char: Char): Glyph = this[char.toInt()]
 
 	companion object {
+        operator fun invoke(
+            fontName: String,
+            fontSize: Int,
+            chars: String = BitmapFontGenerator.LATIN_ALL,
+            mipmaps: Boolean = true
+        ): BitmapFont =
+            BitmapFontGenerator.generate(fontName, fontSize, chars, mipmaps)
+
+        operator fun invoke(
+            font: Font,
+            chars: String = BitmapFontGenerator.LATIN_ALL,
+            mipmaps: Boolean = true
+        ): BitmapFont =
+            BitmapFontGenerator.generate(
+                font,
+                chars.map { it.toInt() }.toIntArray(),
+                mipmaps
+            )
 	}
 }
 
@@ -131,17 +177,21 @@ suspend fun VfsFile.readBitmapFont(imageFormat: ImageFormat = RegisteredImageFor
 	val content = fntFile.readString().trim()
 	val textures = hashMapOf<Int, BitmapSlice<Bitmap>>()
 
-	when {
-		// XML
-		content.startsWith('<') -> {
-			return readBitmapFontXml(content, fntFile, textures, imageFormat)
-		}
-		// FNT
-		content.startsWith("info") -> {
-			return readBitmapFontTxt(content, fntFile, textures, imageFormat)
-		}
-		else -> TODO("Unsupported font type starting with ${content.substr(0, 16)}")
-	}
+    return when {
+        content.startsWith('<') -> readBitmapFontXml(
+            content,
+            fntFile,
+            textures,
+            imageFormat
+        ) // XML
+        content.startsWith("info") -> readBitmapFontTxt(
+            content,
+            fntFile,
+            textures,
+            imageFormat
+        ) // FNT
+        else -> TODO("Unsupported font type starting with ${content.substr(0, 16)}")
+    }
 }
 
 private suspend fun readBitmapFontTxt(
@@ -175,7 +225,7 @@ private suspend fun readBitmapFontTxt(
 			line.startsWith("page") -> {
 				val id = map["id"]?.toInt() ?: 0
 				val file = map["file"]?.unquote() ?: error("page without file")
-				textures[id] = fntFile.parent[file].readBitmapSlice()
+				textures[id] = fntFile.parent[file].readBitmapSlice(imageFormat)
 			}
 			line.startsWith("common ") -> {
 				lineHeight = map["lineHeight"]?.toIntOrNull() ?: 16
@@ -186,32 +236,37 @@ private suspend fun readBitmapFontTxt(
 				val page = map["page"]?.toIntOrNull() ?: 0
 				val texture = textures[page] ?: textures.values.first()
 				glyphs += KDynamic {
-					BitmapFont.Glyph(
-						id = map["id"].int,
-						xoffset = map["xoffset"].int,
-						yoffset = map["yoffset"].int,
-						xadvance = map["xadvance"].int,
-						texture = texture.sliceWithSize(map["x"].int, map["y"].int, map["width"].int, map["height"].int)
-					)
+                    BitmapFont.Glyph(
+                        id = map["id"].int,
+                        xoffset = map["xoffset"].int,
+                        yoffset = map["yoffset"].int,
+                        xadvance = map["xadvance"].int,
+                        texture = texture.sliceWithSize(map["x"].int, map["y"].int, map["width"].int, map["height"].int)
+                    )
 				}
 			}
 			line.startsWith("kerning ") -> {
 				kernings += BitmapFont.Kerning(
-					first = map["first"]?.toIntOrNull() ?: 0,
-					second = map["second"]?.toIntOrNull() ?: 0,
-					amount = map["amount"]?.toIntOrNull() ?: 0
-				)
+                    first = map["first"]?.toIntOrNull() ?: 0,
+                    second = map["second"]?.toIntOrNull() ?: 0,
+                    amount = map["amount"]?.toIntOrNull() ?: 0
+                )
 			}
 		}
 	}
 	return BitmapFont(
-		atlas = textures.values.first().bmp,
-		fontSize = fontSize ?: 16,
-		lineHeight = lineHeight,
-		base = base ?: lineHeight,
-		glyphs = glyphs.map { it.id to it }.toMap().toIntMap(),
-		kernings = kernings.map { BitmapFont.Kerning.buildKey(it.first, it.second) to it }.toMap().toIntMap()
-	)
+        atlas = textures.values.first().bmp,
+        fontSize = fontSize ?: 16,
+        lineHeight = lineHeight,
+        base = base ?: lineHeight,
+        glyphs = glyphs.map { it.id to it }.toMap().toIntMap(),
+        kernings = kernings.map {
+            BitmapFont.Kerning.buildKey(
+                it.first,
+                it.second
+            ) to it
+        }.toMap().toIntMap()
+    )
 }
 
 private suspend fun readBitmapFontXml(
@@ -230,39 +285,121 @@ private suspend fun readBitmapFontXml(
 		val id = page.int("id")
 		val file = page.str("file")
 		val texFile = fntFile.parent[file]
-		val tex = texFile.readBitmapSlice()
+		val tex = texFile.readBitmapSlice(imageFormat)
 		textures[id] = tex
 	}
 
 	val glyphs = xml["chars"]["char"].map {
 		val page = it.int("page")
 		val texture = textures[page] ?: textures.values.first()
-		BitmapFont.Glyph(
-			id = it.int("id"),
-			texture = texture.sliceWithSize(it.int("x"), it.int("y"), it.int("width"), it.int("height")),
-			xoffset = it.int("xoffset"),
-			yoffset = it.int("yoffset"),
-			xadvance = it.int("xadvance")
-		)
+        BitmapFont.Glyph(
+            id = it.int("id"),
+            texture = texture.sliceWithSize(it.int("x"), it.int("y"), it.int("width"), it.int("height")),
+            xoffset = it.int("xoffset"),
+            yoffset = it.int("yoffset"),
+            xadvance = it.int("xadvance")
+        )
 	}
 
 	val kernings = xml["kernings"]["kerning"].map {
-		BitmapFont.Kerning(
-			first = it.int("first"),
-			second = it.int("second"),
-			amount = it.int("amount")
-		)
+        BitmapFont.Kerning(
+            first = it.int("first"),
+            second = it.int("second"),
+            amount = it.int("amount")
+        )
 	}
 
 	return BitmapFont(
-		atlas = textures.values.first().bmp,
-		fontSize = fontSize,
-		lineHeight = lineHeight,
-		base = base,
-		glyphs = glyphs.map { it.id to it }.toMap().toIntMap(),
-		kernings = kernings.map { BitmapFont.Kerning.buildKey(it.first, it.second) to it }.toMap().toIntMap()
-	)
+        atlas = textures.values.first().bmp,
+        fontSize = fontSize,
+        lineHeight = lineHeight,
+        base = base,
+        glyphs = glyphs.map { it.id to it }.toMap().toIntMap(),
+        kernings = kernings.map {
+            BitmapFont.Kerning.buildKey(
+                it.first,
+                it.second
+            ) to it
+        }.toMap().toIntMap()
+    )
 }
 
 fun Bitmap32.drawText(font: BitmapFont, str: String, x: Int = 0, y: Int = 0, color: RGBA = Colors.WHITE) =
 	font.drawText(this, str, x, y, color)
+
+object BitmapFontGenerator {
+    val SPACE = " "
+    val UPPERCASE = ('A'..'Z').joinToString("")
+    val LOWERCASE = ('a'..'z').joinToString("")
+    val NUMBERS = ('0'..'9').joinToString("")
+    val PUNCTUATION = "!\"#\$%&'()*+,-./:;<=>?@[\\]^_`{|}"
+    val LATIN_BASIC = "ÇüéâäàåçêëèïîìÄÅÉæÆôöòûùÿÖÜ¢£¥PÉáíóúñÑª°¿¬½¼¡«»ßµø±÷°·.²"
+    val LATIN_ALL = SPACE + UPPERCASE + LOWERCASE + NUMBERS + PUNCTUATION + LATIN_BASIC
+
+    fun generate(fontName: String, fontSize: Number, chars: String, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont =
+        generate(
+            fontRegistry.get(
+                fontName,
+                fontSize.toDouble()
+            ), chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps
+        )
+
+    fun generate(fontName: String, fontSize: Number, chars: IntArray, mipmaps: Boolean = true, fontRegistry: FontRegistry = SystemFontRegistry): BitmapFont =
+        generate(
+            fontRegistry.get(
+                fontName,
+                fontSize.toDouble()
+            ), chars.indices.map { chars[it].toInt() }.toIntArray(), mipmaps
+        )
+
+    fun generate(font: Font, chars: IntArray, mipmaps: Boolean = true, name: String = font.name): BitmapFont {
+        val result = measureTimeWithResult {
+            val bni = NativeImage(1, 1)
+            val bnictx = bni.getContext2d()
+            bnictx.font = font
+            val bitmapHeight = bnictx.getTextBounds("a").bounds.height.toInt()
+
+            val widths: List<Int> = chars.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
+            val widthsSum = widths.map { it + 2 }.sum()
+            val ni = NativeImage(widthsSum, bitmapHeight)
+
+            class GlyphInfo(val char: Int, val rect: RectangleInt, val width: Int)
+
+            val g = ni.getContext2d()
+            g.fillStyle = g.createColor(Colors.WHITE)
+            g.font = font
+            g.horizontalAlign = HorizontalAlign.LEFT
+            g.verticalAlign = VerticalAlign.TOP
+            val glyphsInfo = arrayListOf<GlyphInfo>()
+            var x = 0
+            val itemp = IntArray(1)
+            for ((index, char) in chars.withIndex()) {
+                val width = widths[index]
+                itemp[0] = char
+                g.fillText(String_fromIntArray(itemp, 0, 1), x.toDouble(), 0.0)
+                glyphsInfo += GlyphInfo(char, RectangleInt(x, 0, width, ni.height), width)
+                x += width + 2
+            }
+
+            val atlas = ni.toBMP32()
+
+            BitmapFont(
+                atlas, font.size.toInt(), font.size.toInt(), font.size.toInt(),
+                glyphsInfo.associate {
+                    it.char to BitmapFont.Glyph(
+                        it.char,
+                        atlas.slice(it.rect),
+                        0,
+                        0,
+                        it.width
+                    )
+                }.toIntMap(),
+                IntMap(),
+                name = name
+            )
+        }
+
+        return result.result
+    }
+}
+

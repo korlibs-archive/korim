@@ -1,4 +1,4 @@
-package com.soywiz.korim.font.ttf
+package com.soywiz.korim.font
 
 import com.soywiz.kds.IntArrayList
 import com.soywiz.kds.IntIntMap
@@ -7,9 +7,6 @@ import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.font.Font
-import com.soywiz.korim.font.FontRegistry
-import com.soywiz.korim.font.SystemFontRegistry
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
 import com.soywiz.korim.vector.TextMetrics
@@ -36,6 +33,65 @@ import kotlin.math.max
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
 class TtfFont private constructor(val s: SyncStream, override val name: String = "TtfFont", override val registry: FontRegistry = SystemFontRegistry) : Font {
+
+    var numGlyphs = 0
+    var maxPoints = 0
+    var maxContours = 0
+    var maxCompositePoints = 0
+    var maxCompositeContours = 0
+    var maxZones = 0
+    var maxTwilightPoints = 0
+    var maxStorage = 0
+    var maxFunctionDefs = 0
+    var maxInstructionDefs = 0
+    var maxStackElements = 0
+    var maxSizeOfInstructions = 0
+    var maxComponentElements = 0
+    var maxComponentDepth = 0
+
+    var hheaVersion = Fixed(0, 0)
+    var ascender = 0
+    var descender = 0
+    var lineGap = 0
+    var advanceWidthMax = 0
+    var minLeftSideBearing = 0
+    var minRightSideBearing = 0
+    var xMaxExtent = 0
+    var caretSlopeRise = 0
+    var caretSlopeRun = 0
+    var caretOffset = 0
+    var metricDataFormat = 0
+    var numberOfHMetrics = 0
+
+    var locs = IntArray(0)
+
+    var fontRev = Fixed(0, 0)
+    var unitsPerEm = 128
+    var xMin = 0
+    var yMin = 0
+    var xMax = 0
+    var yMax = 0
+    var macStyle = 0
+    var lowestRecPPEM = 0
+    var fontDirectionHint = 0
+
+    var indexToLocFormat = 0
+    var glyphDataFormat = 0
+
+    var horMetrics = listOf<HorMetric>()
+    val characterMaps = IntIntMap()
+
+    init {
+        readHeaderTables()
+        readHead()
+        readMaxp()
+        readHhea()
+        readNames()
+        readLoca()
+        readCmap()
+        readHmtx()
+    }
+
     override val size: Double get() = yMax.toDouble()
 
     override fun getTextBounds(text: String, out: TextMetrics): TextMetrics {
@@ -49,14 +105,14 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
     }
     override fun renderText(ctx: Context2d, text: String, x: Double, y: Double, fill: Boolean) {
         commonProcess(text, handleGlyph = { x, y, g ->
-            g.draw(ctx, size, origin = TtfFont.Origin.TOP)
+            g.draw(ctx, size, origin = Origin.TOP)
             if (fill) ctx.fill() else ctx.stroke()
         })
     }
 
     private inline fun commonProcess(
         text: String,
-        handleGlyph: (x: Double, y: Double, g: TtfFont.IGlyph) -> Unit = { x, y, g -> },
+        handleGlyph: (x: Double, y: Double, g: IGlyph) -> Unit = { x, y, g -> },
         handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
     ) {
         var x = 0.0
@@ -105,68 +161,10 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 	val tablesByName = LinkedHashMap<String, Table>()
 	fun openTable(name: String) = tablesByName[name]?.open()
 
-	var numGlyphs = 0
-	var maxPoints = 0
-	var maxContours = 0
-	var maxCompositePoints = 0
-	var maxCompositeContours = 0
-	var maxZones = 0
-	var maxTwilightPoints = 0
-	var maxStorage = 0
-	var maxFunctionDefs = 0
-	var maxInstructionDefs = 0
-	var maxStackElements = 0
-	var maxSizeOfInstructions = 0
-	var maxComponentElements = 0
-	var maxComponentDepth = 0
-
-	var hheaVersion = Fixed(0, 0)
-	var ascender = 0
-	var descender = 0
-	var lineGap = 0
-	var advanceWidthMax = 0
-	var minLeftSideBearing = 0
-	var minRightSideBearing = 0
-	var xMaxExtent = 0
-	var caretSlopeRise = 0
-	var caretSlopeRun = 0
-	var caretOffset = 0
-	var metricDataFormat = 0
-	var numberOfHMetrics = 0
-
-	var locs = IntArray(0)
-
-	var fontRev = Fixed(0, 0)
-	var unitsPerEm = 128
-	var xMin = 0
-	var yMin = 0
-	var xMax = 0
-	var yMax = 0
-	var macStyle = 0
-	var lowestRecPPEM = 0
-	var fontDirectionHint = 0
-
-	var indexToLocFormat = 0
-	var glyphDataFormat = 0
-
-	var horMetrics = listOf<HorMetric>()
-	val characterMaps = IntIntMap()
-
 	companion object {
 		operator fun invoke(s: SyncStream): TtfFont {
 			return TtfFont(s)
 		}
-	}
-
-	init {
-		readHeaderTables()
-		readHead()
-		readMaxp()
-		readHhea()
-		readNames()
-		readLoca()
-		readCmap()
-		readHmtx()
 	}
 
 	fun readHeaderTables() = s.sliceStart().apply {
@@ -178,7 +176,7 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 		val rangeShift = readU16BE()
 
 		val tables = (0 until numTables).map {
-			Table(readStringz(4), readS32BE(), readS32BE(), readS32BE())
+            Table(readStringz(4), readS32BE(), readS32BE(), readS32BE())
 		}
 
 		for (table in tables) {
@@ -304,10 +302,20 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 	}
 
 	fun readHmtx() = runTableUnit("hmtx") {
-		val firstMetrics = (0 until numberOfHMetrics).map { HorMetric(readU16BE(), readS16BE()) }
+		val firstMetrics = (0 until numberOfHMetrics).map {
+            HorMetric(
+                readU16BE(),
+                readS16BE()
+            )
+        }
 		val lastAdvanceWidth = firstMetrics.last().advanceWidth
 		val compressedMetrics =
-			(0 until (numGlyphs - numberOfHMetrics)).map { HorMetric(lastAdvanceWidth, readS16BE()) }
+			(0 until (numGlyphs - numberOfHMetrics)).map {
+                HorMetric(
+                    lastAdvanceWidth,
+                    readS16BE()
+                )
+            }
 		horMetrics = firstMetrics + compressedMetrics
 	}
 
@@ -465,19 +473,19 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 	}
 
 	data class GlyphReference(
-		val glyph: IGlyph,
-		val x: Int, val y: Int,
-		val scaleX: Float,
-		val scale01: Float,
-		val scale10: Float,
-		val scaleY: Float
+        val glyph: IGlyph,
+        val x: Int, val y: Int,
+        val scaleX: Float,
+        val scale01: Float,
+        val scale10: Float,
+        val scaleY: Float
 	)
 
 	inner class CompositeGlyph(
-		override val xMin: Int, override val yMin: Int,
-		override val xMax: Int, override val yMax: Int,
-		val refs: List<GlyphReference>,
-		override val advanceWidth: Int
+        override val xMin: Int, override val yMin: Int,
+        override val xMax: Int, override val yMax: Int,
+        val refs: List<GlyphReference>,
+        override val advanceWidth: Int
 	) : IGlyph {
 		override fun draw(c: Context2d, size: Double, origin: Origin) {
 			val scale = size / unitsPerEm.toDouble()
@@ -656,7 +664,15 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 				}
 
 				//val useMyMetrics = flags hasFlag USE_MY_METRICS
-				val ref = GlyphReference(getGlyphByIndex(glyphIndex)!!, x, y, scaleX, scale01, scale10, scaleY)
+				val ref = GlyphReference(
+                    getGlyphByIndex(glyphIndex)!!,
+                    x,
+                    y,
+                    scaleX,
+                    scale01,
+                    scale10,
+                    scaleY
+                )
 				//println("signed=$signed, words=$words, useMyMetrics=$useMyMetrics")
 				//println(ref)
 				references += ref
@@ -712,14 +728,11 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 			//println(xPos.toList())
 			//println(yPos.toList())
 			return Glyph(
-				xMin,
-				yMin,
-				xMax,
-				yMax,
+				xMin, yMin,
+				xMax, yMax,
 				contoursIndices,
 				flags.data.copyOf(flags.size),
-				xPos,
-				yPos,
+				xPos, yPos,
 				horMetrics[index].advanceWidth
 			)
 		}
@@ -727,13 +740,13 @@ class TtfFont private constructor(val s: SyncStream, override val name: String =
 }
 
 fun Context2d.fillText(
-	font: TtfFont,
-	text: String,
-	size: Double = 16.0,
-	x: Double = 0.0,
-	y: Double = 0.0,
-	color: RGBA = Colors.WHITE,
-	origin: TtfFont.Origin = TtfFont.Origin.BASELINE
+    font: TtfFont,
+    text: String,
+    size: Double = 16.0,
+    x: Double = 0.0,
+    y: Double = 0.0,
+    color: RGBA = Colors.WHITE,
+    origin: TtfFont.Origin = TtfFont.Origin.BASELINE
 ) {
 	font.fillText(this, text, size, x, y, color, origin)
 }

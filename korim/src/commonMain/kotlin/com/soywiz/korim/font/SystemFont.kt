@@ -19,4 +19,8 @@ data class SystemFont(override val name: String, override val size: Double, over
     }
 }
 
-inline fun SystemFont(name: String, size: Number) = SystemFont(name, size.toDouble(), SystemFontRegistry)
+inline fun SystemFont(name: String, size: Number) = SystemFont(
+    name,
+    size.toDouble(),
+    SystemFontRegistry
+)

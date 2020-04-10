@@ -1,11 +1,7 @@
 package com.soywiz.korim.font
 
-import com.soywiz.korim.bitmap.NativeImage
-import com.soywiz.korim.font.ttf.TtfFont
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.TextMetrics
-import com.soywiz.korma.geom.Rectangle
-import kotlin.math.max
 
 interface Font {
     val registry: FontRegistry
