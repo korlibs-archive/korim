@@ -118,30 +118,12 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                 cgKeepState(ctx) {
                                     CGContextSetAllowsAntialiasing(ctx, antialiasing)
                                     CGContextSetAlpha(ctx, state.globalAlpha.cg)
-                                    CGContextConcatCTM(ctx, state.transform.toCGAffineTransform())
+                                    //CGContextConcatCTM(ctx, state.transform.toCGAffineTransform()) // Points already transformed
                                     state.path.visitCmds(
                                         moveTo = { x, y -> CGContextMoveToPoint(ctx, x.cg, y.cg) },
                                         lineTo = { x, y -> CGContextAddLineToPoint(ctx, x.cg, y.cg) },
-                                        quadTo = { cx, cy, ax, ay ->
-                                            CGContextAddQuadCurveToPoint(
-                                                ctx,
-                                                cx.cg,
-                                                cy.cg,
-                                                ax.cg,
-                                                ay.cg
-                                            )
-                                        },
-                                        cubicTo = { cx1, cy1, cx2, cy2, ax, ay ->
-                                            CGContextAddCurveToPoint(
-                                                ctx,
-                                                cx1.cg,
-                                                cy1.cg,
-                                                cx2.cg,
-                                                cy2.cg,
-                                                ax.cg,
-                                                ay.cg
-                                            )
-                                        },
+                                        quadTo = { cx, cy, ax, ay -> CGContextAddQuadCurveToPoint(ctx, cx.cg, cy.cg, ax.cg, ay.cg) },
+                                        cubicTo = { cx1, cy1, cx2, cy2, ax, ay -> CGContextAddCurveToPoint(ctx, cx1.cg, cy1.cg, cx2.cg, cy2.cg, ax.cg, ay.cg) },
                                         close = { CGContextClosePath(ctx) }
                                     )
                                     if (!fill) {
@@ -196,30 +178,16 @@ class CoreGraphicsRenderer(val bmp: Bitmap32, val antialiasing: Boolean) : Conte
                                                         kCGGradientDrawsBeforeStartLocation or kCGGradientDrawsAfterEndLocation
 
                                                     CGContextClip(ctx)
-                                                    val gradient =
-                                                        CGGradientCreateWithColors(colorSpace, colors, locations)
-                                                    val start = CGPointMake(style.x0.cg, style.y0.cg)
-                                                    val end = CGPointMake(style.x1.cg, style.y1.cg)
+                                                    val m = state.transform
+                                                    val gradient = CGGradientCreateWithColors(colorSpace, colors, locations)
+                                                    val start = CGPointMake(style.x0(m).cg, style.y0(m).cg)
+                                                    val end = CGPointMake(style.x1(m).cg, style.y1(m).cg)
                                                     when (style.kind) {
                                                         Context2d.Gradient.Kind.LINEAR -> {
-                                                            CGContextDrawLinearGradient(
-                                                                ctx,
-                                                                gradient,
-                                                                start,
-                                                                end,
-                                                                options
-                                                            )
+                                                            CGContextDrawLinearGradient(ctx, gradient, start, end, options)
                                                         }
                                                         Context2d.Gradient.Kind.RADIAL -> {
-                                                            CGContextDrawRadialGradient(
-                                                                ctx,
-                                                                gradient,
-                                                                start,
-                                                                style.r0.cg,
-                                                                end,
-                                                                style.r1.cg,
-                                                                options
-                                                            )
+                                                            CGContextDrawRadialGradient(ctx, gradient, start, style.r0(m).cg, end, style.r1(m).cg, options)
                                                             CGGradientRelease(gradient)
                                                         }
                                                     }

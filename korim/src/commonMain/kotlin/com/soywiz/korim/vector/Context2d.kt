@@ -1,6 +1,7 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.*
+import com.soywiz.kmem.clamp
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
@@ -571,7 +572,26 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
             return this
         }
 
-		fun applyMatrix(m: Matrix): Gradient = Gradient(
+        val gradientMatrix = Matrix().apply {
+            translate(-x0, -y0)
+            scale(1.0 / Point.distance(x0, y0, x1, y1).clamp(1.0, 16000.0))
+            rotate(-Angle.between(x0, y0, x1, y1))
+            premultiply(transform)
+        }
+
+        val gradientMatrixInv = gradientMatrix.inverted()
+
+        // @TODO
+        fun getRatioAt(x: Double, y: Double): Double {
+            if (kind == Kind.RADIAL) {
+                // @TODO
+            }
+            return gradientMatrix.transformX(x, y)
+        }
+
+        fun getRatioAt(x: Double, y: Double, m: Matrix): Double = getRatioAt(m.transformX(x, y), m.transformY(x, y))
+
+        fun applyMatrix(m: Matrix): Gradient = Gradient(
 			kind,
 			m.transformX(x0, y0),
 			m.transformY(x0, y0),
