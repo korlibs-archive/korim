@@ -13,7 +13,7 @@ import com.soywiz.korio.lang.invalidOp
 import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.encoding.hex
-import com.soywiz.korma.geom.setTo
+import com.soywiz.korma.geom.Rectangle
 import com.soywiz.korma.geom.vector.lineTo
 import com.soywiz.korma.geom.vector.moveTo
 import com.soywiz.korma.geom.vector.quadTo
@@ -30,36 +30,11 @@ import kotlin.collections.set
 class TtfFont(val s: SyncStream) : Font {
     constructor(d: ByteArray) : this(d.openSync())
 
-    override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics = metrics.also {
-        val scale = getTextScale(size)
-        it.size = size
-        it.top = (this.yMax) * scale
-        it.ascent = this.ascender * scale
-        it.baseline = 0.0 * scale
-        it.descent = this.descender * scale
-        it.bottom = (this.yMin) * scale
-        it.leading = this.lineGap * scale
-        it.maxWidth = this.advanceWidthMax *scale
-    }
+    override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics =
+        metrics.copyFromScaled(this.fontMetrics1px, size)
 
-    val lineHeight get() = yMax - yMin
-
-    override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics = metrics.also {
-        val scale = getTextScale(size)
-        val g = getGlyphByCodePoint(codePoint)
-        it.existing = g != null
-        it.codePoint = codePoint
-        it.xadvance = 0.0
-        it.bounds.setTo(0, 0, 0, 0)
-        if (g != null) {
-            it.xadvance = g.advanceWidth * scale
-            it.bounds.setBounds(
-                g.xMin * scale, g.yMin * scale,
-                g.xMax * scale, g.yMax * scale
-            )
-            //it.bounds.top -= lineHeight * scale
-        }
-    }
+    override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics =
+        metrics.copyFromScaled(getGlyphByCodePoint(codePoint)?.metrics1px ?: nonExistantGlyphMetrics1px, size, codePoint)
 
     override fun getKerning(
         size: Double,
@@ -181,6 +156,19 @@ class TtfFont(val s: SyncStream) : Font {
         readLoca()
         readCmap()
         readHmtx()
+    }
+
+    val lineHeight get() = yMax - yMin
+    private val fontMetrics1px = FontMetrics().also {
+        val scale = getTextScale(1.0)
+        it.size = 1.0
+        it.top = (this.yMax) * scale
+        it.ascent = this.ascender * scale
+        it.baseline = 0.0 * scale
+        it.descent = this.descender * scale
+        it.bottom = (this.yMin) * scale
+        it.leading = this.lineGap * scale
+        it.maxWidth = this.advanceWidthMax *scale
     }
 
     override val name: String get() = "TtfFont"
@@ -468,14 +456,24 @@ class TtfFont(val s: SyncStream) : Font {
 
 	fun getAllGlyphs() = (0 until numGlyphs).mapNotNull { getGlyphByIndex(it) }
 
-	interface Glyph {
-        val index: Int
-		val xMin: Int
-		val yMin: Int
-		val xMax: Int
-		val yMax: Int
-		val advanceWidth: Int
-		fun draw(c: Context2d, x: Double, y: Double, size: Double)
+    private val nonExistantGlyphMetrics1px = GlyphMetrics(1.0, false, 0, Rectangle(), 0.0)
+
+	abstract inner class Glyph {
+        abstract val index: Int
+        abstract val xMin: Int
+        abstract val yMin: Int
+        abstract val xMax: Int
+        abstract val yMax: Int
+        abstract val advanceWidth: Int
+        abstract fun draw(c: Context2d, x: Double, y: Double, size: Double)
+
+        internal val metrics1px by lazy {
+            val scale = getTextScale(1.0)
+            GlyphMetrics(1.0, true, -1, Rectangle.fromBounds(
+                xMin * scale, yMin * scale,
+                xMax * scale, yMax * scale
+            ), advanceWidth * scale)
+        }
 	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
@@ -501,7 +499,7 @@ class TtfFont(val s: SyncStream) : Font {
         override val xMax: Int, override val yMax: Int,
         val refs: List<GlyphReference>,
         override val advanceWidth: Int
-	) : Glyph {
+	) : Glyph() {
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs.map { it.glyph }})"
 
         override fun draw(c: Context2d, x: Double, y: Double, size: Double) {
@@ -525,7 +523,7 @@ class TtfFont(val s: SyncStream) : Font {
 		val xPos: IntArray,
 		val yPos: IntArray,
 		override val advanceWidth: Int
-	) : Glyph {
+	) : Glyph() {
         override fun toString(): String = "SimpleGlyph[$advanceWidth]($index) : $graphicsPath"
         val graphicsPath by lazy { createGraphicsPath() }
         val npoints: Int get() = xPos.size

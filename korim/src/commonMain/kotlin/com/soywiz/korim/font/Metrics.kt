@@ -27,6 +27,19 @@ data class FontMetrics(
     /* 'É' + 'j' + linegap */
     val lineHeight get() = top - bottom
 
+    fun copyFromNewSize(other: FontMetrics, size: Double) = this.copyFromScaled(other, size / other.size)
+
+    fun copyFromScaled(other: FontMetrics, scale: Double) = this.apply {
+        this.size = other.size * scale
+        this.top = other.top * scale
+        this.ascent = other.ascent * scale
+        this.baseline = other.baseline * scale
+        this.descent = other.descent * scale
+        this.bottom = other.bottom * scale
+        this.leading = other.leading * scale
+        this.maxWidth = other.maxWidth * scale
+    }
+
     override fun toString(): String = buildString {
         append("FontMetrics(")
         append("size=${size.toIntRound()}, ")
@@ -43,6 +56,7 @@ data class FontMetrics(
 }
 
 data class GlyphMetrics(
+    var size: Double = 0.0,
     var existing: Boolean = false,
     var codePoint: Int = 0,
     val bounds: Rectangle = Rectangle(),
@@ -56,6 +70,16 @@ data class GlyphMetrics(
     val height: Double get() = bounds.height
 
     fun clone() = copy(bounds = bounds.clone())
+
+    fun copyFromNewSize(other: GlyphMetrics, size: Double, codePoint: Int = other.codePoint) = this.copyFromScaled(other, size / other.size, codePoint)
+
+    fun copyFromScaled(other: GlyphMetrics, scale: Double, codePoint: Int = other.codePoint) = this.apply {
+        this.size = other.size
+        this.existing = other.existing
+        this.codePoint = codePoint
+        this.bounds.setTo(other.bounds.x * scale, other.bounds.y * scale, other.bounds.width * scale, other.bounds.height * scale)
+        this.xadvance = other.xadvance * scale
+    }
 
     override fun toString(): String = buildString {
         append("GlyphMetrics(")
