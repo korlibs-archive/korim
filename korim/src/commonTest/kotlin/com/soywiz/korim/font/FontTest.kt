@@ -67,11 +67,14 @@ class FontTest {
         //println(result2)
         //result2.bmp.showImageAndWait()
 
-        BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
+        //BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
+        BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
 
         //val font = DefaultTtfFont
         //val font = BitmapFont(DefaultTtfFont, 24.0)
-        val font = BitmapFont(DefaultTtfFont, 24.0)
+        //val font = BitmapFont(DefaultTtfFont, 24.0)
+        val font = BitmapFont(SystemFont("Arial"), 24.0)
+        //val font = SystemFont("Arial")
         //val font = BitmapFont(DefaultTtfFont, 24.0)
 
         //println(buildSvgXml { drawText("Hello World!") }.toString())
@@ -83,7 +86,7 @@ class FontTest {
             val scale = 1.0 + n * 0.1
             //transform.translate(0.0, scale)
             transform.scale(scale)
-            transform.rotate(25.degrees)
+            //transform.rotate(25.degrees)
             put(c)
             advance(advance * scale)
         })

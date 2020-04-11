@@ -33,9 +33,26 @@ abstract class Renderer {
         }
     }
     open fun render(state: Context2d.State, fill: Boolean): Unit = Unit
-    open fun renderText(state: Context2d.State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
-    open fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit =
-        run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
+    open fun getGlyphShape(systemFont: SystemFont, size: Double, codePoint: Int): GraphicsPath = GraphicsPath()
+    //open fun renderText(state: Context2d.State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit = Unit
+    //open fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit = run { out.bounds.setTo(0.0, 0.0, 0.0, 0.0) }
+    open fun getKerning(systemFont: SystemFont, size: Double, c1: Int, c2: Int): Double = 0.0
+    open fun getGlyphMetrics(systemFont: SystemFont, size: Double, codePoint: Int, metrics: GlyphMetrics) {
+        metrics.existing = true
+        metrics.codePoint = codePoint
+        metrics.bounds.setTo(0, 0, size, size)
+        metrics.xadvance = size
+    }
+    open fun getFontMetrics(systemFont: SystemFont, size: Double, metrics: FontMetrics) {
+        metrics.size = size
+        metrics.top = size
+        metrics.ascent = size
+        metrics.baseline = 0.0
+        metrics.descent = 0.0
+        metrics.bottom = 0.0
+        metrics.leading = 0.0
+        metrics.maxWidth = size
+    }
 
     open fun drawImage(
         image: Bitmap,
@@ -100,10 +117,10 @@ abstract class BufferedRenderer : Renderer() {
         if (!isBuffering()) flush()
     }
 
-    final override fun renderText(state: Context2d.State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
-        commands += RenderCommand(state.clone(), fill, font, fontSize, text, x, y)
-        if (!isBuffering()) flush()
-    }
+    //final override fun renderText(state: Context2d.State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
+    //    commands += RenderCommand(state.clone(), fill, font, fontSize, text, x, y)
+    //    if (!isBuffering()) flush()
+    //}
 
     final override fun flush() = flushCommands()
 }

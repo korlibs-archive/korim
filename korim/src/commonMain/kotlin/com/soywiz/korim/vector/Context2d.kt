@@ -24,9 +24,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
-    open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
-        renderer.renderText(state, font, fontSize, text, x, y, fill)
-    protected open fun rendererSystemGetBounds(font: SystemFont, fontSize: Double, text: String, out: TextMetrics): Unit = renderer.getBounds(font, fontSize, text, out)
+    //open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
+    //    renderer.renderText(state, font, fontSize, text, x, y, fill)
 
     open val width: Int get() = rendererWidth
     open val height: Int get() = rendererHeight
@@ -50,10 +49,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			adjustMatrix(state.transform) { callback() }
 
 		override fun render(state: State, fill: Boolean): Unit = adjustState(state) { parent.render(state, fill) }
-		override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit =
-			adjustState(state) { parent.renderText(state, font, fontSize, text, x, y, fill) }
+		//override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit =
+		//	adjustState(state) { parent.renderText(state, font, fontSize, text, x, y, fill) }
 
-		override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit = parent.getBounds(font, fontSize, text, out)
 		override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix): Unit {
 			adjustMatrix(transform) { parent.drawImage(image, x, y, width, height, transform) }
 		}
