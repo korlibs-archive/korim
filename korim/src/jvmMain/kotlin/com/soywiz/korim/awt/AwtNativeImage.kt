@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.SystemFont
+import com.soywiz.korim.font.TextMetrics
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korma.geom.*

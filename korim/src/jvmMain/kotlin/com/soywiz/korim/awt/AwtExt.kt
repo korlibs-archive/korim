@@ -31,8 +31,8 @@ fun Bitmap32.toAwt(
 
 fun Bitmap.toAwt(
 	out: BufferedImage = BufferedImage(
-		width,
-		height,
+		width.coerceAtLeast(1),
+		height.coerceAtLeast(1),
 		if (this.premultiplied) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
 	)
 ): BufferedImage = this.toBMP32().toAwt(out)

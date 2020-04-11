@@ -113,8 +113,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
     }
 
     inner class ScanlineWriter {
-        var filler: BaseFiller =
-            NoneFiller
+        var filler: BaseFiller = NoneFiller
         var ny0 = -1.0
         var ny = -1
         val size = bmp.width
@@ -131,6 +130,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             segments.reset()
         }
         fun select(x0: Double, x1: Double, y0: Double) {
+            if (width1 < 1) return
             val x0 = x0.coerceIn(0.0, width1.toDouble())
             val x1 = x1.coerceIn(0.0, width1.toDouble())
             val a = x0.toIntRound()

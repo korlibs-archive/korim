@@ -1,27 +1,32 @@
 package com.soywiz.korim.font
 
-import com.soywiz.kds.*
+import com.soywiz.kds.Extra
+import com.soywiz.kds.IntMap
+import com.soywiz.kds.toIntMap
 import com.soywiz.klock.measureTimeWithResult
 import com.soywiz.kmem.insert
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korim.color.*
-import com.soywiz.korim.format.*
+import com.soywiz.korim.color.Colors
+import com.soywiz.korim.color.RGBA
+import com.soywiz.korim.format.ImageFormat
+import com.soywiz.korim.format.RegisteredImageFormats
+import com.soywiz.korim.format.readBitmapSlice
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.HorizontalAlign
-import com.soywiz.korim.vector.TextMetrics
 import com.soywiz.korim.vector.VerticalAlign
 import com.soywiz.korim.vector.paint.DefaultPaint
-import com.soywiz.korio.dynamic.*
-import com.soywiz.korio.file.*
-import com.soywiz.korio.lang.*
-import com.soywiz.korio.serialization.xml.*
-import com.soywiz.korio.util.*
-import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korio.dynamic.KDynamic
+import com.soywiz.korio.file.VfsFile
+import com.soywiz.korio.lang.String_fromIntArray
+import com.soywiz.korio.lang.substr
+import com.soywiz.korio.serialization.xml.Xml
+import com.soywiz.korio.serialization.xml.get
+import com.soywiz.korio.util.unquote
 import com.soywiz.korma.geom.RectangleInt
+import com.soywiz.korma.geom.setTo
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
-import kotlin.math.max
 
 class BitmapFont(
     val fontSize: Int,
@@ -32,25 +37,43 @@ class BitmapFont(
     val atlas: Bitmap = glyphs.values.iterator().next()?.texture?.bmp ?: Bitmaps.transparent.bmp,
     override val name: String = "BitmapFont"
 ) : Extra by Extra.Mixin(), Font {
-    override fun getTextBounds(size: Double, text: String, out: TextMetrics): TextMetrics {
+    override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics = metrics.also {
         val scale = getTextScale(size)
-        var maxx = 0.0
-        var maxy = 0.0
-        commonProcess(text, handleBounds = { _maxx, _maxy ->
-            maxx = _maxx
-            maxy = _maxy
-        })
-        return TextMetrics(Rectangle(0 * scale, 0 * scale, maxx * scale, maxy * scale)).also {
-            it.base = this.base * scale
+        it.size = size
+        it.top = base.toDouble() * scale
+        it.ascent = it.top * scale
+        it.baseline = 0.0
+        it.descent = (base - lineHeight).toDouble() * scale // No descent information
+        it.bottom = it.descent * scale
+        it.leading = 0.0
+    }
+
+    override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics = metrics.also {
+        val scale = getTextScale(size)
+        val glyph = glyphs[codePoint]
+        it.existing = glyph != null
+        it.codePoint = codePoint
+        it.xadvance = 0.0
+        it.bounds.setTo(0, 0, 0, 0)
+        if (glyph != null) {
+            it.xadvance = glyph.xadvance.toDouble() * scale
+            it.bounds.setTo(
+                glyph.xoffset * scale, glyph.yoffset * scale,
+                glyph.texture.width * scale, glyph.texture.height * scale
+            )
         }
     }
-    override fun renderText(ctx: Context2d, size: Double, text: String, x: Double, y: Double, fill: Boolean) {
+
+    override fun getKerning(size: Double, leftCodePoint: Int, rightCodePoint: Int): Double =
+        getTextScale(size) * (getKerning(leftCodePoint, rightCodePoint)?.amount?.toDouble() ?: 0.0)
+
+    override fun renderGlyph(ctx: Context2d, size: Double, codePoint: Int, x: Double, y: Double, fill: Boolean, metrics: GlyphMetrics) {
         val scale = getTextScale(size)
-        val metrics = getTextBounds(this.fontSize.toDouble(), text)
+        val g = glyphs[codePoint] ?: return
+        val metrics = getGlyphMetrics(size, codePoint, metrics).takeIf { it.existing } ?: return
+        if (metrics.width == 0.0 && metrics.height == 0.0) return
         val bmpAlpha = Bitmap32(metrics.width.toInt(), metrics.height.toInt())
-        commonProcess(text, handleGlyph = { x, y, g ->
-            bmpAlpha.draw(g.bmp, (x - metrics.left).toInt(), (y - metrics.top).toInt())
-        })
+        bmpAlpha.draw(g.bmp, (x - metrics.left).toInt(), (y - metrics.top).toInt())
         //println("SCALE: $scale")
         val texX = x + (metrics.left - ctx.horizontalAlign.getOffsetX(metrics.width)) * scale
         val texY = y + (metrics.top - ctx.verticalAlign.getOffsetY(metrics.height, this.base.toDouble())) * scale
@@ -74,28 +97,6 @@ class BitmapFont(
     }
 
     private fun getTextScale(size: Double) = size.toDouble() / fontSize.toDouble()
-
-    private inline fun commonProcess(
-        text: String,
-        handleGlyph: (x: Double, y: Double, g: Glyph) -> Unit = { x, y, g -> },
-        handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
-    ) {
-        var x = 0.0
-        var y = 0.0
-        var maxx = 0.0
-        for (c in text) {
-            if (c == '\n') {
-                x = 0.0
-                y += lineHeight
-            } else {
-                val glyph = this[c]
-                handleGlyph(x, y, glyph)
-                x += glyph.xadvance
-                maxx = max(maxx, x + glyph.xadvance)
-            }
-        }
-        handleBounds(maxx, y + lineHeight)
-    }
 
 	fun measureWidth(text: String): Int {
 		var x = 0
@@ -350,5 +351,3 @@ fun Bitmap32.drawText(
     this.fillStyle = createColor(color)
     this.fillText(str, x, y)
 }
-
-

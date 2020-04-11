@@ -1,19 +1,14 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.*
-import com.soywiz.kmem.clamp
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.font.Font
-import com.soywiz.korim.font.FontRegistry
-import com.soywiz.korim.font.SystemFont
-import com.soywiz.korim.font.SystemFontRegistry
+import com.soywiz.korim.font.*
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.renderer.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -380,20 +375,19 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics {
-        return font.getTextBounds(fontSize, text, out)
-    }
+	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
+        font.getTextBounds(fontSize, text, out = out)
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun fillText(text: String, x: Number, y: Number): Unit =
-		renderText(text, x.toDouble(), y.toDouble(), fill = true)
+    inline fun fillText(text: String, x: Number, y: Number): Unit =
+        drawText(text, x.toDouble(), y.toDouble(), fill = true)
 
-	@Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun strokeText(text: String, x: Number, y: Number): Unit =
-		renderText(text, x.toDouble(), y.toDouble(), fill = false)
+    @Suppress("NOTHING_TO_INLINE") // Number inlining
+    inline fun strokeText(text: String, x: Number, y: Number): Unit =
+        drawText(text, x.toDouble(), y.toDouble(), fill = false)
 
-	@Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun fillText(
+    @Suppress("NOTHING_TO_INLINE") // Number inlining
+    inline fun fillText(
         text: String,
         x: Number,
         y: Number,
@@ -402,16 +396,17 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         halign: HorizontalAlign = this.horizontalAlign,
         valign: VerticalAlign = this.verticalAlign,
         color: RGBA? = null
-	): Unit {
-		font(font, halign, valign, fontSize) {
-			fillStyle(color?.let { createColor(it) } ?: fillStyle) {
-				renderText(text, x.toDouble(), y.toDouble(), fill = true)
-			}
-		}
-	}
+    ): Unit {
+        font(font, halign, valign, fontSize) {
+            fillStyle(color?.let { createColor(it) } ?: fillStyle) {
+                drawText(text, x.toDouble(), y.toDouble(), fill = true)
+            }
+        }
+    }
 
-    open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit {
-        font.renderText(this, fontSize, text, x, y, fill)
+    fun <T> drawText(text: T, x: Double = 0.0, y: Double = 0.0, fill: Boolean = true, paint: Paint? = null, font: Font = this.font, size: Double = this.fontSize, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>) {
+        val paint = paint ?: (if (fill) this.fillStyle else this.strokeStyle)
+        font.drawText(this, size, text, paint, x, y, fill, renderer = renderer)
     }
 
     // @TODO: Fix this!

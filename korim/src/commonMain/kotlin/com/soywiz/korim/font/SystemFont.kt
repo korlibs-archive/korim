@@ -1,19 +1,35 @@
 package com.soywiz.korim.font
 
-import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.vector.Context2d
-import com.soywiz.korim.vector.TextMetrics
 
 inline class SystemFont(override val name: String) : Font {
-    override fun getTextBounds(size: Double, text: String, out: TextMetrics): TextMetrics {
-        val bni = NativeImage(1, 1)
-        val bnictx = bni.getContext2d()
-        bnictx.renderer.getBounds(this, size, text, out)
-        return out
+    override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics {
+        TODO("Not yet implemented")
     }
-    override fun renderText(ctx: Context2d, size: Double, text: String, x: Double, y: Double, fill: Boolean) {
+
+    override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics {
+        TODO("Not yet implemented")
+    }
+
+    override fun getKerning(
+        size: Double,
+        leftCodePoint: Int,
+        rightCodePoint: Int
+    ): Double {
+        TODO("Not yet implemented")
+    }
+
+    override fun renderGlyph(
+        ctx: Context2d,
+        size: Double,
+        codePoint: Int,
+        x: Double,
+        y: Double,
+        fill: Boolean,
+        metrics: GlyphMetrics
+    ) {
         ctx.apply {
-            ctx.renderer.rendererRenderSystemText(state, this@SystemFont, size, text, x, y, fill)
+            ctx.renderer.rendererRenderSystemText(state, this@SystemFont, size, "${codePoint.toChar()}", x, y, fill)
         }
     }
 }

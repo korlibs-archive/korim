@@ -1,15 +1,11 @@
 package com.soywiz.korim.font
 
 import com.soywiz.kds.IntArrayList
-import com.soywiz.kds.IntIntMap
 import com.soywiz.kmem.extract16Signed
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
-import com.soywiz.korim.color.Colors
-import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.GraphicsPath
-import com.soywiz.korim.vector.TextMetrics
 import com.soywiz.korio.file.VfsFile
 import com.soywiz.korio.lang.UTF16_BE
 import com.soywiz.korio.lang.UTF8
@@ -17,14 +13,11 @@ import com.soywiz.korio.lang.invalidOp
 import com.soywiz.korio.lang.toString
 import com.soywiz.korio.stream.*
 import com.soywiz.korio.util.encoding.hex
-import com.soywiz.korma.geom.Rectangle
-import com.soywiz.korma.geom.bezier.Bezier
+import com.soywiz.korma.geom.setTo
 import com.soywiz.korma.geom.vector.lineTo
 import com.soywiz.korma.geom.vector.moveTo
 import com.soywiz.korma.geom.vector.quadTo
-import com.soywiz.korma.geom.vector.rect
 import kotlin.collections.set
-import kotlin.math.max
 
 @Suppress("MemberVisibilityCanBePrivate", "UNUSED_VARIABLE", "LocalVariableName", "unused")
 // Used information from:
@@ -37,45 +30,68 @@ import kotlin.math.max
 class TtfFont(val s: SyncStream) : Font {
     constructor(d: ByteArray) : this(d.openSync())
 
-    override fun getTextBounds(size: Double, text: String, out: TextMetrics): TextMetrics {
-        var maxx = 0.0
-        var maxy = 0.0
-        commonProcess(text, size, handleBounds = { _maxx, _maxy ->
-            maxx = _maxx
-            maxy = _maxy
-        })
-        return TextMetrics(Rectangle(0, 0, maxx, maxy))
+    override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics = metrics.also {
+        val scale = getTextScale(size)
+        it.size = size
+        it.top = this.yMax.toDouble() * scale
+        it.ascent = this.ascender.toDouble() * scale
+        it.baseline = 0.0
+        it.descent = this.descender.toDouble() * scale
+        it.bottom = this.yMin.toDouble() * scale
+        it.leading = 0.0
+    }
+
+    val lineHeight get() = yMax - yMin
+
+    override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics = metrics.also {
+        val scale = getTextScale(size)
+        val g = getGlyphByCodePoint(codePoint)
+        it.existing = g != null
+        it.codePoint = codePoint
+        it.xadvance = 0.0
+        it.bounds.setTo(0, 0, 0, 0)
+        if (g != null) {
+            it.xadvance = g.advanceWidth * scale
+            it.bounds.setBounds(
+                g.xMin * scale, g.yMin * scale,
+                g.xMax * scale, g.yMax * scale
+            )
+            //it.bounds.top -= lineHeight * scale
+        }
+    }
+
+    override fun getKerning(
+        size: Double,
+        leftCodePoint: Int,
+        rightCodePoint: Int
+    ): Double {
+        // @TODO: Kerning information not read yet. Not implemented
+        return 0.0
     }
 
     private fun getTextScale(size: Double) = size / unitsPerEm.toDouble()
 
-    override fun renderText(ctx: Context2d, size: Double, text: String, x: Double, y: Double, fill: Boolean) {
-        val scale = getTextScale(size)
-        ctx.keepTransform {
-            //ctx.scale(scale)
-            commonProcess(text, size, handleGlyph = { tx, ty, g ->
-                //println("x=$x, y=$y, tx=$tx, ty=$ty")
-                g.draw(ctx, x + tx, y + ty, size, Origin.BASELINE)
-                if (fill) ctx.fill() else ctx.stroke()
-            })
-        }
-    }
-
-    @Deprecated("")
-    fun fillText(
-        c: Context2d,
-        text: String,
-        size: Double = 16.0,
-        x: Double = 0.0,
-        y: Double = 0.0,
-        color: RGBA = Colors.WHITE,
-        @Suppress("UNUSED_PARAMETER") origin: Origin = Origin.BASELINE
+    override fun renderGlyph(
+        ctx: Context2d,
+        size: Double,
+        codePoint: Int,
+        x: Double,
+        y: Double,
+        fill: Boolean,
+        metrics: GlyphMetrics
     ) {
-        c.fill(color) {
-            renderText(c, size, text, x, y, fill = true)
+        val scale = getTextScale(size)
+        getGlyphMetrics(size, codePoint, metrics)
+        ctx.keepTransform {
+            val g = getGlyphByCodePoint(codePoint)
+            if (g != null) {
+                g.draw(ctx, x, y, size, FontOrigin.BASELINE)
+                ctx.fill()
+            }
         }
     }
 
+    /*
     private inline fun commonProcess(
         text: String,
         size: Double,
@@ -103,6 +119,7 @@ class TtfFont(val s: SyncStream) : Font {
         }
         handleBounds(maxx, y + yMax * scale)
     }
+    */
 
     var numGlyphs = 0
     var maxPoints = 0
@@ -190,9 +207,10 @@ class TtfFont(val s: SyncStream) : Font {
 	fun SyncStream.readFixed() = Fixed(readS16LE(), readS16LE())
 	data class HorMetric(val advanceWidth: Int, val lsb: Int)
 
-	fun openTable(name: String) = tablesByName[name]?.open()
+    @PublishedApi
+	internal fun openTable(name: String) = tablesByName[name]?.open()
 
-	fun readHeaderTables() = s.sliceStart().apply {
+	private fun readHeaderTables() = s.sliceStart().apply {
 		val majorVersion = readU16BE().apply { if (this != 1) invalidOp("Not a TTF file") }
 		val minorVersion = readU16BE().apply { if (this != 0) invalidOp("Not a TTF file") }
 		val numTables = readU16BE()
@@ -218,7 +236,7 @@ class TtfFont(val s: SyncStream) : Font {
 
 	inline fun <T> runTable(name: String, callback: SyncStream.() -> T): T? = openTable(name)?.let { callback(it) }
 
-	fun readNames() = runTableUnit("name") {
+    private fun readNames() = runTableUnit("name") {
 		val format = readU16BE()
 		val count = readU16BE()
 		val stringOffset = readU16BE()
@@ -242,7 +260,7 @@ class TtfFont(val s: SyncStream) : Font {
 		}
 	}
 
-	fun readLoca() = runTableUnit("loca") {
+    private fun readLoca() = runTableUnit("loca") {
 		val bytesPerEntry = when (indexToLocFormat) {
 			0 -> 2
 			1 -> 4
@@ -262,7 +280,7 @@ class TtfFont(val s: SyncStream) : Font {
 		//println("locs: ${locs.toList()}")
 	}
 
-	fun readHead() = runTableUnit("head") {
+    private fun readHead() = runTableUnit("head") {
 		readU16BE().apply { if (this != 1) invalidOp("Invalid TTF") }
 		readU16BE().apply { if (this != 0) invalidOp("Invalid TTF") }
 		fontRev = readFixed()
@@ -288,7 +306,7 @@ class TtfFont(val s: SyncStream) : Font {
 		//println("bounds: ($xMin, $yMin)-($xMax, $yMax)")
 	}
 
-	fun readMaxp() = runTableUnit("maxp") {
+    private fun readMaxp() = runTableUnit("maxp") {
 		val version = readFixed()
 		numGlyphs = readU16BE()
 		maxPoints = readU16BE()
@@ -306,7 +324,7 @@ class TtfFont(val s: SyncStream) : Font {
 		maxComponentDepth = readU16BE()
 	}
 
-	fun readHhea() = runTableUnit("hhea") {
+    private fun readHhea() = runTableUnit("hhea") {
 		hheaVersion = readFixed()
 		ascender = readS16BE()
 		descender = readS16BE()
@@ -326,7 +344,7 @@ class TtfFont(val s: SyncStream) : Font {
 		numberOfHMetrics = readU16BE()
 	}
 
-	fun readHmtx() = runTableUnit("hmtx") {
+    private fun readHmtx() = runTableUnit("hmtx") {
 		val firstMetrics = (0 until numberOfHMetrics).map {
             HorMetric(
                 readU16BE(),
@@ -344,7 +362,7 @@ class TtfFont(val s: SyncStream) : Font {
 		horMetrics = firstMetrics + compressedMetrics
 	}
 
-	fun readCmap() = runTableUnit("cmap") {
+	private fun readCmap() = runTableUnit("cmap") {
 		data class EncodingRecord(val platformId: Int, val encodingId: Int, val offset: Int)
 
 		val version = readU16BE()
@@ -455,7 +473,7 @@ class TtfFont(val s: SyncStream) : Font {
 		val xMax: Int
 		val yMax: Int
 		val advanceWidth: Int
-		fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin)
+		fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin)
 	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
@@ -464,10 +482,6 @@ class TtfFont(val s: SyncStream) : Font {
 			this.y = that.y
 			this.onCurve = that.onCurve
 		}
-	}
-
-	enum class Origin {
-		TOP, BASELINE
 	}
 
 	data class GlyphReference(
@@ -488,7 +502,7 @@ class TtfFont(val s: SyncStream) : Font {
 	) : Glyph {
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs.map { it.glyph }})"
 
-        override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin) {
+        override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin) {
 			val scale = size / unitsPerEm.toDouble()
 			c.keepTransform {
 				for (ref in refs) {
@@ -522,13 +536,13 @@ class TtfFont(val s: SyncStream) : Font {
 			onCurve = onCurve(n)
 		}
 
-		override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: Origin) {
+		override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin) {
 			val font = this@TtfFont
 			val scale = size / font.unitsPerEm.toDouble()
             c.keepTransform {
                 val ydist: Double = when (origin) {
-                    Origin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
-                    Origin.BASELINE -> 0.0
+                    FontOrigin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
+                    FontOrigin.BASELINE -> 0.0
                 }
                 c.translate(x + 0.0 * scale, y + (ydist - yMin) * scale)
                 c.scale(scale, -scale)
@@ -751,17 +765,6 @@ class TtfFont(val s: SyncStream) : Font {
 		}
 	}
 }
-
-@Deprecated("")
-fun Context2d.fillText(
-    font: TtfFont,
-    text: String,
-    size: Double = 16.0,
-    x: Double = 0.0,
-    y: Double = 0.0,
-    color: RGBA = Colors.WHITE,
-    origin: TtfFont.Origin = TtfFont.Origin.BASELINE
-) = font.fillText(this, text, size, x, y, color, origin)
 
 internal inline class Fixed(val data: Int) {
     val num: Int get() = data.extract16Signed(0)
