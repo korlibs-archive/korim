@@ -31,7 +31,10 @@ data class TextToBitmapResult(
     data class PlacedGlyph(val codePoint: Int, val x: Double, val y: Double, val metrics: GlyphMetrics, val transform: Matrix)
 }
 
-fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true, border: Int = 1, nativeRendering: Boolean = true): TextToBitmapResult {
+fun Font.renderGlyphToBitmap(
+    size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true,
+    border: Int = 1, nativeRendering: Boolean = true
+): TextToBitmapResult {
     val font = this
     val fmetrics = getFontMetrics(size)
     val gmetrics = getGlyphMetrics(size, codePoint)

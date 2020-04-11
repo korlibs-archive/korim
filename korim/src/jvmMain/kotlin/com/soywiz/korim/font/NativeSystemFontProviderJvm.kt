@@ -67,7 +67,7 @@ object AwtNativeSystemFontProvider : NativeSystemFontProvider() {
         codePoint: Int,
         metrics: GlyphMetrics
     ) {
-        //super.getSystemFontGlyphMetrics(systemFont, size, codePoint, metrics)
+        super.getSystemFontGlyphMetrics(systemFont, size, codePoint, metrics)
         val font = systemFont.toAwt(size)
         g.font = font
         val fm = g.fontMetrics
@@ -77,7 +77,7 @@ object AwtNativeSystemFontProvider : NativeSystemFontProvider() {
         val bounds = vector.visualBounds
         metrics.existing = font.canDisplay(codePoint)
         metrics.xadvance = fm.charWidth(codePoint.toChar()).toDouble()
-        metrics.bounds.setTo(0, 0, bounds.width, bounds.height)
+        //metrics.bounds.setTo(0, 0, bounds.width, bounds.height)
         //println("BOUNDS: ${metrics.bounds}")
         //metrics.bounds.setTo(bounds.x, -(bounds.height - bounds.y), bounds.width, bounds.height)
     }

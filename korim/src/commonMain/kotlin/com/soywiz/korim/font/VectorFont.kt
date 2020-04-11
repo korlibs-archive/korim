@@ -17,7 +17,10 @@ interface VectorFont : Font {
         getGlyphMetrics(size, codePoint, metrics)
         val g = getGlyphPath(size, codePoint)
         if (g != null) {
-            g.draw(ctx)
+            ctx.keepTransform {
+                ctx.translate(x, y)
+                g.draw(ctx)
+            }
             if (fill) ctx.fill() else ctx.stroke()
         }
     }
