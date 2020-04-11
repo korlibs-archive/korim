@@ -27,10 +27,11 @@ class Rasterizer {
         val isCoplanarX = ay == by
         val isCoplanarY = ax == bx
         val slope = (by - ay) / (bx - ax)
+
         val angle = Angle.between(ax, ay, bx, by)
         val cos = angle.cosine
-        //val cos = angle.sine
         val absCos = cos.absoluteValue
+
         val h = ay - (ax * slope)
 
         fun containsY(y: Double): Boolean = y >= ay && y < by
