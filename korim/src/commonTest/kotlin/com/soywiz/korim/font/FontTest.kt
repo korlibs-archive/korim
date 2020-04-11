@@ -67,9 +67,10 @@ class FontTest {
         //println(result2)
         //result2.bmp.showImageAndWait()
 
-        //BitmapFont(DefaultTtfFont, 64.0, CharacterSet("l")).atlas.showImageAndWait()
+        BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
 
         //val font = DefaultTtfFont
+        //val font = BitmapFont(DefaultTtfFont, 24.0)
         val font = BitmapFont(DefaultTtfFont, 24.0)
         //val font = BitmapFont(DefaultTtfFont, 24.0)
 

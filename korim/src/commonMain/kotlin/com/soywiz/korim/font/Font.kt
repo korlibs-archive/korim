@@ -31,19 +31,20 @@ data class TextToBitmapResult(
     data class PlacedGlyph(val codePoint: Int, val x: Double, val y: Double, val metrics: GlyphMetrics, val transform: Matrix)
 }
 
-fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true): TextToBitmapResult {
+fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true, border: Int = 1): TextToBitmapResult {
     val font = this
     val fmetrics = getFontMetrics(size)
     val gmetrics = getGlyphMetrics(size, codePoint)
     val gx = -gmetrics.left
     val gy = gmetrics.height + gmetrics.top
-    val bmp = NativeImage(gmetrics.width.toIntCeil(), gmetrics.height.toIntCeil()).context2d {
+    val border2 = border * 2
+    val bmp = NativeImage(gmetrics.width.toIntCeil() + border2, gmetrics.height.toIntCeil() + border2).context2d {
         fillStyle = paint
-        font.renderGlyph(this, size, codePoint, gx, gy, fill = true, metrics = gmetrics)
+        font.renderGlyph(this, size, codePoint, gx + border, gy + border, fill = true, metrics = gmetrics)
         if (fill) fill() else stroke()
     }
     return TextToBitmapResult(bmp.toBMP32().premultipliedIfRequired(), fmetrics, TextMetrics(), listOf(
-        TextToBitmapResult.PlacedGlyph(codePoint, gx, gy, gmetrics, Matrix())
+        TextToBitmapResult.PlacedGlyph(codePoint, gx + border, gy + border, gmetrics, Matrix())
     ))
 }
 

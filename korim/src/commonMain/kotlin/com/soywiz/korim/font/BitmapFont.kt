@@ -19,6 +19,7 @@ import com.soywiz.korim.vector.HorizontalAlign
 import com.soywiz.korim.vector.VerticalAlign
 import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korim.vector.paint.DefaultPaint
+import com.soywiz.korim.vector.paint.Paint
 import com.soywiz.korio.dynamic.KDynamic
 import com.soywiz.korio.file.VfsFile
 import com.soywiz.korio.lang.substr
@@ -151,6 +152,7 @@ class BitmapFont(
             fontSize: Number,
             chars: CharacterSet = CharacterSet.LATIN_ALL,
             fontName: String = font.name,
+            paint: Paint = ColorPaint(Colors.WHITE),
             mipmaps: Boolean = true
         ): BitmapFont {
             val fontSize = fontSize.toDouble()
@@ -159,8 +161,9 @@ class BitmapFont(
             val requiredArea = glyphMetrics.map { (it.width + 4) * (fmetrics.lineHeight + 4) }.sum().toIntCeil()
             val requiredAreaSide = sqrt(requiredArea.toDouble()).toIntCeil()
             val matlas = MutableAtlas<TextToBitmapResult>(requiredAreaSide.nextPowerOfTwo, requiredAreaSide.nextPowerOfTwo)
+            val border = 2
             for (codePoint in chars.codePoints) {
-                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = ColorPaint(Colors.WHITE), fill = true)
+                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = paint, fill = true, border = 1)
                 //val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = DefaultPaint, fill = true)
                 matlas.add(result.bmp, result)
             }
@@ -173,7 +176,7 @@ class BitmapFont(
                     val slice = it.slice
                     val g = it.data.glyphs.first()
                     val m = g.metrics
-                    g.codePoint to Glyph(g.codePoint, slice, 0, 0, m.xadvance.toIntCeil())
+                    g.codePoint to Glyph(g.codePoint, slice, -border, -border, m.xadvance.toIntCeil())
                 }.toIntMap(),
                 kernings = IntMap(),
                 atlas = atlas,
