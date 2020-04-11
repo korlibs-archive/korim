@@ -42,7 +42,7 @@ fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = Defaul
         font.renderGlyph(this, size, codePoint, gx, gy, fill = true, metrics = gmetrics)
         if (fill) fill() else stroke()
     }
-    return TextToBitmapResult(bmp.toBMP32(), fmetrics, TextMetrics(), listOf(
+    return TextToBitmapResult(bmp.toBMP32().premultipliedIfRequired(), fmetrics, TextMetrics(), listOf(
         TextToBitmapResult.PlacedGlyph(codePoint, gx, gy, gmetrics, Matrix())
     ))
 }
@@ -51,11 +51,12 @@ fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = Defaul
 fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPaint, fill: Boolean = true, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>, returnGlyphs: Boolean = true): TextToBitmapResult {
     val font = this
     val bounds = getTextBounds(size, text, renderer = renderer)
-    println("BOUNDS: $bounds")
+    //println("BOUNDS: $bounds")
     val glyphs = arrayListOf<TextToBitmapResult.PlacedGlyph>()
     val iwidth = bounds.width.toInt()
     val iheight = bounds.height.toInt()
     val image = NativeImage(iwidth, iheight).context2d {
+    //val image = Bitmap32(iwidth, iheight).context2d {
         font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
             if (returnGlyphs) {
                 glyphs += TextToBitmapResult.PlacedGlyph(codePoint, x, y, metrics.clone(), transform.clone())

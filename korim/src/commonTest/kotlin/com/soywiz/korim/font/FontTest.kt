@@ -6,6 +6,7 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.buildSvgXml
 import com.soywiz.korim.vector.paint.ColorPaint
+import com.soywiz.korim.vector.paint.DefaultPaint
 import com.soywiz.korio.async.suspendTest
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.degrees
@@ -60,15 +61,28 @@ class FontTest {
     @Test
     @Ignore
     fun test2() = suspendTest {
-        println(buildSvgXml { drawText("Hello World!") }.toString())
+        //val font = DefaultTtfFont
+
+        //DefaultTtfFont.renderGlyphToBitmap(64.0, 'l'.toInt()).bmp.showImageAndWait()
+        //println(result2)
+        //result2.bmp.showImageAndWait()
+
+        //BitmapFont(DefaultTtfFont, 64.0, CharacterSet("l")).atlas.showImageAndWait()
+
         //val font = DefaultTtfFont
         val font = BitmapFont(DefaultTtfFont, 24.0)
-        font.atlas.showImageAndWait()
+        //val font = BitmapFont(DefaultTtfFont, 24.0)
+
+        //println(buildSvgXml { drawText("Hello World!") }.toString())
+        //font.atlas.showImageAndWait()
         val result = font.renderTextToBitmap(24.0, "Hello World!", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        //val result = font.renderTextToBitmap(24.0, "llll", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        //val result = font.renderTextToBitmap(24.0, "Hello World!", renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
             //dy = -n.toDouble()
             val scale = 1.0 + n * 0.1
+            //transform.translate(0.0, scale)
             transform.scale(scale)
-            transform.rotate(45.degrees)
+            transform.rotate(25.degrees)
             put(c)
             advance(advance * scale)
         })

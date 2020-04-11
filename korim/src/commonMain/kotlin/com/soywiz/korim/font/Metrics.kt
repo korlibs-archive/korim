@@ -48,6 +48,8 @@ data class GlyphMetrics(
     val bounds: Rectangle = Rectangle(),
     var xadvance: Double = 0.0
 ) {
+    val right: Double get() = bounds.right
+    val bottom: Double get() = bounds.bottom
     val left: Double get() = bounds.left
     val top: Double get() = bounds.top
     val width: Double get() = bounds.width

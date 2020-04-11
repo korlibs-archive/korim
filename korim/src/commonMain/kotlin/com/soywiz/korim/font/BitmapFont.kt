@@ -74,30 +74,29 @@ class BitmapFont(
     override fun renderGlyph(ctx: Context2d, size: Double, codePoint: Int, x: Double, y: Double, fill: Boolean, metrics: GlyphMetrics) {
         val scale = getTextScale(size)
         val g = glyphs[codePoint] ?: return
-        val metrics = getGlyphMetrics(size, codePoint, metrics).takeIf { it.existing } ?: return
+        getGlyphMetrics(size, codePoint, metrics).takeIf { it.existing } ?: return
         if (metrics.width == 0.0 && metrics.height == 0.0) return
-        val bmpAlpha = Bitmap32(metrics.width.toInt(), metrics.height.toInt())
-        bmpAlpha.draw(g.bmp, (x - metrics.left).toInt(), (y - metrics.top).toInt())
         //println("SCALE: $scale")
-        val texX = x + (metrics.left - ctx.horizontalAlign.getOffsetX(metrics.width)) * scale
-        val texY = y + (metrics.top - ctx.verticalAlign.getOffsetY(metrics.height, this.base.toDouble())) * scale
+        val texX = x + metrics.left
+        val texY = y + metrics.top
+        val swidth = metrics.width
+        val sheight = metrics.height
 
-        //println("texX: $texX, texY: $texY")
-
-        if (ctx.fillStyle == DefaultPaint) {
-            ctx.drawImage(bmpAlpha, texX, texY, metrics.width * scale, metrics.height * scale)
+        val bmp = if (ctx.fillStyle == DefaultPaint) {
+            g.bmp
         } else {
-            val bmpFill = Bitmap32(metrics.width.toInt(), metrics.height.toInt())
-            bmpFill.context2d {
+            val bmpFill = Bitmap32(g.bmp.width, g.bmp.height).context2d {
                 this.keepTransform {
                     this.scale(1.0 / scale)
                     this.fillStyle = ctx.fillStyle
                     fillRect(0, 0, width * scale, height * scale)
                 }
             }
-            bmpFill.writeChannel(BitmapChannel.ALPHA, bmpAlpha, BitmapChannel.ALPHA)
-            ctx.drawImage(bmpFill, texX, texY, metrics.width * scale, metrics.height * scale)
+            bmpFill.writeChannel(BitmapChannel.ALPHA, g.bmp, BitmapChannel.ALPHA)
+            bmpFill
         }
+        ctx.drawImage(bmp, texX, texY - metrics.height, swidth, sheight)
+        //ctx.drawImage(g.bmp, texX, texY, swidth, sheight)
     }
 
     private fun getTextScale(size: Double) = size.toDouble() / fontSize.toDouble()
@@ -162,6 +161,7 @@ class BitmapFont(
             val matlas = MutableAtlas<TextToBitmapResult>(requiredAreaSide.nextPowerOfTwo, requiredAreaSide.nextPowerOfTwo)
             for (codePoint in chars.codePoints) {
                 val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = ColorPaint(Colors.WHITE), fill = true)
+                //val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = DefaultPaint, fill = true)
                 matlas.add(result.bmp, result)
             }
             val atlas = matlas.bitmap
