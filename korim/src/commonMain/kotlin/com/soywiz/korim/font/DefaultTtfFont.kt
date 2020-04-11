@@ -23,6 +23,6 @@ val DefaultTtfFont: TtfFont by lazy {
         TtfFont(DefaultTtfFontBytes, freeze = true, extName = "Default Font")
         //TtfFont(DefaultTtfFontBytes, preloadAllGlyphs = false, extName = "Default Font")
     }
-    println("Loaded DefaultTtfFont in... ${res.time}")
+    //println("Loaded DefaultTtfFont in... ${res.time}")
     res.result
 }
