@@ -5,8 +5,7 @@ import com.soywiz.kds.iterators.fastForEach
 import com.soywiz.kmem.extract16Signed
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
-import com.soywiz.korim.vector.Context2d
-import com.soywiz.korim.vector.GraphicsPath
+import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.VfsFile
 import com.soywiz.korio.lang.UTF16_BE
 import com.soywiz.korio.lang.UTF8
@@ -28,7 +27,7 @@ import kotlin.collections.set
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFont(val s: SyncStream) : Font {
+class TtfFont(val s: SyncStream) : VectorFont {
     constructor(d: ByteArray) : this(d.openSync())
 
     override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics =
@@ -46,61 +45,16 @@ class TtfFont(val s: SyncStream) : Font {
         return 0.0
     }
 
+    override fun getGlyphPath(size: Double, codePoint: Int, path: GlyphPath): GlyphPath? {
+        val g = getGlyphByCodePoint(codePoint) ?: return null
+        val scale = getTextScale(size)
+        path.path = g.path
+        path.transform.identity()
+        path.transform.scale(scale, -scale)
+        return path
+    }
+
     private fun getTextScale(size: Double) = size / unitsPerEm.toDouble()
-
-    override fun renderGlyph(
-        ctx: Context2d,
-        size: Double,
-        codePoint: Int,
-        x: Double,
-        y: Double,
-        fill: Boolean,
-        metrics: GlyphMetrics
-    ) {
-        val scale = getTextScale(size)
-        getGlyphMetrics(size, codePoint, metrics)
-            val g = getGlyphByCodePoint(codePoint)
-            if (g != null) {
-                //println("RENDER: $g")
-                ctx.keepTransform {
-                    ctx.beginPath()
-                    ctx.translate(x, y)
-                    ctx.scale(scale, -scale)
-                    g.draw(ctx)
-                }
-                if (fill) ctx.fill() else ctx.stroke()
-            }
-    }
-
-    /*
-    private inline fun commonProcess(
-        text: String,
-        size: Double,
-        handleGlyph: (x: Double, y: Double, g: Glyph) -> Unit = { x, y, g -> },
-        handleBounds: (maxx: Double, maxy: Double) -> Unit = { maxx, maxy -> }
-    ) {
-        val scale = getTextScale(size)
-        var x = 0.0
-        var y = 0.0
-        var maxx = 0.0
-        for (c in text) {
-            if (c == '\n') {
-                x = 0.0
-                y += yMax * scale
-            } else {
-                val glyph = getGlyphByChar(c)
-                //println("c: $c --> $glyph")
-                if (glyph != null) {
-                    handleGlyph(x, y, glyph)
-                    val adv = glyph.advanceWidth * scale
-                    x += adv
-                    maxx = max(maxx, x + adv)
-                }
-            }
-        }
-        handleBounds(maxx, y + yMax * scale)
-    }
-    */
 
     var numGlyphs = 0
     var maxPoints = 0
@@ -464,6 +418,7 @@ class TtfFont(val s: SyncStream) : Font {
     private val nonExistantGlyphMetrics1px = GlyphMetrics(1.0, false, 0, Rectangle(), 0.0)
 
 	abstract inner class Glyph {
+        abstract val path: GraphicsPath
         abstract val index: Int
         abstract val xMin: Int
         abstract val yMin: Int
@@ -508,6 +463,14 @@ class TtfFont(val s: SyncStream) : Font {
 	) : Glyph() {
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs})"
 
+        override val path: GraphicsPath by lazy {
+            buildShape {
+                beginPath()
+                this@CompositeGlyph.draw(this)
+                fill()
+            }.getPath()
+        }
+
         override fun draw(c: Context2d) {
             //println("METRICS: $metrics1px")
             refs.fastForEach { ref ->
@@ -530,7 +493,7 @@ class TtfFont(val s: SyncStream) : Font {
 		val yPos: IntArray,
 		override val advanceWidth: Int
 	) : Glyph() {
-        override fun toString(): String = "SimpleGlyph[$advanceWidth]($index) : $graphicsPath"
+        override fun toString(): String = "SimpleGlyph[$advanceWidth]($index) : $path"
         val npoints: Int get() = xPos.size
 		fun onCurve(n: Int) = (flags[n] and 1) != 0
 		fun contour(n: Int, out: Contour = Contour()) = out.apply {
@@ -538,9 +501,9 @@ class TtfFont(val s: SyncStream) : Font {
 			y = yPos[n]
 			onCurve = onCurve(n)
 		}
-		override fun draw(c: Context2d) = c.draw(graphicsPath)
+		override fun draw(c: Context2d) = c.draw(path)
 
-        val graphicsPath by lazy {
+        override val path by lazy {
             GraphicsPath().also { p ->
                 for (n in 0 until contoursIndices.size - 1) {
                     val cstart = contoursIndices[n] + 1

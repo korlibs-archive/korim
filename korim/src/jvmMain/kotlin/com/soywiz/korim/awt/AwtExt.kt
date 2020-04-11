@@ -20,8 +20,8 @@ import kotlin.coroutines.*
 
 fun Bitmap32.toAwt(
 	out: BufferedImage = BufferedImage(
-		width,
-		height,
+		width.coerceAtLeast(1),
+		height.coerceAtLeast(1),
 		if (this.premultiplied) BufferedImage.TYPE_INT_ARGB_PRE else BufferedImage.TYPE_INT_ARGB
 	)
 ): BufferedImage {

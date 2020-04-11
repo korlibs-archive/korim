@@ -1,6 +1,9 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
+import com.soywiz.korim.font.FontMetrics
+import com.soywiz.korim.font.GlyphMetrics
+import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.*
@@ -16,7 +19,6 @@ abstract class NativeImageFormatProvider {
     open suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage = decode(vfs.file(path).readBytes())
     suspend fun decode(file: FinalVfsFile, premultiplied: Boolean): Bitmap = decode(file.vfs, file.path, premultiplied)
 	suspend fun decode(file: VfsFile, premultiplied: Boolean): Bitmap = decode(file.getUnderlyingUnscapedFile(), premultiplied)
-
 
     suspend fun decode(data: ByteArray): NativeImage = decode(data, premultiplied = true)
     suspend fun decode(vfs: Vfs, path: String): NativeImage = decode(vfs, path, premultiplied = true)
