@@ -7,6 +7,7 @@ import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.buildSvgXml
 import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korim.vector.paint.DefaultPaint
+import com.soywiz.korim.vector.paint.LinearGradientPaint
 import com.soywiz.korio.async.suspendTest
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.degrees
@@ -63,30 +64,43 @@ class FontTest {
     fun test2() = suspendTest {
         //val font = DefaultTtfFont
 
-        //DefaultTtfFont.renderGlyphToBitmap(64.0, 'l'.toInt()).bmp.showImageAndWait()
+
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, '´'.toInt()).bmp.showImageAndWait()
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'o'.toInt()).bmp.showImageAndWait()
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'ó'.toInt()).bmp.showImageAndWait()
         //println(result2)
         //result2.bmp.showImageAndWait()
 
         //BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
-        BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
+        //BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
 
-        //val font = DefaultTtfFont
+        val font = DefaultTtfFont
+        //val font = BitmapFont(DefaultTtfFont, 64.0)
         //val font = BitmapFont(DefaultTtfFont, 24.0)
-        //val font = BitmapFont(DefaultTtfFont, 24.0)
-        val font = BitmapFont(SystemFont("Arial"), 24.0)
+        //val font = BitmapFont(SystemFont("Arial"), 24.0)
         //val font = SystemFont("Arial")
         //val font = BitmapFont(DefaultTtfFont, 24.0)
 
         //println(buildSvgXml { drawText("Hello World!") }.toString())
         //font.atlas.showImageAndWait()
-        val result = font.renderTextToBitmap(24.0, "Hello World!", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        //val paint = ColorPaint(Colors.RED)
+        //val paint = ColorPaint(Colors.BLUE)
+        val paint = LinearGradientPaint(0, 0, 0, -48).add(0.0, Colors.BLUE).add(1.0, Colors.GREEN)
+        //NativeImage(100, 100).context2d {
+        //    fillStyle = paint
+        //    fillRect(0, 0, 100, 100)
+        //}.showImageAndWait()
+
+        val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = false, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        //val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = true, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "llll", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "Hello World!", renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
             //dy = -n.toDouble()
             val scale = 1.0 + n * 0.1
+            //val scale = 1.0
             //transform.translate(0.0, scale)
             transform.scale(scale)
-            //transform.rotate(25.degrees)
+            transform.rotate(25.degrees)
             put(c)
             advance(advance * scale)
         })
@@ -97,7 +111,7 @@ class FontTest {
     fun testDefaultFont() {
         val font = DefaultTtfFont
         val fmetrics = font.getFontMetrics(16.0)
-        assertEquals("FontMetrics(size=16, top=15, ascent=15, baseline=0, descent=-3, bottom=-3, leading=0, lineHeight=18)", fmetrics.toString())
+        assertEquals("FontMetrics(size=16, top=15, ascent=15, baseline=0, descent=-3, bottom=-3, leading=0, emHeight=18, lineHeight=18)", fmetrics.toString())
         val gmetrics = font.getGlyphMetrics(16.0, 'k'.toInt())
         assertEquals("GlyphMetrics(codePoint=107 ('k'), existing=true, xadvance=7, bounds=Rectangle(x=0, y=0, width=6, height=10))", gmetrics.toString())
     }

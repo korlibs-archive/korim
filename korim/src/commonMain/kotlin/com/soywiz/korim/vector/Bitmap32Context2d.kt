@@ -46,7 +46,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 		}
 
         fun flush() {
-            if (rasterizer.count > 0) {
+            if (rasterizer.size > 0) {
                 rasterizer.strokeWidth = state.lineWidth
                 rasterizer.quality = if (antialiasing) 8 else 2
                 scanlineWriter.filler = filler
