@@ -1,6 +1,7 @@
 package com.soywiz.korim.font
 
 import com.soywiz.kds.IntArrayList
+import com.soywiz.kds.iterators.fastForEach
 import com.soywiz.kmem.extract16Signed
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
@@ -31,10 +32,10 @@ class TtfFont(val s: SyncStream) : Font {
     constructor(d: ByteArray) : this(d.openSync())
 
     override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics =
-        metrics.copyFromScaled(this.fontMetrics1px, size)
+        metrics.copyFromNewSize(this.fontMetrics1px, size)
 
     override fun getGlyphMetrics(size: Double, codePoint: Int, metrics: GlyphMetrics): GlyphMetrics =
-        metrics.copyFromScaled(getGlyphByCodePoint(codePoint)?.metrics1px ?: nonExistantGlyphMetrics1px, size, codePoint)
+        metrics.copyFromNewSize(getGlyphByCodePoint(codePoint)?.metrics1px ?: nonExistantGlyphMetrics1px, size, codePoint)
 
     override fun getKerning(
         size: Double,
@@ -59,10 +60,13 @@ class TtfFont(val s: SyncStream) : Font {
         val scale = getTextScale(size)
         getGlyphMetrics(size, codePoint, metrics)
         ctx.keepTransform {
+            ctx.translate(x, y)
+            ctx.scale(scale, -scale)
             val g = getGlyphByCodePoint(codePoint)
             if (g != null) {
-                g.draw(ctx, x, y, size)
-                ctx.fill()
+                //println("RENDER: $g")
+                g.draw(ctx)
+                if (fill) ctx.fill() else ctx.stroke()
             }
         }
     }
@@ -465,11 +469,12 @@ class TtfFont(val s: SyncStream) : Font {
         abstract val xMax: Int
         abstract val yMax: Int
         abstract val advanceWidth: Int
-        abstract fun draw(c: Context2d, x: Double, y: Double, size: Double)
+        abstract fun draw(c: Context2d)
 
         internal val metrics1px by lazy {
-            val scale = getTextScale(1.0)
-            GlyphMetrics(1.0, true, -1, Rectangle.fromBounds(
+            val size = unitsPerEm.toDouble()
+            val scale = getTextScale(size)
+            GlyphMetrics(size, true, -1, Rectangle.fromBounds(
                 xMin * scale, yMin * scale,
                 xMax * scale, yMax * scale
             ), advanceWidth * scale)
@@ -500,15 +505,15 @@ class TtfFont(val s: SyncStream) : Font {
         val refs: List<GlyphReference>,
         override val advanceWidth: Int
 	) : Glyph() {
-        override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs.map { it.glyph }})"
+        override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs})"
 
-        override fun draw(c: Context2d, x: Double, y: Double, size: Double) {
-			val scale = size / unitsPerEm.toDouble()
-            for (ref in refs) {
+        override fun draw(c: Context2d) {
+            //println("METRICS: $metrics1px")
+            refs.fastForEach { ref ->
                 c.keepTransform {
-                    c.translate(x + (ref.x - xMin) * scale, y + (-ref.y - yMin) * scale)
+                    c.translate(ref.x.toDouble(), ref.y.toDouble())
                     c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
-                    ref.glyph.draw(c, 0.0, 0.0, size)
+                    ref.glyph.draw(c)
                 }
             }
 		}
@@ -525,7 +530,6 @@ class TtfFont(val s: SyncStream) : Font {
 		override val advanceWidth: Int
 	) : Glyph() {
         override fun toString(): String = "SimpleGlyph[$advanceWidth]($index) : $graphicsPath"
-        val graphicsPath by lazy { createGraphicsPath() }
         val npoints: Int get() = xPos.size
 		fun onCurve(n: Int) = (flags[n] and 1) != 0
 		fun contour(n: Int, out: Contour = Contour()) = out.apply {
@@ -533,72 +537,60 @@ class TtfFont(val s: SyncStream) : Font {
 			y = yPos[n]
 			onCurve = onCurve(n)
 		}
+		override fun draw(c: Context2d) = c.draw(graphicsPath)
 
-		override fun draw(c: Context2d, x: Double, y: Double, size: Double) {
-			val font = this@TtfFont
-			val scale = size / font.unitsPerEm.toDouble()
-            c.keepTransform {
-                c.translate(x, y)
-                c.scale(scale, -scale)
-                c.beginPath()
-                c.draw(graphicsPath)
+        val graphicsPath by lazy {
+            GraphicsPath().also { p ->
+                for (n in 0 until contoursIndices.size - 1) {
+                    val cstart = contoursIndices[n] + 1
+                    val cend = contoursIndices[n + 1]
+                    val csize = cend - cstart + 1
+
+                    var curr: Contour = contour(cend)
+                    var next: Contour = contour(cstart)
+
+                    if (curr.onCurve) {
+                        p.moveTo(curr.x, curr.y)
+                    } else {
+                        if (next.onCurve) {
+                            p.moveTo(next.x, next.y)
+                        } else {
+                            p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
+                        }
+                    }
+
+                    for (cpos in 0 until csize) {
+                        val prev = curr
+                        curr = next
+                        next = contour(cstart + ((cpos + 1) % csize))
+
+                        if (curr.onCurve) {
+                            p.lineTo(curr.x, curr.y)
+                        } else {
+                            var prev2X = prev.x
+                            var prev2Y = prev.y
+                            var next2X = next.x
+                            var next2Y = next.y
+
+                            if (!prev.onCurve) {
+                                prev2X = ((curr.x + prev.x) * 0.5).toInt()
+                                prev2Y = ((curr.y + prev.y) * 0.5).toInt()
+                                p.lineTo(prev2X, prev2Y)
+                            }
+
+                            if (!next.onCurve) {
+                                next2X = ((curr.x + next.x) * 0.5).toInt()
+                                next2Y = ((curr.y + next.y) * 0.5).toInt()
+                            }
+
+                            p.lineTo(prev2X, prev2Y)
+                            p.quadTo(curr.x, curr.y, next2X, next2Y)
+                        }
+                    }
+
+                    p.close()
+                }
             }
-		}
-
-		fun createGraphicsPath(): GraphicsPath {
-			val p = GraphicsPath()
-
-			for (n in 0 until contoursIndices.size - 1) {
-				val cstart = contoursIndices[n] + 1
-				val cend = contoursIndices[n + 1]
-				val csize = cend - cstart + 1
-
-				var curr: Contour = contour(cend)
-				var next: Contour = contour(cstart)
-
-				if (curr.onCurve) {
-					p.moveTo(curr.x, curr.y)
-				} else {
-					if (next.onCurve) {
-						p.moveTo(next.x, next.y)
-					} else {
-						p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
-					}
-				}
-
-				for (cpos in 0 until csize) {
-					val prev = curr
-					curr = next
-					next = contour(cstart + ((cpos + 1) % csize))
-
-					if (curr.onCurve) {
-						p.lineTo(curr.x, curr.y)
-					} else {
-						var prev2X = prev.x
-						var prev2Y = prev.y
-						var next2X = next.x
-						var next2Y = next.y
-
-						if (!prev.onCurve) {
-							prev2X = ((curr.x + prev.x) * 0.5).toInt()
-							prev2Y = ((curr.y + prev.y) * 0.5).toInt()
-							p.lineTo(prev2X, prev2Y)
-						}
-
-						if (!next.onCurve) {
-							next2X = ((curr.x + next.x) * 0.5).toInt()
-							next2Y = ((curr.y + next.y) * 0.5).toInt()
-						}
-
-						p.lineTo(prev2X, prev2Y)
-						p.quadTo(curr.x, curr.y, next2X, next2Y)
-					}
-				}
-
-				p.close()
-			}
-
-			return p
 		}
 	}
 
