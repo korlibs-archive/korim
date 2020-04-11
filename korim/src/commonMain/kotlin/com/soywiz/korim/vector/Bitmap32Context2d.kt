@@ -45,21 +45,30 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
+        fun flush() {
+            if (rasterizer.count > 0) {
+                rasterizer.strokeWidth = state.lineWidth
+                rasterizer.quality = if (antialiasing) 8 else 2
+                scanlineWriter.filler = filler
+                scanlineWriter.reset()
+                rasterizer.rasterize(bounds, fill) { x0, x1, y ->
+                    scanlineWriter.select(x0, x1, y)
+                }
+                scanlineWriter.flush()
+                rasterizer.reset()
+            }
+        }
+
         rasterizer.debug = debug
-        rasterizer.reset()
         state.path.emitPoints({
-            if (it) rasterizer.close()
+            if (it) {
+                rasterizer.close()
+                //flush()
+            }
         }, { x, y ->
             rasterizer.add(x, y)
         })
-        rasterizer.strokeWidth = state.lineWidth
-        rasterizer.quality = if (antialiasing) 8 else 2
-        scanlineWriter.filler = filler
-        scanlineWriter.reset()
-        rasterizer.rasterize(bounds, fill) { x0, x1, y ->
-            scanlineWriter.select(x0, x1, y)
-        }
-        scanlineWriter.flush()
+        flush()
 	}
 
     class SegmentHandler {

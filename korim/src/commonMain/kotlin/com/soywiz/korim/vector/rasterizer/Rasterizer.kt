@@ -14,6 +14,10 @@ import kotlin.math.min
 typealias RasterizerCallback = (x0: Double, x1: Double, y: Double) -> Unit
 
 class Rasterizer {
+    companion object {
+        const val FIXED_SCALE = 32
+    }
+
     data class Edge(val a: IPoint, val b: IPoint, val wind: Int) {
         val minX = min(a.x, b.x)
         val maxX = max(a.x, b.x)
@@ -57,6 +61,7 @@ class Rasterizer {
         )
     }
 
+    val count get() = points.size
     fun add(x: Double, y: Double) {
         val p = IPoint(x, y)
         points.add(p)
