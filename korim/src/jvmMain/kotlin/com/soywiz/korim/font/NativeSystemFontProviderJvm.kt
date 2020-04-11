@@ -2,6 +2,7 @@ package com.soywiz.korim.font
 
 import com.soywiz.korim.awt.*
 import com.soywiz.korim.vector.*
+import com.soywiz.korma.geom.*
 import java.awt.font.*
 import java.awt.geom.*
 import java.awt.image.*
@@ -76,7 +77,7 @@ object AwtNativeSystemFontProvider : NativeSystemFontProvider() {
         val bounds = vector.visualBounds
         metrics.existing = font.canDisplay(codePoint)
         metrics.xadvance = fm.charWidth(codePoint.toChar()).toDouble()
-        //metrics.bounds.setTo(0, 0, bounds.width, bounds.height)
+        metrics.bounds.setTo(0, 0, bounds.width, bounds.height)
         //println("BOUNDS: ${metrics.bounds}")
         //metrics.bounds.setTo(bounds.x, -(bounds.height - bounds.y), bounds.width, bounds.height)
     }
