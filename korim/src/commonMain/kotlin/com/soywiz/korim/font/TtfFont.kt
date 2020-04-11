@@ -60,6 +60,7 @@ class TtfFont(val s: SyncStream) : Font {
         val scale = getTextScale(size)
         getGlyphMetrics(size, codePoint, metrics)
         ctx.keepTransform {
+            ctx.beginPath()
             ctx.translate(x, y)
             ctx.scale(scale, -scale)
             val g = getGlyphByCodePoint(codePoint)
