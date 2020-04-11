@@ -33,12 +33,13 @@ class TtfFont(val s: SyncStream) : Font {
     override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics = metrics.also {
         val scale = getTextScale(size)
         it.size = size
-        it.top = this.yMax.toDouble() * scale
-        it.ascent = this.ascender.toDouble() * scale
-        it.baseline = 0.0
-        it.descent = this.descender.toDouble() * scale
-        it.bottom = this.yMin.toDouble() * scale
-        it.leading = 0.0
+        it.top = (this.yMax) * scale
+        it.ascent = this.ascender * scale
+        it.baseline = 0.0 * scale
+        it.descent = this.descender * scale
+        it.bottom = (this.yMin) * scale
+        it.leading = this.lineGap * scale
+        it.maxWidth = this.advanceWidthMax *scale
     }
 
     val lineHeight get() = yMax - yMin
@@ -85,7 +86,7 @@ class TtfFont(val s: SyncStream) : Font {
         ctx.keepTransform {
             val g = getGlyphByCodePoint(codePoint)
             if (g != null) {
-                g.draw(ctx, x, y, size, FontOrigin.BASELINE)
+                g.draw(ctx, x, y, size)
                 ctx.fill()
             }
         }
@@ -154,6 +155,7 @@ class TtfFont(val s: SyncStream) : Font {
 
     var fontRev = Fixed(0, 0)
     var unitsPerEm = 128
+    // Coordinates have to be divided between unitsPerEm and multiplied per font size
     var xMin = 0
     var yMin = 0
     var xMax = 0
@@ -473,7 +475,7 @@ class TtfFont(val s: SyncStream) : Font {
 		val xMax: Int
 		val yMax: Int
 		val advanceWidth: Int
-		fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin)
+		fun draw(c: Context2d, x: Double, y: Double, size: Double)
 	}
 
 	data class Contour(var x: Int = 0, var y: Int = 0, var onCurve: Boolean = false) {
@@ -502,17 +504,15 @@ class TtfFont(val s: SyncStream) : Font {
 	) : Glyph {
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs.map { it.glyph }})"
 
-        override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin) {
+        override fun draw(c: Context2d, x: Double, y: Double, size: Double) {
 			val scale = size / unitsPerEm.toDouble()
-			c.keepTransform {
-				for (ref in refs) {
-					c.keepTransform {
-						c.translate(x + (ref.x - xMin) * scale, y + (-ref.y - yMin) * scale)
-						c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
-                        ref.glyph.draw(c, 0.0, 0.0, size, origin)
-					}
-				}
-			}
+            for (ref in refs) {
+                c.keepTransform {
+                    c.translate(x + (ref.x - xMin) * scale, y + (-ref.y - yMin) * scale)
+                    c.scale(ref.scaleX.toDouble(), ref.scaleY.toDouble())
+                    ref.glyph.draw(c, 0.0, 0.0, size)
+                }
+            }
 		}
 	}
 
@@ -536,27 +536,14 @@ class TtfFont(val s: SyncStream) : Font {
 			onCurve = onCurve(n)
 		}
 
-		override fun draw(c: Context2d, x: Double, y: Double, size: Double, origin: FontOrigin) {
+		override fun draw(c: Context2d, x: Double, y: Double, size: Double) {
 			val font = this@TtfFont
 			val scale = size / font.unitsPerEm.toDouble()
             c.keepTransform {
-                val ydist: Double = when (origin) {
-                    FontOrigin.TOP -> (font.yMax - font.yMin + yMin).toDouble()
-                    FontOrigin.BASELINE -> 0.0
-                }
-                c.translate(x + 0.0 * scale, y + (ydist - yMin) * scale)
+                c.translate(x, y)
                 c.scale(scale, -scale)
                 c.beginPath()
-                //println("DRAW: $graphicsPath")
-                //graphicsPath.visitCmds(
-                //    moveTo = { x, y -> c.moveTo(x, y) },
-                //    lineTo = { x, y -> c.lineTo(x, y) },
-                //    quadTo = { x0, y0, x1, y1 -> c.quadTo(x0, y0, x1, y1) },
-                //    cubicTo = { x0, y0, x1, y1, x2, y2 -> c.cubicTo(x0, y0, x1, y1, x2, y2) },
-                //    close = { c.close() }
-                //)
                 c.draw(graphicsPath)
-                //rect(0, 0, 20, 20)
             }
 		}
 

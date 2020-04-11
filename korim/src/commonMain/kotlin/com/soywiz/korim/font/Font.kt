@@ -1,5 +1,6 @@
 package com.soywiz.korim.font
 
+import com.soywiz.kmem.toIntCeil
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
@@ -23,27 +24,45 @@ interface Font {
 
 data class TextToBitmapResult(
     val bmp: Bitmap32,
+    val fmetrics: FontMetrics,
     val metrics: TextMetrics,
     val glyphs: List<PlacedGlyph>
 ) {
     data class PlacedGlyph(val codePoint: Int, val x: Double, val y: Double, val metrics: GlyphMetrics, val transform: Matrix)
 }
 
-fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true): TextToBitmapResult =
-    renderTextToBitmap(size, "${codePoint.toChar()}", paint, fill, returnGlyphs = true)
+fun Font.renderGlyphToBitmap(size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true): TextToBitmapResult {
+    val font = this
+    val fmetrics = getFontMetrics(size)
+    val gmetrics = getGlyphMetrics(size, codePoint)
+    val gx = -gmetrics.left
+    val gy = gmetrics.height + gmetrics.top
+    val bmp = NativeImage(gmetrics.width.toIntCeil(), gmetrics.height.toIntCeil()).context2d {
+        fillStyle = paint
+        font.renderGlyph(this, size, codePoint, gx, gy, fill = true, metrics = gmetrics)
+        if (fill) fill() else stroke()
+    }
+    return TextToBitmapResult(bmp.toBMP32(), fmetrics, TextMetrics(), listOf(
+        TextToBitmapResult.PlacedGlyph(codePoint, gx, gy, gmetrics, Matrix())
+    ))
+}
 
+// @TODO: Fix metrics
 fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPaint, fill: Boolean = true, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>, returnGlyphs: Boolean = true): TextToBitmapResult {
     val font = this
     val bounds = getTextBounds(size, text, renderer = renderer)
+    println("BOUNDS: $bounds")
     val glyphs = arrayListOf<TextToBitmapResult.PlacedGlyph>()
-    val image = NativeImage(bounds.width.toInt(), bounds.height.toInt()).context2d {
+    val iwidth = bounds.width.toInt()
+    val iheight = bounds.height.toInt()
+    val image = NativeImage(iwidth, iheight).context2d {
         font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
             if (returnGlyphs) {
                 glyphs += TextToBitmapResult.PlacedGlyph(codePoint, x, y, metrics.clone(), transform.clone())
             }
         })
     }
-    return TextToBitmapResult(image.toBMP32(), bounds, glyphs)
+    return TextToBitmapResult(image.toBMP32(), font.getFontMetrics(size), bounds, glyphs)
 }
 
 fun <T> Font.drawText(
@@ -80,7 +99,11 @@ class BoundBuilderTextRendererActions : TextRendererActions() {
     val bb = BoundsBuilder()
 
     private fun add(x: Double, y: Double) {
-        bb.add(this.x + transform.transformX(x, y), this.y + transform.transformY(x, y))
+        //val itransform = transform.inverted()
+        val rx = this.x + transform.transformX(x, y)
+        val ry = this.y + transform.transformY(x, y)
+        //println("P: $rx, $ry [$x, $y]")
+        bb.add(rx, ry)
     }
 
     override fun put(codePoint: Int): GlyphMetrics {
@@ -91,6 +114,7 @@ class BoundBuilderTextRendererActions : TextRendererActions() {
         val w = g.bounds.width
         val h = -g.bounds.height
 
+        //println("------: [$x,$y] -- ($fx, $fy)-($w, $h)")
         add(fx, fy)
         add(fx + w, fy)
         add(fx + w, fy + h)

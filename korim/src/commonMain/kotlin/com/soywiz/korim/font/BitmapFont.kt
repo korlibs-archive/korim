@@ -161,7 +161,7 @@ class BitmapFont(
             val requiredAreaSide = sqrt(requiredArea.toDouble()).toIntCeil()
             val matlas = MutableAtlas<TextToBitmapResult>(requiredAreaSide.nextPowerOfTwo, requiredAreaSide.nextPowerOfTwo)
             for (codePoint in chars.codePoints) {
-                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = ColorPaint(Colors.RED), fill = true)
+                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = ColorPaint(Colors.WHITE), fill = true)
                 matlas.add(result.bmp, result)
             }
             val atlas = matlas.bitmap
@@ -173,7 +173,7 @@ class BitmapFont(
                     val slice = it.slice
                     val g = it.data.glyphs.first()
                     val m = g.metrics
-                    g.codePoint to Glyph(g.codePoint, slice, m.left.toIntCeil(), m.top.toIntCeil(), m.xadvance.toIntCeil())
+                    g.codePoint to Glyph(g.codePoint, slice, 0, 0, m.xadvance.toIntCeil())
                 }.toIntMap(),
                 kernings = IntMap(),
                 atlas = atlas,

@@ -5,14 +5,26 @@ import com.soywiz.korma.geom.Rectangle
 import kotlin.math.roundToInt
 
 data class FontMetrics(
+    /** size of the font metric */
     var size: Double = 0.0,
+    /** maximum top for any character like É  */
     var top: Double = 0.0,
+    /** ascent part of E */
     var ascent: Double = 0.0,
+    /** base of 'E' */
     var baseline: Double = 0.0, // Should be 0.0
+    /** lower part of 'j' */
     var descent: Double = 0.0,
+    /** descent + linegap */
     var bottom: Double = 0.0,
-    var leading: Double = 0.0
+    /** extra height */
+    var leading: Double = 0.0,
+    /** maximum number of width */
+    var maxWidth: Double = 0.0
 ) {
+    /* 'E' height */
+    val emHeight get() = ascent - descent
+    /* 'É' + 'j' + linegap */
     val lineHeight get() = top - bottom
 
     override fun toString(): String = buildString {
@@ -24,6 +36,7 @@ data class FontMetrics(
         append("descent=${descent.toIntRound()}, ")
         append("bottom=${bottom.toIntRound()}, ")
         append("leading=${leading.toIntRound()}, ")
+        append("emHeight=${emHeight.toIntRound()}, ")
         append("lineHeight=${lineHeight.toIntRound()}")
         append(")")
     }
@@ -57,6 +70,10 @@ data class TextMetrics(
 ) {
     val left: Double get() = bounds.left
     val top: Double get() = bounds.top
+
+    val right: Double get() = bounds.right
+    val bottom: Double get() = bounds.bottom
+
     val width: Double get() = bounds.width
     val height: Double get() = bounds.height
 }
