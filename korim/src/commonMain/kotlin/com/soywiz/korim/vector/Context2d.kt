@@ -1,19 +1,14 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.*
-import com.soywiz.kmem.clamp
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.font.Font
-import com.soywiz.korim.font.FontRegistry
-import com.soywiz.korim.font.SystemFont
-import com.soywiz.korim.font.SystemFontRegistry
+import com.soywiz.korim.font.*
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.renderer.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.bezier.Bezier
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 
@@ -29,9 +24,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
-    open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
-        renderer.renderText(state, font, fontSize, text, x, y, fill)
-    protected open fun rendererSystemGetBounds(font: SystemFont, fontSize: Double, text: String, out: TextMetrics): Unit = renderer.getBounds(font, fontSize, text, out)
+    //open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
+    //    renderer.renderText(state, font, fontSize, text, x, y, fill)
 
     open val width: Int get() = rendererWidth
     open val height: Int get() = rendererHeight
@@ -55,10 +49,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			adjustMatrix(state.transform) { callback() }
 
 		override fun render(state: State, fill: Boolean): Unit = adjustState(state) { parent.render(state, fill) }
-		override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit =
-			adjustState(state) { parent.renderText(state, font, fontSize, text, x, y, fill) }
+		//override fun renderText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean): Unit =
+		//	adjustState(state) { parent.renderText(state, font, fontSize, text, x, y, fill) }
 
-		override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics): Unit = parent.getBounds(font, fontSize, text, out)
 		override fun drawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix): Unit {
 			adjustMatrix(transform) { parent.drawImage(image, x, y, width, height, transform) }
 		}
@@ -361,16 +354,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) =
-		GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
-
-	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) =
-        GradientPaint(GradientKind.RADIAL, x0, y0, r0, x1, y1, r1)
-
     inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: GradientPaint.() -> Unit = {}) =
-        GradientPaint(GradientKind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
+        LinearGradientPaint(x0, y0, x1, y1, block)
     inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: GradientPaint.() -> Unit = {}) =
-        GradientPaint(GradientKind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
+        RadialGradientPaint(x0, y0, r0, x1, y1, r1, block)
 
     fun createColor(color: RGBA) = ColorPaint(color)
 	fun createPattern(
@@ -380,20 +367,19 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics {
-        return font.getTextBounds(fontSize, text, out)
-    }
+	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
+        font.getTextBounds(fontSize, text, out = out)
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun fillText(text: String, x: Number, y: Number): Unit =
-		renderText(text, x.toDouble(), y.toDouble(), fill = true)
+    inline fun fillText(text: String, x: Number, y: Number): Unit =
+        drawText(text, x.toDouble(), y.toDouble(), fill = true)
 
-	@Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun strokeText(text: String, x: Number, y: Number): Unit =
-		renderText(text, x.toDouble(), y.toDouble(), fill = false)
+    @Suppress("NOTHING_TO_INLINE") // Number inlining
+    inline fun strokeText(text: String, x: Number, y: Number): Unit =
+        drawText(text, x.toDouble(), y.toDouble(), fill = false)
 
-	@Suppress("NOTHING_TO_INLINE") // Number inlining
-	inline fun fillText(
+    @Suppress("NOTHING_TO_INLINE") // Number inlining
+    inline fun fillText(
         text: String,
         x: Number,
         y: Number,
@@ -402,16 +388,17 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         halign: HorizontalAlign = this.horizontalAlign,
         valign: VerticalAlign = this.verticalAlign,
         color: RGBA? = null
-	): Unit {
-		font(font, halign, valign, fontSize) {
-			fillStyle(color?.let { createColor(it) } ?: fillStyle) {
-				renderText(text, x.toDouble(), y.toDouble(), fill = true)
-			}
-		}
-	}
+    ): Unit {
+        font(font, halign, valign, fontSize) {
+            fillStyle(color?.let { createColor(it) } ?: fillStyle) {
+                drawText(text, x.toDouble(), y.toDouble(), fill = true)
+            }
+        }
+    }
 
-    open fun renderText(text: String, x: Double, y: Double, fill: Boolean): Unit {
-        font.renderText(this, fontSize, text, x, y, fill)
+    fun <T> drawText(text: T, x: Double = 0.0, y: Double = 0.0, fill: Boolean = true, paint: Paint? = null, font: Font = this.font, size: Double = this.fontSize, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>) {
+        val paint = paint ?: (if (fill) this.fillStyle else this.strokeStyle)
+        font.drawText(this, size, text, paint, x, y, fill, renderer = renderer)
     }
 
     // @TODO: Fix this!

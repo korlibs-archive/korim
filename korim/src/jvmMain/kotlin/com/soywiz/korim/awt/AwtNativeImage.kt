@@ -4,19 +4,21 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.font.Font
+import com.soywiz.korim.font.FontMetrics
+import com.soywiz.korim.font.GlyphMetrics
 import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import java.awt.*
-import java.awt.Paint
 import java.awt.Rectangle
 import java.awt.RenderingHints.*
 import java.awt.font.*
 import java.awt.geom.*
 import java.awt.image.*
 import java.nio.*
+import kotlin.math.absoluteValue
 
 const val AWT_INTERNAL_IMAGE_TYPE_PRE = BufferedImage.TYPE_INT_ARGB_PRE
 const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB
@@ -315,7 +317,14 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
         is SystemFont -> this.toAwt(size)
         else -> TODO("Unsupported font toAwt!")
     }
-	fun SystemFont.toAwt(size: Double) = java.awt.Font(this.name, java.awt.Font.PLAIN, size.toInt())
+
+    //private var cachedFontName: String? = null
+    //private var cachedFontSize: Double? = null
+    //private var cachedFont: java.awt.Font? = null
+
+	fun SystemFont.toAwt(size: Double): java.awt.Font {
+        return java.awt.Font(this.name, java.awt.Font.PLAIN, size.toInt())
+    }
 
 	inline fun Graphics2D.keepTransform(callback: () -> Unit) {
 		val old = AffineTransform(this.transform)
@@ -371,6 +380,74 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		}
 	}
 
+    override fun getGlyphShape(systemFont: SystemFont, size: Double, codePoint: Int): GraphicsPath {
+        val font = systemFont.toAwt(size)
+        val c = FontRenderContext(AffineTransform(), true, true)
+        val vector = font.createGlyphVector(c, "${codePoint.toChar()}")
+        val outline = vector.outline
+        val pi = outline.getPathIterator(AffineTransform())
+        val vp = GraphicsPath()
+        val data = DoubleArray(6)
+        while (!pi.isDone) {
+            when (pi.currentSegment(data)) {
+                PathIterator.SEG_MOVETO -> vp.moveTo(data[0], data[1])
+                PathIterator.SEG_LINETO -> vp.lineTo(data[0], data[1])
+                PathIterator.SEG_QUADTO -> vp.quadTo(data[0], data[1], data[2], data[3])
+                PathIterator.SEG_CUBICTO -> vp.cubicTo(data[0], data[1], data[2], data[3], data[4], data[5])
+                PathIterator.SEG_CLOSE -> vp.close()
+            }
+            pi.next()
+        }
+        return vp
+    }
+
+    override fun getFontMetrics(systemFont: SystemFont, size: Double, metrics: FontMetrics) {
+        val font = systemFont.toAwt(size)
+        g.font = font
+        val fm = g.fontMetrics
+        metrics.size = size
+        metrics.top = fm.maxAscent.toDouble()
+        metrics.ascent = fm.ascent.toDouble()
+        metrics.baseline = 0.0
+        metrics.descent = fm.descent.toDouble()
+        metrics.bottom = fm.maxDescent.toDouble()
+        metrics.leading = 0.0
+    }
+
+    override fun getKerning(systemFont: SystemFont, size: Double, c1: Int, c2: Int): Double {
+        val font = systemFont.toAwt(size)
+        return super.getKerning(systemFont, size, c1, c2)
+    }
+
+    override fun getGlyphMetrics(systemFont: SystemFont, size: Double, codePoint: Int, metrics: GlyphMetrics) {
+        super.getGlyphMetrics(systemFont, size, codePoint, metrics)
+        val font = systemFont.toAwt(size)
+        g.font = font
+        val fm = g.fontMetrics
+        val c = FontRenderContext(AffineTransform(), true, true)
+        val vector = font.createGlyphVector(c, "${codePoint.toChar()}")
+        //val bounds = vector.logicalBounds
+        val bounds = vector.visualBounds
+        metrics.existing = font.canDisplay(codePoint)
+        metrics.xadvance = fm.charWidth(codePoint.toChar()).toDouble()
+        //metrics.bounds.setTo(0, 0, bounds.width, bounds.height)
+        //println("BOUNDS: ${metrics.bounds}")
+        //metrics.bounds.setTo(bounds.x, -(bounds.height - bounds.y), bounds.width, bounds.height)
+    }
+
+    //override fun renderText(
+    //    state: Context2d.State,
+    //    font: Font,
+    //    fontSize: Double,
+    //    text: String,
+    //    x: Double,
+    //    y: Double,
+    //    fill: Boolean
+    //) {
+    //    super.renderText(state, font, fontSize, text, x, y, fill)
+    //}
+
+    /*
 	override fun renderText(
         state: Context2d.State,
         font: Font,
@@ -411,10 +488,11 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 			g.draw(outline)
 		}
 	}
+     */
 
-	override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
-		val fm = g.getFontMetrics(font.toAwt(fontSize))
-		val bounds = fm.getStringBounds(text, g)
-		out.bounds.setTo(bounds.x, bounds.y, bounds.width, bounds.height)
-	}
+	//override fun getBounds(font: Font, fontSize: Double, text: String, out: TextMetrics) {
+	//	val fm = g.getFontMetrics(font.toAwt(fontSize))
+	//	val bounds = fm.getStringBounds(text, g)
+	//	out.bounds.setTo(bounds.x, bounds.y, bounds.width, bounds.height)
+	//}
 }

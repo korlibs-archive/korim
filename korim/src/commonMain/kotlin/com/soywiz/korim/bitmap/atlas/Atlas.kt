@@ -12,27 +12,63 @@ class Atlas(val slices: List<BmpSlice>) {
 	operator fun get(index: Int): BmpSlice = slices[index]!!
 }
 
-class MutableAtlas(val binPacker: BinPacker, val border: Int = 2, val premultiplied: Boolean = true) {
-    constructor(width: Int, height: Int, border: Int = 2) : this(BinPacker(width, height), border)
+class MutableAtlas<T>(var binPacker: BinPacker, val border: Int = 2, val premultiplied: Boolean = true, val allowToGrow: Boolean = true) {
+    constructor(width: Int, height: Int, border: Int = 2, allowToGrow: Boolean = true) : this(BinPacker(width, height), border)
+    val width get() = binPacker.width.toInt()
+    val height get() = binPacker.height.toInt()
 
-    //val bitmap = NativeImage(binPacker.width.toInt(), binPacker.height.toInt(), premultiplied = premultiplied)
-    val bitmap = Bitmap32(binPacker.width.toInt(), binPacker.height.toInt(), premultiplied = premultiplied)
-    val slicesByIndex = arrayListOf<BmpSlice>()
-    val slicesByName = LinkedHashMap<String, BmpSlice>()
-    val size get() = slicesByIndex.size
-
-    fun add(bmp: Bitmap, name: String = "Slice$size") = add(bmp.slice(), name)
-
-    fun add(bmp: BmpSlice, name: String = "Slice$size"): BmpSlice {
-        val rect = binPacker.add(bmp.width.toDouble() + border * 2, bmp.height.toDouble() + border * 2)
-        val slice = this.bitmap.sliceWithSize((rect.left + border).toInt(), (rect.top + border).toInt(), bmp.width, bmp.height, name)
-        bmp.bmp.copy(bmp.left, bmp.top, this.bitmap, slice.left, slice.top, slice.width, slice.height)
-        slicesByIndex += slice
-        slicesByName[name] = slice
-        bitmap.contentVersion++
-        return slice
+    data class Entry<T>(val slice: BitmapSlice<Bitmap32>, val data: T) {
+        val name get() = slice.name
     }
 
-    // @TODO: We should copy the texture and regenerate the slices, just in case this is
-    fun toImmutable() = Atlas(slicesByIndex.toList())
+    //val bitmap = NativeImage(binPacker.width.toInt(), binPacker.height.toInt(), premultiplied = premultiplied)
+    var bitmap = Bitmap32(width, height, premultiplied = premultiplied)
+    val entries = arrayListOf<Entry<T>>()
+    val entriesByName = LinkedHashMap<String, Entry<T>>()
+    val size get() = entries.size
+
+    fun reconstructWithSize(width: Int, height: Int) {
+        val slices = entries.toList()
+        binPacker = BinPacker(width, height)
+        bitmap = Bitmap32(width, height, premultiplied = premultiplied)
+        entriesByName.clear()
+        entries.clear()
+        for (entry in slices) add(entry.slice, entry.data, entry.slice.name)
+    }
+
+    fun add(bmp: Bitmap32, data: T, name: String = "Slice$size") = add(bmp.slice(), data, name)
+
+    fun add(bmp: BitmapSlice<Bitmap32>, data: T, name: String = "Slice$size"): Entry<T> {
+        try {
+            val rect = binPacker.add(bmp.width.toDouble() + border * 2, bmp.height.toDouble() + border * 2)
+            val slice = this.bitmap.sliceWithSize(
+                (rect.left + border).toInt(),
+                (rect.top + border).toInt(),
+                bmp.width,
+                bmp.height,
+                name
+            )
+            val dstX = slice.left
+            val dstY = slice.top
+            this.bitmap.draw(bmp, dstX, dstY)
+            //bmp.bmp.copy(srcX, srcY, this.bitmap, dstX, dstY, w, h)
+            val entry = Entry(slice, data)
+            entries += entry
+            entriesByName[name] = entry
+            bitmap.contentVersion++
+            return entry
+        } catch (e: Throwable) {
+            if (!allowToGrow) throw e
+            reconstructWithSize(this.width * 2, this.height * 2)
+            return this.add(bmp, data, name)
+        }
+    }
+
+    fun toImmutable(): Atlas {
+        val bitmap = this.bitmap.clone()
+        return Atlas(this.entries.map {
+            val slice = it.slice
+            bitmap.sliceWithBounds(slice.left, slice.top, slice.width, slice.height, slice.name)
+        })
+    }
 }

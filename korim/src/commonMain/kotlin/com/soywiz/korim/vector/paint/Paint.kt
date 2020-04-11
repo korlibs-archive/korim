@@ -118,6 +118,12 @@ data class GradientPaint(
     }
 }
 
+inline fun LinearGradientPaint(x0: Number, y0: Number, x1: Number, y1: Number, block: GradientPaint.() -> Unit = {}) =
+    GradientPaint(GradientKind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
+
+inline fun RadialGradientPaint(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: GradientPaint.() -> Unit = {}) =
+    GradientPaint(GradientKind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
+
 class BitmapPaint(
     val bitmap: Bitmap,
     override val transform: Matrix,

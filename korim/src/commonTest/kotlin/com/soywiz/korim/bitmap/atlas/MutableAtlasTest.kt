@@ -10,16 +10,16 @@ import kotlin.test.assertEquals
 class MutableAtlasTest {
     @Test
     fun test() {
-        val atlas = MutableAtlas(100, 100, border = 2)
-        val slice1 = atlas.add(Bitmap32(10, 10, Colors.RED), "a")
-        val slice2 = atlas.add(Bitmap32(10, 10, Colors.GREEN), "b")
-        val slice3 = atlas.add(Bitmap32(10, 10, Colors.BLUE), "c")
+        val atlas = MutableAtlas<Unit>(100, 100, border = 2)
+        val slice1 = atlas.add(Bitmap32(10, 10, Colors.RED), Unit, "a")
+        val slice2 = atlas.add(Bitmap32(10, 10, Colors.GREEN), Unit, "b")
+        val slice3 = atlas.add(Bitmap32(10, 10, Colors.BLUE), Unit, "c")
         assertEquals("a", slice1.name)
         assertEquals("b", slice2.name)
         assertEquals("c", slice3.name)
-        assertEquals(RectangleInt(2, 2, 10, 10), (slice1 as BitmapSlice<*>).bounds)
-        assertEquals(RectangleInt(2, 16, 10, 10), (slice2 as BitmapSlice<*>).bounds)
-        assertEquals(RectangleInt(2, 30, 10, 10), (slice3 as BitmapSlice<*>).bounds)
+        assertEquals(RectangleInt(2, 2, 10, 10), slice1.slice.bounds)
+        assertEquals(RectangleInt(2, 16, 10, 10), slice2.slice.bounds)
+        assertEquals(RectangleInt(2, 30, 10, 10), slice3.slice.bounds)
         assertEquals(Colors.RED, atlas.bitmap[5, 5])
         assertEquals(Colors.GREEN, atlas.bitmap[5, 20])
         assertEquals(Colors.BLUE, atlas.bitmap[5, 35])

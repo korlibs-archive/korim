@@ -45,21 +45,30 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
+        fun flush() {
+            if (rasterizer.size > 0) {
+                rasterizer.strokeWidth = state.lineWidth
+                rasterizer.quality = if (antialiasing) 8 else 2
+                scanlineWriter.filler = filler
+                scanlineWriter.reset()
+                rasterizer.rasterize(bounds, fill) { x0, x1, y ->
+                    scanlineWriter.select(x0, x1, y)
+                }
+                scanlineWriter.flush()
+                rasterizer.reset()
+            }
+        }
+
         rasterizer.debug = debug
-        rasterizer.reset()
         state.path.emitPoints({
-            if (it) rasterizer.close()
+            if (it) {
+                rasterizer.close()
+                //flush()
+            }
         }, { x, y ->
             rasterizer.add(x, y)
         })
-        rasterizer.strokeWidth = state.lineWidth
-        rasterizer.quality = if (antialiasing) 8 else 2
-        scanlineWriter.filler = filler
-        scanlineWriter.reset()
-        rasterizer.rasterize(bounds, fill) { x0, x1, y ->
-            scanlineWriter.select(x0, x1, y)
-        }
-        scanlineWriter.flush()
+        flush()
 	}
 
     class SegmentHandler {
@@ -113,8 +122,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
     }
 
     inner class ScanlineWriter {
-        var filler: BaseFiller =
-            NoneFiller
+        var filler: BaseFiller = NoneFiller
         var ny0 = -1.0
         var ny = -1
         val size = bmp.width
@@ -131,6 +139,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             segments.reset()
         }
         fun select(x0: Double, x1: Double, y0: Double) {
+            if (width1 < 1) return
             val x0 = x0.coerceIn(0.0, width1.toDouble())
             val x1 = x1.coerceIn(0.0, width1.toDouble())
             val a = x0.toIntRound()

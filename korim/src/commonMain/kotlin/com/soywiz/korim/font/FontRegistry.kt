@@ -12,7 +12,7 @@ interface FontRegistry {
 
 @ThreadLocal
 object SystemFontRegistry : DefaultFontRegistry() {
-    val DEFAULT_FONT = this["sans-serif"]
+    val DEFAULT_FONT = DefaultTtfFont.register(name = "sans-serif")
 }
 
 open class DefaultFontRegistry : FontRegistry {

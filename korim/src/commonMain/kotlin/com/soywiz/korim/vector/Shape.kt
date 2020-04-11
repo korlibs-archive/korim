@@ -290,6 +290,11 @@ fun Paint.toSvg(svg: SvgBuilder): String {
 	}
 }
 
+object EmptyShape : Shape {
+    override fun addBounds(bb: BoundsBuilder) = Unit
+    override fun draw(c: Context2d) = Unit
+}
+
 data class FillShape(
 	override val path: GraphicsPath,
 	override val clip: GraphicsPath?,

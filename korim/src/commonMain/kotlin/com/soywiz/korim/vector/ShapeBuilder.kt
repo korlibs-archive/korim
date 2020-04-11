@@ -3,6 +3,7 @@ package com.soywiz.korim.vector
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.font.SystemFont
+import com.soywiz.korim.font.TextMetrics
 import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korim.vector.renderer.*
 import com.soywiz.korma.geom.*
@@ -45,21 +46,21 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(DummyRenderer), Drawab
         super.rendererRender(state, fill)
     }
 
-    override fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
-        shapes += TextShape(
-            text = text,
-            x = x, y = y,
-            font = font,
-            fontSize = fontSize,
-            clip = state.clip?.clone(),
-            fill = if (fill) state.fillStyle else null,
-            stroke = if (fill) null else state.strokeStyle,
-            halign = state.horizontalAlign,
-            valign = state.verticalAlign,
-            //transform = Matrix()
-            transform = state.transform.clone()
-        )
-    }
+    //override fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
+    //    shapes += TextShape(
+    //        text = text,
+    //        x = x, y = y,
+    //        font = font,
+    //        fontSize = fontSize,
+    //        clip = state.clip?.clone(),
+    //        fill = if (fill) state.fillStyle else null,
+    //        stroke = if (fill) null else state.strokeStyle,
+    //        halign = state.horizontalAlign,
+    //        valign = state.verticalAlign,
+    //        //transform = Matrix()
+    //        transform = state.transform.clone()
+    //    )
+    //}
 
     override fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
         rendererRender(State(
@@ -81,10 +82,6 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(DummyRenderer), Drawab
     }
 
     override fun rendererBufferingEnd() {
-    }
-
-    override fun rendererSystemGetBounds(font: SystemFont, fontSize: Double, text: String, out: TextMetrics) {
-        super.rendererSystemGetBounds(font, fontSize, text, out)
     }
 
     fun clear() {

@@ -14,29 +14,35 @@ import kotlin.math.min
 typealias RasterizerCallback = (x0: Double, x1: Double, y: Double) -> Unit
 
 class Rasterizer {
-    data class Edge(val a: IPoint, val b: IPoint, val wind: Int) {
-        val minX = min(a.x, b.x)
-        val maxX = max(a.x, b.x)
-        val minY = min(a.y, b.y)
-        val maxY = max(a.y, b.y)
+    companion object {
+        const val FIXED_SCALE = 32
+    }
 
-        val isCoplanarX = a.y == b.y
-        val isCoplanarY = a.x == b.x
-        val slope = (b.y - a.y) / (b.x - a.x)
-        val angle = Angle.between(a.x, a.y, b.x, b.y)
+    data class Edge(val ax: Double, val ay: Double, val bx: Double, val by: Double, val wind: Int) {
+        val minX = min(ax, bx)
+        val maxX = max(ax, bx)
+        val minY = min(ay, by)
+        val maxY = max(ay, by)
+
+        val isCoplanarX = ay == by
+        val isCoplanarY = ax == bx
+        val slope = (by - ay) / (bx - ax)
+
+        val angle = Angle.between(ax, ay, bx, by)
         val cos = angle.cosine
-        //val cos = angle.sine
         val absCos = cos.absoluteValue
-        val h = a.y - (a.x * slope)
 
-        fun containsY(y: Double): Boolean = y >= a.y && y < b.y
-        fun intersectX(y: Double): Double = if (isCoplanarY) a.x else ((y - h) / slope)
+        val h = ay - (ax * slope)
+
+        fun containsY(y: Double): Boolean = y >= ay && y < by
+        fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) / slope)
     }
 
     var debug: Boolean = false
     private val tempRect = Rectangle()
     private val boundsBuilder = BoundsBuilder()
-    private val points = arrayListOf<IPoint>()
+    private val pointsX = doubleArrayListOf()
+    private val pointsY = doubleArrayListOf()
 
     @PublishedApi
     internal val edges = arrayListOf<Edge>()
@@ -45,32 +51,31 @@ class Rasterizer {
 
     fun reset() {
         boundsBuilder.reset()
-        points.clear()
+        pointsX.clear()
+        pointsY.clear()
     }
 
-    private fun addEdge(a: IPoint, b: IPoint) {
-        edges.add(if (a.y < b.y) Edge(
-            a,
-            b,
-            +1
-        ) else Edge(b, a, -1)
-        )
+    private fun addEdge(ax: Double, ay: Double, bx: Double, by: Double) {
+        edges.add(if (ay < by) Edge(ax, ay, bx, by, +1) else Edge(bx, by, ax, ay, -1))
     }
 
+    private fun addEdge(a: Int, b: Int) {
+        addEdge(pointsX[a], pointsY[a], pointsX[b], pointsY[b])
+    }
+
+    val size get() = pointsX.size
     fun add(x: Double, y: Double) {
-        val p = IPoint(x, y)
-        points.add(p)
+        pointsX.add(x)
+        pointsY.add(y)
         boundsBuilder.add(x, y)
-        if (points.size >= 2) {
-            addEdge(points[points.size - 2], points[points.size - 1])
-        }
+        if (size >= 2) addEdge(size - 2, size - 1)
     }
 
     inline fun add(x: Number, y: Number) = add(x.toDouble(), y.toDouble())
 
     inline fun iterateActiveEdgesAtY(y: Double, block: (Edge) -> Unit) {
         // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
-        for (edge in edges) {
+        edges.fastForEach { edge ->
             if (edge.containsY(y)) {
                 block(edge)
             }
@@ -78,8 +83,8 @@ class Rasterizer {
     }
 
     fun close() {
-        if (points.size >= 2) {
-            addEdge(points[points.size - 1], points[0])
+        if (size >= 2) {
+            addEdge(size - 1, 0)
         }
     }
     var quality: Int = 2

@@ -5,8 +5,9 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.TextMetrics
+import com.soywiz.korim.font.TextMetrics
 import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.vector.renderer.Renderer
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
@@ -164,7 +165,7 @@ object BrowserImage {
 	}
 }
 
-class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.soywiz.korim.vector.renderer.Renderer() {
+class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Renderer() {
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
@@ -217,14 +218,11 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.s
 		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
-    private fun setMatrix(t: Matrix) {
-        ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
-    }
-
 	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
 		setFont(state.font, state.fontSize)
-        setMatrix(state.transform)
+		val t = state.transform
+		ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
@@ -268,9 +266,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.s
 
 		//println("beginPath")
 		keep {
+			setState(state, fill, state.fontSize)
 			ctx.beginPath()
 
-            // No apply transform, since points are already translated
 			state.path.visitCmds(
 				moveTo = { x, y -> ctx.moveTo(x, y) },
 				lineTo = { x, y -> ctx.lineTo(x, y) },
@@ -281,9 +279,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.s
 
 			ctx.save()
 
-            setState(state, fill, state.fontSize)
-
-            if (fill) {
+			if (fill) {
 				transformPaint(state.fillStyle)
 				ctx.fill()
 				//println("fill: $s")
@@ -298,6 +294,8 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.s
 		}
 	}
 
+    // @TODO: Do this
+    /*
 	override fun renderText(
         state: Context2d.State,
         font: Font,
@@ -341,4 +339,5 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : com.s
 			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, fontSize)
 		}
 	}
+    */
 }
