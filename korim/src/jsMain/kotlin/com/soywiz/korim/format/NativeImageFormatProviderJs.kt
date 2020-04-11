@@ -6,6 +6,8 @@ import com.soywiz.korim.font.Font
 import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.font.TextMetrics
+import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.vector.renderer.Renderer
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
@@ -163,7 +165,7 @@ object BrowserImage {
 	}
 }
 
-class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Context2d.Renderer() {
+class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Renderer() {
 	override val width: Int get() = canvas.width.toInt()
 	override val height: Int get() = canvas.height.toInt()
 
@@ -171,11 +173,11 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 
 	fun Paint.toJsStr(): Any? {
 		return when (this) {
-			is Context2d.None -> "none"
+			is NonePaint -> "none"
 			is ColorPaint -> this.color.htmlStringSimple
 			is GradientPaint -> {
 				when (kind) {
-					GradientPaint.Kind.LINEAR -> {
+					GradientKind.LINEAR -> {
 						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -184,7 +186,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 						}
 						grad
 					}
-					GradientPaint.Kind.RADIAL -> {
+                    GradientKind.RADIAL -> {
 						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
 						for (n in 0 until this.stops.size) {
 							val stop = this.stops[n]
@@ -240,7 +242,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 	}
 
 	private fun transformPaint(paint: Paint) {
-		if (paint is Context2d.TransformedPaint) {
+		if (paint is TransformedPaint) {
 			val m = paint.transform
 			ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)
 		}
@@ -292,6 +294,8 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 		}
 	}
 
+    // @TODO: Do this
+    /*
 	override fun renderText(
         state: Context2d.State,
         font: Font,
@@ -335,4 +339,5 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Conte
 			out.bounds.setTo(0.toDouble(), 0.toDouble(), width.toDouble() + 2, fontSize)
 		}
 	}
+    */
 }
