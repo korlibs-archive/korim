@@ -24,8 +24,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     protected open fun rendererDispose() = renderer.dispose()
     protected open fun rendererBufferingStart() = renderer.bufferingStart()
     protected open fun rendererBufferingEnd() = renderer.bufferingEnd()
-    //open fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) =
-    //    renderer.renderText(state, font, fontSize, text, x, y, fill)
+    protected open fun rendererRenderSystemText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
+        font.drawText(this, fontSize, text, if (fill) state.fillStyle else state.strokeStyle, x, y, fill = fill)
+    }
+
+    fun fillText(text: String, x: Double, y: Double) = rendererRenderSystemText(state, font, fontSize, text, x, y, fill = true)
+    fun strokeText(text: String, x: Double, y: Double) = rendererRenderSystemText(state, font, fontSize, text, x, y, fill = false)
 
     open val width: Int get() = rendererWidth
     open val height: Int get() = rendererHeight

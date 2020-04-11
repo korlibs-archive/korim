@@ -50,7 +50,8 @@ class TtfFont(val s: SyncStream) : VectorFont {
         val scale = getTextScale(size)
         path.path = g.path
         path.transform.identity()
-        path.transform.scale(scale, -scale)
+        //path.transform.scale(scale, -scale)
+        path.transform.scale(scale, scale)
         return path
     }
 
@@ -514,12 +515,12 @@ class TtfFont(val s: SyncStream) : VectorFont {
                     var next: Contour = contour(cstart)
 
                     if (curr.onCurve) {
-                        p.moveTo(curr.x, curr.y)
+                        p.moveTo(curr.x, -curr.y)
                     } else {
                         if (next.onCurve) {
-                            p.moveTo(next.x, next.y)
+                            p.moveTo(next.x, -next.y)
                         } else {
-                            p.moveTo((curr.x + next.x) * 0.5.toInt(), ((curr.y + next.y) * 0.5).toInt())
+                            p.moveTo((curr.x + next.x) * 0.5.toInt(), -((curr.y + next.y) * 0.5).toInt())
                         }
                     }
 
@@ -529,7 +530,7 @@ class TtfFont(val s: SyncStream) : VectorFont {
                         next = contour(cstart + ((cpos + 1) % csize))
 
                         if (curr.onCurve) {
-                            p.lineTo(curr.x, curr.y)
+                            p.lineTo(curr.x, -curr.y)
                         } else {
                             var prev2X = prev.x
                             var prev2Y = prev.y
@@ -539,7 +540,7 @@ class TtfFont(val s: SyncStream) : VectorFont {
                             if (!prev.onCurve) {
                                 prev2X = ((curr.x + prev.x) * 0.5).toInt()
                                 prev2Y = ((curr.y + prev.y) * 0.5).toInt()
-                                p.lineTo(prev2X, prev2Y)
+                                p.lineTo(prev2X, -prev2Y)
                             }
 
                             if (!next.onCurve) {
@@ -547,8 +548,8 @@ class TtfFont(val s: SyncStream) : VectorFont {
                                 next2Y = ((curr.y + next.y) * 0.5).toInt()
                             }
 
-                            p.lineTo(prev2X, prev2Y)
-                            p.quadTo(curr.x, curr.y, next2X, next2Y)
+                            p.lineTo(prev2X, -prev2Y)
+                            p.quadTo(curr.x, -curr.y, next2X, -next2Y)
                         }
                     }
 
