@@ -59,17 +59,17 @@ class TtfFont(val s: SyncStream) : Font {
     ) {
         val scale = getTextScale(size)
         getGlyphMetrics(size, codePoint, metrics)
-        ctx.keepTransform {
-            ctx.beginPath()
-            ctx.translate(x, y)
-            ctx.scale(scale, -scale)
             val g = getGlyphByCodePoint(codePoint)
             if (g != null) {
                 //println("RENDER: $g")
-                g.draw(ctx)
+                ctx.keepTransform {
+                    ctx.beginPath()
+                    ctx.translate(x, y)
+                    ctx.scale(scale, -scale)
+                    g.draw(ctx)
+                }
                 if (fill) ctx.fill() else ctx.stroke()
             }
-        }
     }
 
     /*

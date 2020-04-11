@@ -166,7 +166,7 @@ class BitmapFont(
             for (codePoint in chars.codePoints) {
                 val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = paint, fill = true, border = 1)
                 //val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = DefaultPaint, fill = true)
-                matlas.add(result.bmp, result)
+                matlas.add(result.bmp.toBMP32().premultipliedIfRequired(), result)
             }
             val atlas = matlas.bitmap
             return BitmapFont(

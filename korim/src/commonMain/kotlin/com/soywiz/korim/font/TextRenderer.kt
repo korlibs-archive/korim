@@ -23,6 +23,7 @@ abstract class TextRendererActions {
 
     fun getGlyphMetrics(codePoint: Int): GlyphMetrics = font.getGlyphMetrics(fontSize, codePoint, glyphMetrics)
 
+    //var transformAnchor: Anchor = Anchor.BOTTOM_CENTER
     val transform: Matrix = Matrix()
     var paint: Paint? = null
     var tint: RGBA = Colors.WHITE // Ignored for now

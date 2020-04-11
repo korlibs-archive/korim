@@ -354,16 +354,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-	fun createLinearGradient(x0: Double, y0: Double, x1: Double, y1: Double) =
-		GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
-
-	fun createRadialGradient(x0: Double, y0: Double, r0: Double, x1: Double, y1: Double, r1: Double) =
-        GradientPaint(GradientKind.RADIAL, x0, y0, r0, x1, y1, r1)
-
     inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: GradientPaint.() -> Unit = {}) =
-        GradientPaint(GradientKind.LINEAR, x0.toDouble(), y0.toDouble(), 0.0, x1.toDouble(), y1.toDouble(), 0.0).also(block)
+        LinearGradientPaint(x0, y0, x1, y1, block)
     inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: GradientPaint.() -> Unit = {}) =
-        GradientPaint(GradientKind.RADIAL, x0.toDouble(), y0.toDouble(), r0.toDouble(), x1.toDouble(), y1.toDouble(), r1.toDouble()).also(block)
+        RadialGradientPaint(x0, y0, r0, x1, y1, r1, block)
 
     fun createColor(color: RGBA) = ColorPaint(color)
 	fun createPattern(
