@@ -5,7 +5,10 @@ import com.soywiz.kds.IntMap
 import com.soywiz.kds.toIntMap
 import com.soywiz.klock.measureTimeWithResult
 import com.soywiz.kmem.insert
+import com.soywiz.kmem.nextPowerOfTwo
+import com.soywiz.kmem.toIntCeil
 import com.soywiz.korim.bitmap.*
+import com.soywiz.korim.bitmap.atlas.MutableAtlas
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.ImageFormat
@@ -14,10 +17,10 @@ import com.soywiz.korim.format.readBitmapSlice
 import com.soywiz.korim.vector.Context2d
 import com.soywiz.korim.vector.HorizontalAlign
 import com.soywiz.korim.vector.VerticalAlign
+import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korim.vector.paint.DefaultPaint
 import com.soywiz.korio.dynamic.KDynamic
 import com.soywiz.korio.file.VfsFile
-import com.soywiz.korio.lang.String_fromIntArray
 import com.soywiz.korio.lang.substr
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.get
@@ -27,6 +30,7 @@ import com.soywiz.korma.geom.setTo
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
+import kotlin.math.sqrt
 
 class BitmapFont(
     val fontSize: Int,
@@ -151,50 +155,30 @@ class BitmapFont(
             mipmaps: Boolean = true
         ): BitmapFont {
             val fontSize = fontSize.toDouble()
-            val result = measureTimeWithResult {
-                val bni = NativeImage(1, 1)
-                val bnictx = bni.getContext2d()
-                bnictx.font = font
-                bnictx.fontSize = fontSize
-                val bitmapHeight = bnictx.getTextBounds("a").bounds.height.toInt()
-
-                val widths: List<Int> = chars.codePoints.map { bnictx.getTextBounds("${it.toChar()}").bounds.width.toInt() }
-                val widthsSum = widths.map { it + 2 }.sum()
-                val ni = NativeImage(widthsSum, bitmapHeight)
-
-                class GlyphInfo(val char: Int, val rect: RectangleInt, val width: Int)
-
-                val g = ni.getContext2d()
-                g.fillStyle = g.createColor(Colors.WHITE)
-                g.fontSize = fontSize
-                g.font = font
-                g.horizontalAlign = HorizontalAlign.LEFT
-                g.verticalAlign = VerticalAlign.TOP
-                val glyphsInfo = arrayListOf<GlyphInfo>()
-                var x = 0
-                val itemp = IntArray(1)
-                for ((index, char) in chars.codePoints.withIndex()) {
-                    val width = widths[index]
-                    itemp[0] = char
-                    g.fillText(String_fromIntArray(itemp, 0, 1), x.toDouble(), 0.0)
-                    glyphsInfo += GlyphInfo(char, RectangleInt(x, 0, width, ni.height), width)
-                    x += width + 2
-                }
-
-                val atlas = ni.toBMP32()
-
-                BitmapFont(
-                    fontSize.toInt(), fontSize.toInt(), fontSize.toInt(),
-                    glyphsInfo.associate {
-                        it.char to Glyph(it.char, atlas.slice(it.rect), 0, 0, it.width)
-                    }.toIntMap(),
-                    IntMap(),
-                    atlas = atlas,
-                    name = fontName
-                )
+            val fmetrics = font.getFontMetrics(fontSize)
+            val glyphMetrics = chars.codePoints.map { font.getGlyphMetrics(fontSize, it) }
+            val requiredArea = glyphMetrics.map { (it.width + 4) * (fmetrics.lineHeight + 4) }.sum().toIntCeil()
+            val requiredAreaSide = sqrt(requiredArea.toDouble()).toIntCeil()
+            val matlas = MutableAtlas<TextToBitmapResult>(requiredAreaSide.nextPowerOfTwo, requiredAreaSide.nextPowerOfTwo)
+            for (codePoint in chars.codePoints) {
+                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = ColorPaint(Colors.RED), fill = true)
+                matlas.add(result.bmp, result)
             }
-
-            return result.result
+            val atlas = matlas.bitmap
+            return BitmapFont(
+                fontSize = fontSize.toInt(),
+                lineHeight = fmetrics.lineHeight.toInt(),
+                base = fmetrics.top.toInt(),
+                glyphs = matlas.entries.associate {
+                    val slice = it.slice
+                    val g = it.data.glyphs.first()
+                    val m = g.metrics
+                    g.codePoint to Glyph(g.codePoint, slice, m.left.toIntCeil(), m.top.toIntCeil(), m.xadvance.toIntCeil())
+                }.toIntMap(),
+                kernings = IntMap(),
+                atlas = atlas,
+                name = fontName
+            )
         }
 	}
 }

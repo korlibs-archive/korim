@@ -10,10 +10,10 @@ import kotlin.test.assertEquals
 class MutableAtlasTest {
     @Test
     fun test() {
-        val atlas = MutableAtlas(100, 100, border = 2)
-        val slice1 = atlas.add(Bitmap32(10, 10, Colors.RED), "a")
-        val slice2 = atlas.add(Bitmap32(10, 10, Colors.GREEN), "b")
-        val slice3 = atlas.add(Bitmap32(10, 10, Colors.BLUE), "c")
+        val atlas = MutableAtlas<Unit>(100, 100, border = 2)
+        val slice1 = atlas.add(Bitmap32(10, 10, Colors.RED), Unit, "a")
+        val slice2 = atlas.add(Bitmap32(10, 10, Colors.GREEN), Unit, "b")
+        val slice3 = atlas.add(Bitmap32(10, 10, Colors.BLUE), Unit, "c")
         assertEquals("a", slice1.name)
         assertEquals("b", slice2.name)
         assertEquals("c", slice3.name)

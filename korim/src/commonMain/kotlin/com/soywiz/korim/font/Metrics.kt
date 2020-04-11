@@ -40,6 +40,8 @@ data class GlyphMetrics(
     val width: Double get() = bounds.width
     val height: Double get() = bounds.height
 
+    fun clone() = copy(bounds = bounds.clone())
+
     override fun toString(): String = buildString {
         append("GlyphMetrics(")
         append("codePoint=${codePoint} ('${codePoint.toChar()}'), ")
