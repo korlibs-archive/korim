@@ -21,6 +21,11 @@ abstract class TextRendererActions {
     var x = 0.0
     var y = 0.0
 
+    fun reset() {
+        x = 0.0
+        y = 0.0
+    }
+
     fun getGlyphMetrics(codePoint: Int): GlyphMetrics = font.getGlyphMetrics(fontSize, codePoint, glyphMetrics)
 
     //var transformAnchor: Anchor = Anchor.BOTTOM_CENTER
@@ -51,6 +56,7 @@ inline fun <reified T> DefaultTextRenderer() = when (T::class) {
 }
 
 fun CreateStringTextRenderer(handler: TextRendererActions.(text: String, n: Int, c: Int, c1: Int, g: GlyphMetrics, advance: Double) -> Unit): TextRenderer<String> = { text, size, defaultFont ->
+    reset()
     setFont(defaultFont, size)
     for (n in text.indices) {
         val c = text[n].toInt()
