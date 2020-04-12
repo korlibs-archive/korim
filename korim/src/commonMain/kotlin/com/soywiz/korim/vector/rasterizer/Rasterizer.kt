@@ -25,16 +25,21 @@ class Rasterizer {
 
         val isCoplanarX = ay == by
         val isCoplanarY = ax == bx
-        val slope = (by - ay) / (bx - ax)
-
-        val angle = Angle.between(ax, ay, bx, by)
-        val cos = angle.cosine
-        val absCos = cos.absoluteValue
+        val dy = (by - ay)
+        val dx = (bx - ax)
+        val slope = dy / dx
+        var islope = 1.0 / slope
 
         val h = ay - (ax * slope)
 
         fun containsY(y: Double): Boolean = y >= ay && y < by
-        fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) / slope)
+        fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * islope)
+        //fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * this.dx) / this.dy
+
+        // Stroke extensions
+        val angle = Angle.between(ax, ay, bx, by)
+        val cos = angle.cosine
+        val absCos = cos.absoluteValue
     }
 
     var debug: Boolean = false

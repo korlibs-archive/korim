@@ -157,25 +157,27 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
                 subRowCount++
             }
             segments.add(i0, i1)
+            //println("ROW[$y0]: $x0,$x1")
             if (i0 == i1) {
-                put(i0, (x1 - x0).absoluteValue)
+                put(i0, (x1 - x0).absoluteValue.toFloat())
             } else {
-                put(i0, computeAlpha(i0, x0))
-                put(i1, computeAlpha(i1, x1))
+                put(i0, computeAlpha(i0, x0.toFloat()))
+                put(i1, 1f - computeAlpha(i1, x1.toFloat()))
+                //println("i1=$i1, x1=$x1")
                 for (x in i0 + 1 until i1) {
-                    put(x, 1.0)
+                    put(x, 1f)
                 }
             }
             //alphaCount++
         }
 
-        private fun computeAlpha(v: Int, p: Double): Double = if (v > p) (v - p) else 1.0 - (p - v)
+        private fun computeAlpha(v: Int, p: Float): Float = if (v > p) 1f - (v - p) else (p - v)
 
-        fun put(x: Int, ratio: Double) {
+        fun put(x: Int, ratio: Float) {
             val mask = 1 shl subRowCount
             if ((hitbits[x] and mask) == 0) {
                 hitbits[x] = hitbits[x] or mask
-                alpha[x] += ratio.toFloat()
+                alpha[x] += ratio
             }
         }
 
@@ -184,7 +186,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             val scale = 1f / subRowCount
             segments.forEachFast { xmin, xmax ->
                 val x = xmin
-                val count = xmax - xmin
+                val count = xmax - xmin + 1
                 filler.fill(color, 0, xmin, xmax, ny)
                 for (n in xmin..xmax) alpha[n] *= scale
                 scale(color, xmin, alpha, xmin, count)
