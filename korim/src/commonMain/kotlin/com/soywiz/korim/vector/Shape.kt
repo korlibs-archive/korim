@@ -106,6 +106,7 @@ fun VectorPath.toSvgPathString(separator: String = " ", decimalPlaces: Int = 1):
 interface Shape : BoundsDrawable {
 	fun addBounds(bb: BoundsBuilder): Unit
 	fun buildSvg(svg: SvgBuilder): Unit = Unit
+    fun getPath(path: GraphicsPath = GraphicsPath()): GraphicsPath = path
 
     // Unoptimized version
     override val bounds: Rectangle get() = BoundsBuilder().also { addBounds(it) }.getBounds()
@@ -147,7 +148,11 @@ interface StyledShape : Shape {
 		)
 	}
 
-	fun getSvgXmlAttributes(svg: SvgBuilder): Map<String, String> = mapOf(
+    override fun getPath(path: GraphicsPath) = path.also {
+        this.path?.let { path.write(it) }
+    }
+
+    fun getSvgXmlAttributes(svg: SvgBuilder): Map<String, String> = mapOf(
 		//"transform" to transform.toSvg()
 	)
 
@@ -399,6 +404,7 @@ class CompoundShape(
 	override fun addBounds(bb: BoundsBuilder) = run { components.fastForEach { it.addBounds(bb)}  }
 	override fun draw(c: Context2d) = c.buffering { components.fastForEach { it.draw(c) } }
 	override fun buildSvg(svg: SvgBuilder) = run { components.fastForEach { it.buildSvg(svg) } }
+    override fun getPath(path: GraphicsPath): GraphicsPath = path.also { components.fastForEach { it.getPath(path) } }
 	override fun containsPoint(x: Double, y: Double): Boolean {
 		return components.any { it.containsPoint(x, y) }
 	}

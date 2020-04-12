@@ -74,7 +74,8 @@ class FontTest {
         //BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
         //BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
 
-        val font = DefaultTtfFont
+        val font = SystemFont("Arial")
+        //val font = DefaultTtfFont
         //val font = BitmapFont(DefaultTtfFont, 64.0)
         //val font = BitmapFont(DefaultTtfFont, 24.0)
         //val font = BitmapFont(SystemFont("Arial"), 24.0)
@@ -91,8 +92,8 @@ class FontTest {
         //    fillRect(0, 0, 100, 100)
         //}.showImageAndWait()
 
-        val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = false, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
-        //val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = true, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        //val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = false, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = true, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "llll", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "Hello World!", renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
             //dy = -n.toDouble()

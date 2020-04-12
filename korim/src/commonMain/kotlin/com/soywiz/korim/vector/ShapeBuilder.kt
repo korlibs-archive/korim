@@ -46,21 +46,21 @@ class ShapeBuilder(width: Int?, height: Int?) : Context2d(DummyRenderer), Drawab
         super.rendererRender(state, fill)
     }
 
-    //override fun Renderer.rendererRenderSystemText(state: State, font: SystemFont, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
-    //    shapes += TextShape(
-    //        text = text,
-    //        x = x, y = y,
-    //        font = font,
-    //        fontSize = fontSize,
-    //        clip = state.clip?.clone(),
-    //        fill = if (fill) state.fillStyle else null,
-    //        stroke = if (fill) null else state.strokeStyle,
-    //        halign = state.horizontalAlign,
-    //        valign = state.verticalAlign,
-    //        //transform = Matrix()
-    //        transform = state.transform.clone()
-    //    )
-    //}
+    override fun rendererRenderSystemText(state: State, font: Font, fontSize: Double, text: String, x: Double, y: Double, fill: Boolean) {
+        shapes += TextShape(
+            text = text,
+            x = x, y = y,
+            font = font,
+            fontSize = fontSize,
+            clip = state.clip?.clone(),
+            fill = if (fill) state.fillStyle else null,
+            stroke = if (fill) null else state.strokeStyle,
+            halign = state.horizontalAlign,
+            valign = state.verticalAlign,
+            //transform = Matrix()
+            transform = state.transform.clone()
+        )
+    }
 
     override fun rendererDrawImage(image: Bitmap, x: Double, y: Double, width: Double, height: Double, transform: Matrix) {
         rendererRender(State(
