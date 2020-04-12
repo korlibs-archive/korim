@@ -69,7 +69,9 @@ class Rasterizer {
     val lastX get() = if (pointsX.size > 0) pointsX[pointsX.size - 1] else Double.NEGATIVE_INFINITY
     val lastY get() = if (pointsY.size > 0) pointsY[pointsY.size - 1] else Double.NEGATIVE_INFINITY
     val size get() = pointsX.size
-    fun add(x: Double, y: Double) {
+
+    @PublishedApi
+    internal fun addPoint(x: Double, y: Double) {
         if (!closed && x == lastX && y == lastY) return
         //println("ADD($x, $y)")
         pointsX.add(x)
@@ -82,7 +84,7 @@ class Rasterizer {
         }
     }
 
-    inline fun add(x: Number, y: Number) = add(x.toDouble(), y.toDouble())
+    inline fun add(x: Number, y: Number) = addPoint(x.toDouble(), y.toDouble())
 
     inline fun forEachActiveEdgeAtY(y: Double, block: (Edge) -> Unit): Int {
         // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
