@@ -14,7 +14,7 @@ class Bitmap8(
 	override fun getInt(x: Int, y: Int): Int = datau[index(x, y)]
 	override fun getRgba(x: Int, y: Int): RGBA = palette[get(x, y)]
 
-    fun clone() = Bitmap8(width, height, data.copyOf(), RgbaArray(palette.ints.copyOf()))
+    override fun clone() = Bitmap8(width, height, data.copyOf(), RgbaArray(palette.ints.copyOf()))
 
 	override fun toString(): String = "Bitmap8($width, $height, palette=${palette.size})"
 }

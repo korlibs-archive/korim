@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.kmem.*
+import com.soywiz.korim.annotation.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.*
@@ -8,6 +9,7 @@ import kotlin.js.*
 import kotlin.jvm.*
 import kotlin.math.*
 
+@OptIn(KorimInternal::class)
 class Bitmap32(
     width: Int,
     height: Int,
@@ -31,41 +33,13 @@ class Bitmap32(
 
     fun copyTo(other: Bitmap32): Bitmap32 = checkMatchDimensions(other).also { arraycopy(this.data, 0, other.data, 0, this.data.size) }
 
-    override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
-        if (dst !is Bitmap32) return super.copy(srcX, srcY, dst, dstX, dstY, width, height)
-
+    override fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+        if (dst !is Bitmap32) return super.copyUnchecked(srcX, srcY, dst, dstX, dstY, width, height)
 		val src = this
-
-        val srcX0 = src.clampWidth(srcX)
-        val srcX1 = src.clampWidth(srcX + width)
-        val srcY0 = src.clampHeight(srcY)
-        val srcY1 = src.clampHeight(srcY + height)
-
-        val dstX0 = dst.clampWidth(dstX)
-        val dstX1 = dst.clampWidth(dstX + width)
-        val dstY0 = dst.clampHeight(dstY)
-        val dstY1 = dst.clampHeight(dstY + height)
-
-        val srcX = srcX0
-        val srcY = srcY0
-        val dstX = dstX0
-        val dstY = dstY0
-
-        val width = min(srcX1 - srcX0, dstX1 - dstX0)
-        val height = min(srcY1 - srcY0, dstY1 - dstY0)
-
 		val srcArray = src.data
-		var srcIndex = src.index(srcX, srcY)
-		val srcAdd = src.width
-
-		val dstArray = (dst as Bitmap32).data
-		var dstIndex = dst.index(dstX, dstY)
-		val dstAdd = dst.width
-
+		val dstArray = dst.data
 		for (y in 0 until height) {
-			arraycopy(srcArray.ints, srcIndex, dstArray.ints, dstIndex, width)
-			srcIndex += srcAdd
-			dstIndex += dstAdd
+			arraycopy(srcArray.ints, src.index(srcX, srcY + y), dstArray.ints, dst.index(dstX, dstY + y), width)
 		}
 	}
 
@@ -82,6 +56,7 @@ class Bitmap32(
 		arraycopy(row, 0, data.ints, index(0, y), width)
 	}
 
+    @KorimInternal
     fun _drawUnchecked(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
         val dst = this
         val width = sright - sleft
@@ -116,6 +91,7 @@ class Bitmap32(
         }
     }
 
+    @KorimInternal
 	fun _draw(src: Bitmap32, dx: Int, dy: Int, sleft: Int, stop: Int, sright: Int, sbottom: Int, mix: Boolean) {
         var sleft = 0
         var stop = 0
@@ -140,6 +116,7 @@ class Bitmap32(
 		this[x, y] = RGBA.mix(this[x, y], c)
 	}
 
+    @KorimInternal
 	fun _drawPut(mix: Boolean, other: Bitmap32, _dx: Int = 0, _dy: Int = 0) {
 		_draw(other, _dx, _dy, 0, 0, other.width, other.height, mix)
 	}
@@ -159,12 +136,13 @@ class Bitmap32(
 		for (cy in y1..y2) this.data.fill(color, index(x1, cy), index(x2, cy) + 1)
 	}
 
+    @KorimInternal
 	fun _draw(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0, mix: Boolean) {
 		val b = src.bounds
 		_draw(src.bmp, dx, dy, b.left, b.top, b.right, b.bottom, mix = mix)
 	}
 
-	fun put(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, src, dx, dy)
+    fun put(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(false, src, dx, dy)
 	fun draw(src: Bitmap32, dx: Int = 0, dy: Int = 0) = _drawPut(true, src, dx, dy)
 
 	fun put(src: BitmapSlice<Bitmap32>, dx: Int = 0, dy: Int = 0) = _draw(src, dx, dy, mix = false)
@@ -234,7 +212,7 @@ class Bitmap32(
 			color.decode(data, offset, this.data, 0, this.area, littleEndian = littleEndian)
 		}
 
-    fun clone() = Bitmap32(width, height, RgbaArray(this.data.ints.copyOf()), premultiplied)
+    override fun clone() = Bitmap32(width, height, RgbaArray(this.data.ints.copyOf()), premultiplied)
 
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(Bitmap32Context2d(this, antialiasing))
 
