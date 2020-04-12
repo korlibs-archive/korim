@@ -27,10 +27,12 @@ class RasterizerTest {
         rast.add(10, 10)
         rast.close()
         val log = arrayListOf<String>()
-        rast.rasterizeFill(Rectangle(0, 0, 10, 10)) { a, b, y ->
+        val stats = Rasterizer.Stats()
+        rast.rasterizeFill(Rectangle(0, 0, 10, 10), quality = 8, stats = stats) { a, b, y ->
             log += "rast(${a.niceStr}, ${b.niceStr}, ${y.niceStr})"
-            println(log.last())
+            //println(log.last())
         }
+        assertEquals(Rasterizer.Stats(edgesChecked=352, edgesEmitted=88, yCount=88), stats)
     }
 
     @Test
@@ -70,5 +72,15 @@ class RasterizerTest {
             }
         }.showImageAndWait()
         //bulletBitmap.showImageAndWait()
+
+        /*
+        Bitmap32(128, 128).context2d {
+            moveTo(0, 100)
+            lineTo(30, 10)
+            lineTo(60, 100)
+            close()
+            fill()
+        }.showImageAndWait()
+         */
     }
 }

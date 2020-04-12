@@ -1,7 +1,6 @@
 package com.soywiz.korim.font
 
-import com.soywiz.korim.bitmap.NativeImage
-import com.soywiz.korim.bitmap.context2d
+import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.buildSvgXml
@@ -11,6 +10,7 @@ import com.soywiz.korim.vector.paint.LinearGradientPaint
 import com.soywiz.korio.async.suspendTest
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.degrees
+import com.soywiz.korma.geom.vector.*
 import kotlin.test.Ignore
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -66,13 +66,25 @@ class FontTest {
 
 
         //DefaultTtfFont.renderGlyphToBitmap(256.0, '´'.toInt()).bmp.showImageAndWait()
-        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'o'.toInt()).bmp.showImageAndWait()
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'o'.toInt(), nativeRendering = false).bmp.showImageAndWait()
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'ó'.toInt(), nativeRendering = false).bmp.showImageAndWait()
+        //return@suspendTest
+
+        //DefaultTtfFont.renderGlyphToBitmap(256.0, 'ó'.toInt(), nativeRendering = false).bmp.showImageAndWait()
         //DefaultTtfFont.renderGlyphToBitmap(256.0, 'ó'.toInt()).bmp.showImageAndWait()
         //println(result2)
         //result2.bmp.showImageAndWait()
 
         //BitmapFont(DefaultTtfFont, 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
         //BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
+
+        Bitmap32(128, 128).context2d {
+            moveTo(0, 100)
+            lineTo(30, 10)
+            lineTo(60, 100)
+            close()
+            fill()
+        }.showImageAndWait()
 
         val font = SystemFont("Arial")
         //val font = DefaultTtfFont
@@ -93,7 +105,7 @@ class FontTest {
         //}.showImageAndWait()
 
         //val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = false, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
-        val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = true, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
+        val result = font.renderTextToBitmap(48.0, "Helló World!", paint, nativeRendering = false, renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "llll", ColorPaint(Colors.RED), renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
         //val result = font.renderTextToBitmap(24.0, "Hello World!", renderer = CreateStringTextRenderer { text, n, c, c1, g, advance ->
             //dy = -n.toDouble()

@@ -44,31 +44,23 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
-        fun flush() {
-            if (rasterizer.size > 0) {
-                rasterizer.strokeWidth = state.lineWidth
-                rasterizer.quality = if (antialiasing) 4 else 1
-                scanlineWriter.filler = filler
-                scanlineWriter.reset()
-                rasterizer.rasterize(bounds, fill) { x0, x1, y ->
-                    scanlineWriter.select(x0, x1, y)
-                }
-                scanlineWriter.flush()
-                rasterizer.reset()
-            }
-        }
-
         rasterizer.debug = debug
         state.path.emitPoints({
-            if (it) {
-                rasterizer.close()
-                //flush()
-            }
+            if (it) rasterizer.close()
         }, { x, y ->
             rasterizer.add(x, y)
         })
-        flush()
-	}
+        if (rasterizer.size > 0) {
+            rasterizer.strokeWidth = state.lineWidth
+            rasterizer.quality = if (antialiasing) 4 else 1
+            scanlineWriter.filler = filler
+            scanlineWriter.reset()
+            rasterizer.rasterize(bounds, fill) { x0, x1, y ->
+                scanlineWriter.select(x0, x1, y)
+            }
+            scanlineWriter.flush()
+            rasterizer.reset()
+        }	}
 
     class SegmentHandler {
         val xmin = intArrayListOf()
@@ -161,8 +153,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             if (i0 == i1) {
                 put(i0, (x1 - x0).absoluteValue.toFloat())
             } else {
-                put(i0, computeAlpha(i0, x0.toFloat()))
-                put(i1, 1f - computeAlpha(i1, x1.toFloat()))
+                put(i0, computeAlpha(i0, x0.toFloat(), true))
+                put(i1, computeAlpha(i1, x1.toFloat(), false))
                 //println("i1=$i1, x1=$x1")
                 for (x in i0 + 1 until i1) {
                     put(x, 1f)
@@ -171,7 +163,11 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             //alphaCount++
         }
 
-        private fun computeAlpha(v: Int, p: Float): Float = if (v > p) 1f - (v - p) else (p - v)
+        private fun computeAlpha(v: Int, p: Float, left: Boolean): Float = when {
+            v.toFloat() == p -> 1f
+            v > p != left -> (v - p).absoluteValue
+            else -> 1f - (v - p).absoluteValue
+        }
 
         fun put(x: Int, ratio: Float) {
             val mask = 1 shl subRowCount

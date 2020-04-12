@@ -33,6 +33,7 @@ class Rasterizer {
         val h = ay - (ax * slope)
 
         fun containsY(y: Double): Boolean = y >= ay && y < by
+        fun containsYNear(y: Double, offset: Double): Boolean = y >= (ay - offset) && y < (by + offset)
         fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * islope)
         //fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * this.dx) / this.dy
 
@@ -40,6 +41,8 @@ class Rasterizer {
         val angle = Angle.between(ax, ay, bx, by)
         val cos = angle.cosine
         val absCos = cos.absoluteValue
+        val sin = angle.sine
+        val absSin = sin.absoluteValue
     }
 
     var debug: Boolean = false
@@ -98,6 +101,19 @@ class Rasterizer {
             val edge = edges[n]
             edgesChecked++
             if (edge.containsY(y)) {
+                block(edge)
+            }
+        }
+        return edgesChecked
+    }
+
+    inline fun forEachActiveEdgeAtY(y: Double, near: Double, block: (Edge) -> Unit): Int {
+        // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
+        var edgesChecked = 0
+        for (n in 0 until edges.size) {
+            val edge = edges[n]
+            edgesChecked++
+            if (edge.containsYNear(y, near)) {
                 block(edge)
             }
         }
@@ -234,7 +250,7 @@ class Rasterizer {
         var yCount = 0
         yList.fastForEach { y ->
             yCount++
-            edgesChecked += forEachActiveEdgeAtY(y) {
+            edgesChecked += forEachActiveEdgeAtY(y, strokeWidth2) {
                 if (!it.isCoplanarX) {
                     val x = it.intersectX(y)
                     val hwidth = strokeWidth2 + strokeWidth2 * it.absCos
