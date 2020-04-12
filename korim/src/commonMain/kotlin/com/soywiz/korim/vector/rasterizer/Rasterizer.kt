@@ -70,7 +70,7 @@ class Rasterizer {
     val lastY get() = if (pointsY.size > 0) pointsY[pointsY.size - 1] else Double.NEGATIVE_INFINITY
     val size get() = pointsX.size
     fun add(x: Double, y: Double) {
-        if (x == lastX && y == lastY) return
+        if (!closed && x == lastX && y == lastY) return
         //println("ADD($x, $y)")
         pointsX.add(x)
         pointsY.add(y)
@@ -84,14 +84,17 @@ class Rasterizer {
 
     inline fun add(x: Number, y: Number) = add(x.toDouble(), y.toDouble())
 
-    inline fun forEachActiveEdgeAtY(y: Double, block: (Edge) -> Unit) {
+    inline fun forEachActiveEdgeAtY(y: Double, block: (Edge) -> Unit): Int {
         // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
+        var edgesChecked = 0
         for (n in 0 until edges.size) {
             val edge = edges[n]
+            edgesChecked++
             if (edge.containsY(y)) {
                 block(edge)
             }
         }
+        return edgesChecked
     }
 
     fun close() {
@@ -105,23 +108,32 @@ class Rasterizer {
     }
     var quality: Int = 2
 
-    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: RasterizeStats? = null, callback: RasterizerCallback) =
+    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) =
         rasterize(bounds, true, quality, stats, callback)
 
-    fun rasterizeStroke(bounds: Rectangle, lineWidth: Double, quality: Int = this.quality, stats: RasterizeStats? = null, callback: RasterizerCallback) =
+    fun rasterizeStroke(bounds: Rectangle, lineWidth: Double, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) =
         run { this.strokeWidth = lineWidth }.also { rasterize(bounds, false, quality, stats, callback) }
 
-    class RasterizeStats {
-        var iterationsCount: Int = 0
+    data class Stats(
+        var edgesChecked: Int = 0,
+        var edgesEmitted: Int = 0,
+        var yCount: Int = 0
+    ) {
         fun reset() {
-            iterationsCount = 0
+            edgesChecked = 0
+            edgesEmitted = 0
+            yCount = 0
         }
-        fun addIterations(count: Int) {
-            iterationsCount += count
+
+        fun chunk(edgesChecked: Int, edgesEmitted: Int, yCount: Int) {
+            this.edgesChecked += edgesChecked
+            this.edgesEmitted += edgesEmitted
+            this.yCount += yCount
         }
     }
 
-    fun rasterize(bounds: Rectangle, fill: Boolean, quality: Int = this.quality, stats: RasterizeStats? = null, callback: RasterizerCallback) {
+    fun rasterize(bounds: Rectangle, fill: Boolean, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) {
+        stats?.reset()
         val xmin = bounds.left
         val xmax = bounds.right
         boundsBuilder.getBounds(tempRect)
@@ -164,14 +176,16 @@ class Rasterizer {
 
     private fun internalRasterizeFill(
         yList: DoubleArrayList,
-        stats: RasterizeStats?,
+        stats: Stats?,
         callback: (x0: Double, x1: Double, y: Double) -> Unit
     ) {
-        var iterationsCount = 0
+        var edgesChecked = 0
+        var edgesEmitted = 0
+        var yCount = 0
         yList.fastForEach { y ->
+            yCount++
             tempX.clear()
-            forEachActiveEdgeAtY(y) {
-                iterationsCount++
+            edgesChecked += forEachActiveEdgeAtY(y) {
                 if (!it.isCoplanarX) {
                     tempX.add(it.intersectX(y + 0.5))
                 }
@@ -179,14 +193,14 @@ class Rasterizer {
             genericSort(tempX, 0, tempX.size - 1, DoubleArrayListSort)
             if (tempX.size >= 2) {
                 for (i in 0 until tempX.size - 1 step 2) {
-                    iterationsCount++
                     val a = tempX[i]
                     val b = tempX[i + 1]
                     callback(a, b, y)
+                    edgesEmitted++
                 }
             }
         }
-        stats?.addIterations(iterationsCount)
+        stats?.chunk(edgesChecked, edgesEmitted, yCount)
     }
 
     // @TODO: Change once KDS is updated
@@ -204,14 +218,16 @@ class Rasterizer {
 
     private fun internalRasterizeStroke(
         yList: DoubleArrayList,
-        stats: RasterizeStats?,
+        stats: Stats?,
         callback: (x0: Double, x1: Double, y: Double) -> Unit
     ) {
-        var iterationsCount = 0
         val strokeWidth2 = strokeWidth * 0.5
+        var edgesChecked = 0
+        var edgesEmitted = 0
+        var yCount = 0
         yList.fastForEach { y ->
-            forEachActiveEdgeAtY(y) {
-                iterationsCount++
+            yCount++
+            edgesChecked += forEachActiveEdgeAtY(y) {
                 if (!it.isCoplanarX) {
                     val x = it.intersectX(y)
                     val hwidth = strokeWidth2 + strokeWidth2 * it.absCos
@@ -219,8 +235,9 @@ class Rasterizer {
                 } else {
                     callback(it.minX, it.maxX, y)
                 }
+                edgesEmitted++
             }
         }
-        stats?.addIterations(iterationsCount)
+        stats?.chunk(edgesChecked, edgesEmitted, yCount)
     }
 }
