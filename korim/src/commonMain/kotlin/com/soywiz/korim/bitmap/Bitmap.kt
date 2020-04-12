@@ -6,6 +6,7 @@ import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korma.geom.*
+import kotlin.math.*
 
 abstract class Bitmap(
     val width: Int,
@@ -53,10 +54,34 @@ abstract class Bitmap(
         }
     }
 
-	open fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+    fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+        val src = this
+
+        val srcX0 = src.clampWidth(srcX)
+        val srcX1 = src.clampWidth(srcX + width)
+        val srcY0 = src.clampHeight(srcY)
+        val srcY1 = src.clampHeight(srcY + height)
+
+        val dstX0 = dst.clampWidth(dstX)
+        val dstX1 = dst.clampWidth(dstX + width)
+        val dstY0 = dst.clampHeight(dstY)
+        val dstY1 = dst.clampHeight(dstY + height)
+
+        val srcX = srcX0
+        val srcY = srcY0
+        val dstX = dstX0
+        val dstY = dstY0
+
+        val width = min(srcX1 - srcX0, dstX1 - dstX0)
+        val height = min(srcY1 - srcY0, dstY1 - dstY0)
+
+        copyUnchecked(srcX, srcY, dst, dstX, dstY, width, height)
+    }
+
+	protected open fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		for (y in 0 until height) {
 			for (x in 0 until width) {
-				dst.setInt(dstX + x, dstY, this.getInt(srcX + x, srcY))
+				dst.setInt(dstX + x, dstY + y, this.getInt(srcX + x, srcY + y))
 			}
 		}
 	}
@@ -128,6 +153,12 @@ abstract class Bitmap(
             if (this.getRgba(x, y) != other.getRgba(x, y)) return false
         }
         return true
+    }
+
+    open fun clone(): Bitmap {
+        val out = createWithThisFormat(width, height)
+        copyUnchecked(0, 0, out, 0, 0, width, height)
+        return out
     }
 }
 

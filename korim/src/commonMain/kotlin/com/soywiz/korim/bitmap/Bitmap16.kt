@@ -2,6 +2,7 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
+import com.soywiz.korio.lang.*
 
 class Bitmap16(
     width: Int,
@@ -10,10 +11,15 @@ class Bitmap16(
     val format: ColorFormat = RGBA_4444,
     premultiplied: Boolean = false
 ) : Bitmap(width, height, 16, premultiplied, data) {
+    init {
+        assert(data.size >= width * height)
+    }
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap =
 		Bitmap16(width, height, format = format, premultiplied = premultiplied)
 
-	operator fun set(x: Int, y: Int, color: Int) = setInt(x, y, color)
+    override fun clone() = Bitmap16(width, height, data.copyOf(), format, premultiplied)
+
+    operator fun set(x: Int, y: Int, color: Int) = setInt(x, y, color)
 	operator fun get(x: Int, y: Int): Int = getInt(x, y)
 
 	override fun setInt(x: Int, y: Int, color: Int) = Unit.apply { data[index(x, y)] = color.toShort() }
@@ -23,24 +29,14 @@ class Bitmap16(
 
 	override fun getRgba(x: Int, y: Int): RGBA = format.unpackToRGBA(data[index(x, y)].toInt())
 
-	override fun copy(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
-        if (dst !is Bitmap16) return super.copy(srcX, srcY, dst, dstX, dstY, width, height)
-
+	override fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+        if (dst !is Bitmap16) return super.copyUnchecked(srcX, srcY, dst, dstX, dstY, width, height)
         val src = this
-
-		val srcArray = src.data
-		var srcIndex = src.index(srcX, srcY)
-		val srcAdd = src.width
-
-		val dstArray = (dst as Bitmap16).data
-		var dstIndex = dst.index(dstX, dstY)
-		val dstAdd = dst.width
-
-		for (y in 0 until height) {
-			arraycopy(srcArray, srcIndex, dstArray, dstIndex, width)
-			srcIndex += srcAdd
-			dstIndex += dstAdd
-		}
+        val srcArray = src.data
+        val dstArray = dst.data
+        for (y in 0 until height) {
+            arraycopy(srcArray, src.index(srcX, srcY + y), dstArray, dst.index(dstX, dstY + y), width)
+        }
 	}
 
 	override fun toString(): String = "Bitmap16($width, $height, format=$format)"
