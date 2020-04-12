@@ -3,8 +3,7 @@ package com.soywiz.korim.vector
 import com.soywiz.kds.intArrayListOf
 import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.color.RGBAPremultiplied
-import com.soywiz.korim.color.RgbaPremultipliedArray
+import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.filler.*
 import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korim.vector.paint.ColorPaint
@@ -127,13 +126,13 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         var ny = -1
         val size = bmp.width
         val width1 = bmp.width - 1
-        val alpha = DoubleArray(size)
+        val alpha = FloatArray(size)
         val hitbits = IntArray(size)
         val color = RgbaPremultipliedArray(size)
         val segments = SegmentHandler()
         var subRowCount = 0
         fun reset() {
-            alpha.fill(0.0)
+            alpha.fill(0f)
             hitbits.fill(0)
             subRowCount = 0
             segments.reset()
@@ -176,46 +175,23 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             val mask = 1 shl subRowCount
             if ((hitbits[x] and mask) == 0) {
                 hitbits[x] = hitbits[x] or mask
-                alpha[x] += ratio
+                alpha[x] += ratio.toFloat()
             }
         }
 
-        // @TODO: We should try to use SIMD if possible
         fun flush() {
-            if (ny >= 0 && ny < bmp.height) {
-                if (bmp.premultiplied) {
-                    val data = bmp.dataPremult
-                    render0 { index, color ->
-                        val mixed = RGBAPremultiplied.mix(data[index], color)
-                        data[index] = mixed
-                    }
-                } else {
-                    val data = bmp.data
-                    render0 { index, color ->
-                        data[index] = RGBAPremultiplied.mix(data[index].premultiplied, color).depremultiplied
-                        //data[index] = RGBA.mix(data[index], color.depremultiplied)
-                    }
-                }
-            }
-        }
-
-        // PERFORMANCE: This is inline so we have two specialized versions without ifs on the inner loop
-        @OptIn(ExperimentalStdlibApi::class)
-        private inline fun render0(mix: (index: Int, color: RGBAPremultiplied) -> Unit) {
-            val row = bmp.index(0, ny)
-            val scale = 1.0 / subRowCount
+            if (ny !in 0 until bmp.height) return
+            val scale = 1f / subRowCount
             segments.forEachFast { xmin, xmax ->
+                val x = xmin
+                val count = xmax - xmin
                 filler.fill(color, 0, xmin, xmax, ny)
-                for (x in xmin..xmax) {
-                    val rx = row + x
-                    val ualpha = this.alpha[x]
-                    if (ualpha > 0) {
-                        val alpha = ualpha * scale
-                        val col = color[x]
-                        val scaled = col.scaled(alpha)
-                        //println("col=${col.hexString}:scaled=${scaled.hexString}:mixed=${mixed.hexString}:alpha=$alpha, ialpha=$ialpha, scale=$scale")
-                        mix(rx, scaled)
-                    }
+                for (n in xmin..xmax) alpha[n] *= scale
+                scale(color, xmin, alpha, xmin, count)
+                if (bmp.premultiplied) {
+                    mix(bmp.dataPremult, bmp.index(0, ny) + x, color, x, count)
+                } else {
+                    mix(bmp.data, bmp.index(0, ny) + x, color, x, count)
                 }
             }
         }

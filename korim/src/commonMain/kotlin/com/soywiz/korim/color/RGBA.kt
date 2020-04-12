@@ -2,8 +2,8 @@ package com.soywiz.korim.color
 
 import com.soywiz.kds.GenericListIterator
 import com.soywiz.kds.GenericSubList
-import com.soywiz.kmem.arraycopy
-import com.soywiz.kmem.fill
+import com.soywiz.kmem.*
+import com.soywiz.korim.internal.*
 import com.soywiz.korim.internal.clamp0_255
 import com.soywiz.korim.internal.d2i
 import com.soywiz.korim.internal.f2i
@@ -81,9 +81,9 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     companion object : ColorFormat32() {
         fun float(r: Float, g: Float, b: Float, a: Float): RGBA = unclamped(f2i(r), f2i(g), f2i(b), f2i(a))
         inline fun float(r: Number, g: Number, b: Number, a: Number = 1f): RGBA = float(r.toFloat(), g.toFloat(), b.toFloat(), a.toFloat())
-        fun unclamped(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(((r and 0xFF) shl 0) or ((g and 0xFF) shl 8) or ((b and 0xFF) shl 16) or ((a and 0xFF) shl 24))
-		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), a.clamp0_255())
-        operator fun invoke(r: Int, g: Int, b: Int): RGBA = unclamped(r.clamp0_255(), g.clamp0_255(), b.clamp0_255(), 0xFF)
+        fun unclamped(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(packIntUnchecked(r, g, b, a))
+		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(packIntClamped(r, g, b, a))
+        operator fun invoke(r: Int, g: Int, b: Int): RGBA = RGBA(packIntClamped(r, g, b, 0xFF))
 		operator fun invoke(rgb: Int, a: Int): RGBA = RGBA((rgb and 0xFFFFFF) or (a shl 24))
 		override fun getR(v: Int): Int = RGBA(v).r
 		override fun getG(v: Int): Int = RGBA(v).g
@@ -115,13 +115,11 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
             return when (srcA) {
                 0x000 -> dst
                 0xFF -> src
-                else -> {
-                    RGBA(mixRgbFactor256(dst, src, srcA + 1).rgb, (srcA + (dst.a * iSrcA) / 255).clamp0_255())
-                    //(dst.premultiplied mix src.premultiplied).depremultiplied
-                }
+                else -> RGBA(mixRgbFactor256(dst, src, srcA + 1).rgb, (srcA + (dst.a * iSrcA) / 255).clamp0_255())
             }
         }
 
+        // @TODO: Optimizable
         fun multiply(c1: RGBA, c2: RGBA): RGBA = RGBA(
             ((c1.r * c2.r) / 0xFF),
             ((c1.g * c2.g) / 0xFF),
@@ -142,7 +140,7 @@ fun Double.interpolate(a: RGBA, b: RGBA): RGBA = RGBA.interpolate(a, b, this)
 
 inline class RGBAPremultiplied(val value: Int) {
     constructor(rgb: Int, a: Int) : this((rgb and 0xFFFFFF) or (a shl 24))
-    constructor(r: Int, g: Int, b: Int, a: Int) : this(RGBA.pack(r, g, b, a))
+    constructor(r: Int, g: Int, b: Int, a: Int) : this(packIntClamped(r, g, b, a))
 
     val rgb: Int get() = value and 0xFFFFFF
     val r: Int get() = (value ushr 0) and 0xFF
@@ -191,14 +189,22 @@ inline class RGBAPremultiplied(val value: Int) {
     val htmlStringSimple: String get() = this.asNonPremultiplied().htmlStringSimple
 
     override fun toString(): String = hexString
-    fun scaled(alpha: Double): RGBAPremultiplied {
-        return RGBAPremultiplied((r * alpha).toInt(), (g * alpha).toInt(), (b * alpha).toInt(), (a * alpha).toInt())
+    fun scaled256(s: Int): RGBAPremultiplied {
+        val rb = (((value and 0x00FF00FF) * s) ushr 8) and 0x00FF00FF
+        val g = (((value and 0x0000FF00) * s) ushr 8) and 0x0000FF00
+        val a = (((value ushr 24) * s) ushr 8) shl 24
+        return RGBAPremultiplied(rb or g or a)
     }
 
+    fun scaled(alpha: Double): RGBAPremultiplied = scaled256((alpha.clamp01() * 256).toInt())
+    fun scaled(alpha: Float): RGBAPremultiplied = scaled256((alpha.clamp01() * 256).toInt())
+
     companion object {
-        fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied {
-            return RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
-        }
+        private const val RB_MASK: Int = 0x00FF00FF
+        private const val GA_MASK: Int = -16711936 // 0xFF00FF00
+
+        fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied =
+            RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
 
         fun blend(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied {
             val RB = (((c1.value and 0xFF00FF) + (c2.value and 0xFF00FF)) ushr 1) and 0xFF00FF
@@ -241,6 +247,29 @@ inline class RgbaPremultipliedArray(val ints: IntArray) {
     }
 
     override fun toString(): String = "RgbaPremultipliedArray($size)"
+}
+
+// @TODO: Critical performance use SIMD if possible
+fun scale(color: RgbaPremultipliedArray, colorOffset: Int, alpha: FloatArray, alphaOffset: Int, count: Int) {
+    for (n in 0 until count) {
+        val a = alpha[alphaOffset + n].clamp01()
+        if (a == 1f) continue
+        color[colorOffset + n] = color[colorOffset + n].scaled(a)
+    }
+}
+
+// @TODO: Critical performance use SIMD if possible
+fun mix(dst: RgbaArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
+    for (n in 0 until count) {
+        dst[dstX + n] = RGBAPremultiplied.mix(dst[dstX + n].premultiplied, src[srcX + n]).depremultiplied
+    }
+}
+
+// @TODO: Critical performance use SIMD if possible
+fun mix(dst: RgbaPremultipliedArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
+    for (n in 0 until count) {
+        dst[dstX + n] = RGBAPremultiplied.mix(dst[dstX + n], src[srcX + n])
+    }
 }
 
 //infix fun RGBA.mix(dst: RGBA): RGBA = RGBA.mix(this, dst)
