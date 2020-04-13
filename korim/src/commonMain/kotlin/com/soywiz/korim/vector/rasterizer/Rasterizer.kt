@@ -2,26 +2,22 @@ package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.kds.*
 import com.soywiz.kds.iterators.fastForEach
-import com.soywiz.kmem.toIntCeil
-import com.soywiz.kmem.toIntFloor
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
-typealias RasterizerCallback = (x0: Double, x1: Double, y: Double) -> Unit
+typealias RasterizerCallback = (x0: Int, x1: Int, y: Int) -> Unit
 
 @PublishedApi
-internal val Double.s: Int get() = (this * Rasterizer.FIXED_SCALE).toInt()
+internal val Double.s: Int get() = (this * RAST_FIXED_SCALE).toInt()
 @PublishedApi
-internal val Int.us: Double get() = this.toDouble() / Rasterizer.FIXED_SCALE
+internal val Int.us: Double get() = this.toDouble() / RAST_FIXED_SCALE
+
+const val RAST_FIXED_SCALE = 32 // Important NOTE: Power of two so divisions are >> and remaining &
 
 class Rasterizer {
-    companion object {
-        const val FIXED_SCALE = 32
-    }
-
     data class Edge(val ax: Int, val ay: Int, val bx: Int, val by: Int, val wind: Int) {
         val minX = min(ax, bx)
         val maxX = max(ax, bx)
@@ -176,7 +172,7 @@ class Rasterizer {
                 if (debug) {
                     println("RASTER($a0, $b0, $y)")
                 }
-                callback(a0.us, b0.us, y.us)
+                callback(a0, b0, y)
             } else {
                 // Discarded
                 //println("  - DISCARDED")

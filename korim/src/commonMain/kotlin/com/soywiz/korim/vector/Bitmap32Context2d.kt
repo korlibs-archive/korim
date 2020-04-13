@@ -9,7 +9,7 @@ import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korim.vector.paint.NonePaint
-import com.soywiz.korim.vector.rasterizer.Rasterizer
+import com.soywiz.korim.vector.rasterizer.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.shape.emitPoints
@@ -177,7 +177,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 
     inner class ScanlineWriter {
         var filler: BaseFiller = NoneFiller
-        var ny0 = -1.0
+        var ny0 = -1
         var ny = -1
         val size = bmp.width
         val width1 = bmp.width - 1
@@ -192,15 +192,17 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             subRowCount = 0
             segments.reset()
         }
-        fun select(x0: Double, x1: Double, y0: Double) {
+        fun select(x0: Int, x1: Int, y0: Int) {
             if (width1 < 1) return
-            val x0 = x0.coerceIn(0.0, width1.toDouble())
-            val x1 = x1.coerceIn(0.0, width1.toDouble())
-            val a = x0.toIntRound()
-            val b = x1.toIntRound()
-            val y = y0.toInt()
+            val x0 = x0.coerceIn(0, width1 * RAST_FIXED_SCALE)
+            val x1 = x1.coerceIn(0, width1 * RAST_FIXED_SCALE)
+            val a = x0 / RAST_FIXED_SCALE
+            val b = x1 / RAST_FIXED_SCALE
+            val y = y0 / RAST_FIXED_SCALE
             val i0 = a.coerceIn(0, width1)
             val i1 = b.coerceIn(0, width1)
+            val i0m = x0 % RAST_FIXED_SCALE
+            val i1m = x1 % RAST_FIXED_SCALE
 
             if (ny != y) {
                 if (y >= 0) flush()
@@ -214,10 +216,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             segments.add(i0, i1)
             //println("ROW[$y0]: $x0,$x1")
             if (i0 == i1) {
-                put(i0, (x1 - x0).absoluteValue.toFloat())
+                put(i0, (x1 - x0).absoluteValue.toFloat() / RAST_FIXED_SCALE)
             } else {
-                put(i0, computeAlpha(i0, x0.toFloat(), true))
-                put(i1, computeAlpha(i1, x1.toFloat(), false))
+                put(i0, 1f - i0m.toFloat() / RAST_FIXED_SCALE)
+                put(i1, if (i1m == 0) 1f else i1m.toFloat() / RAST_FIXED_SCALE)
                 //println("i1=$i1, x1=$x1")
                 for (x in i0 + 1 until i1) {
                     put(x, 1f)
