@@ -12,12 +12,17 @@ import kotlin.math.min
 
 typealias RasterizerCallback = (x0: Double, x1: Double, y: Double) -> Unit
 
+@PublishedApi
+internal val Double.s: Int get() = (this * Rasterizer.FIXED_SCALE).toInt()
+@PublishedApi
+internal val Int.us: Double get() = this.toDouble() / Rasterizer.FIXED_SCALE
+
 class Rasterizer {
     companion object {
         const val FIXED_SCALE = 32
     }
 
-    data class Edge(val ax: Double, val ay: Double, val bx: Double, val by: Double, val wind: Int) {
+    data class Edge(val ax: Int, val ay: Int, val bx: Int, val by: Int, val wind: Int) {
         val minX = min(ax, bx)
         val maxX = max(ax, bx)
         val minY = min(ay, by)
@@ -27,14 +32,14 @@ class Rasterizer {
         val isCoplanarY = ax == bx
         val dy = (by - ay)
         val dx = (bx - ax)
-        val slope = dy / dx
+        val slope = dy.toDouble() / dx.toDouble()
         var islope = 1.0 / slope
 
-        val h = ay - (ax * slope)
+        val h = if (isCoplanarY) 0 else ay - (ax * dy) / dx
 
-        fun containsY(y: Double): Boolean = y >= ay && y < by
-        fun containsYNear(y: Double, offset: Double): Boolean = y >= (ay - offset) && y < (by + offset)
-        fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * islope)
+        fun containsY(y: Int): Boolean = y >= ay && y < by
+        fun containsYNear(y: Int, offset: Int): Boolean = y >= (ay - offset) && y < (by + offset)
+        fun intersectX(y: Int): Int = if (isCoplanarY) ax else ((y - h) * dx) / dy
         //fun intersectX(y: Double): Double = if (isCoplanarY) ax else ((y - h) * this.dx) / this.dy
 
         // Stroke extensions
@@ -66,7 +71,7 @@ class Rasterizer {
     }
 
     private fun addEdge(ax: Double, ay: Double, bx: Double, by: Double) {
-        edges.add(if (ay < by) Edge(ax, ay, bx, by, +1) else Edge(bx, by, ax, ay, -1))
+        edges.add(if (ay < by) Edge(ax.s, ay.s, bx.s, by.s, +1) else Edge(bx.s, by.s, ax.s, ay.s, -1))
     }
 
     private fun addEdge(a: Int, b: Int) {
@@ -94,7 +99,7 @@ class Rasterizer {
 
     inline fun add(x: Number, y: Number) = addPoint(x.toDouble(), y.toDouble())
 
-    inline fun forEachActiveEdgeAtY(y: Double, block: (Edge) -> Unit): Int {
+    inline fun forEachActiveEdgeAtY(y: Int, block: (Edge) -> Unit): Int {
         // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
         var edgesChecked = 0
         for (n in 0 until edges.size) {
@@ -107,7 +112,7 @@ class Rasterizer {
         return edgesChecked
     }
 
-    inline fun forEachActiveEdgeAtY(y: Double, near: Double, block: (Edge) -> Unit): Int {
+    inline fun forEachActiveEdgeAtY(y: Int, near: Int, block: (Edge) -> Unit): Int {
         // @TODO: Optimize this. We can sort edges by Y and perform a binary search?
         var edgesChecked = 0
         for (n in 0 until edges.size) {
@@ -157,12 +162,12 @@ class Rasterizer {
 
     fun rasterize(bounds: Rectangle, fill: Boolean, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) {
         stats?.reset()
-        val xmin = bounds.left
-        val xmax = bounds.right
+        val xmin = bounds.left.s
+        val xmax = bounds.right.s
         boundsBuilder.getBounds(tempRect)
-        val startY = max(bounds.top, tempRect.top).toIntFloor()
-        val endY = min(bounds.bottom, tempRect.bottom).toIntCeil()
-        val func: (x0: Double, x1: Double, y: Double) -> Unit = { a, b, y ->
+        val startY = max(bounds.top, tempRect.top).s
+        val endY = min(bounds.bottom, tempRect.bottom).s
+        val func: (x0: Int, x1: Int, y: Int) -> Unit = { a, b, y ->
             //println("CHUNK")
             if (a <= xmax && b >= xmin) {
                 //println("  - EMIT")
@@ -171,21 +176,19 @@ class Rasterizer {
                 if (debug) {
                     println("RASTER($a0, $b0, $y)")
                 }
-                callback(a0, b0, y)
+                callback(a0.us, b0.us, y.us)
             } else {
                 // Discarded
                 //println("  - DISCARDED")
             }
         }
 
-        val yCount = (endY - startY + 1) * quality
-        val yCountMax = kotlin.math.max((yCount - 1).toDouble(), 1.0)
-        val step = 1.0 / quality.toDouble()
+        val yCount = ((endY - startY + 1).us * quality).toInt()
 
         yList.clear()
         for (n in 0 until yCount) {
             val ratio = n.toDouble() / yCount
-            yList.add(ratio.interpolate(startY.toDouble(), endY.toDouble()))
+            yList.add(ratio.interpolate(startY.toDouble(), endY.toDouble()).toInt())
         }
 
         if (fill) {
@@ -194,13 +197,13 @@ class Rasterizer {
             internalRasterizeStroke(yList, stats, func)
         }
     }
-    private val yList = DoubleArrayList(1024)
-    private val tempX = DoubleArrayList(1024)
+    private val yList = IntArrayList(1024)
+    private val tempX = IntArrayList(1024)
 
     private fun internalRasterizeFill(
-        yList: DoubleArrayList,
+        yList: IntArrayList,
         stats: Stats?,
-        callback: (x0: Double, x1: Double, y: Double) -> Unit
+        callback: (x0: Int, x1: Int, y: Int) -> Unit
     ) {
         var edgesChecked = 0
         var edgesEmitted = 0
@@ -210,10 +213,10 @@ class Rasterizer {
             tempX.clear()
             edgesChecked += forEachActiveEdgeAtY(y) {
                 if (!it.isCoplanarX) {
-                    tempX.add(it.intersectX(y + 0.5))
+                    tempX.add(it.intersectX(y))
                 }
             }
-            genericSort(tempX, 0, tempX.size - 1, DoubleArrayListSort)
+            genericSort(tempX, 0, tempX.size - 1, IntArrayListSort)
             if (tempX.size >= 2) {
                 for (i in 0 until tempX.size - 1 step 2) {
                     val a = tempX[i]
@@ -227,9 +230,9 @@ class Rasterizer {
     }
 
     // @TODO: Change once KDS is updated
-    object DoubleArrayListSort : SortOps<DoubleArrayList>() {
-        override fun compare(subject: DoubleArrayList, l: Int, r: Int): Int = subject[l].compareTo(subject[r])
-        override fun swap(subject: DoubleArrayList, indexL: Int, indexR: Int) {
+    object IntArrayListSort : SortOps<IntArrayList>() {
+        override fun compare(subject: IntArrayList, l: Int, r: Int): Int = subject[l].compareTo(subject[r])
+        override fun swap(subject: IntArrayList, indexL: Int, indexR: Int) {
             val l = subject[indexL]
             val r = subject[indexR]
             subject[indexR] = l
@@ -240,11 +243,11 @@ class Rasterizer {
     var strokeWidth: Double = 1.0
 
     private fun internalRasterizeStroke(
-        yList: DoubleArrayList,
+        yList: IntArrayList,
         stats: Stats?,
-        callback: (x0: Double, x1: Double, y: Double) -> Unit
+        callback: (x0: Int, x1: Int, y: Int) -> Unit
     ) {
-        val strokeWidth2 = strokeWidth * 0.5
+        val strokeWidth2 = strokeWidth.s / 2
         var edgesChecked = 0
         var edgesEmitted = 0
         var yCount = 0
@@ -253,7 +256,7 @@ class Rasterizer {
             edgesChecked += forEachActiveEdgeAtY(y, strokeWidth2) {
                 if (!it.isCoplanarX) {
                     val x = it.intersectX(y)
-                    val hwidth = strokeWidth2 + strokeWidth2 * it.absCos
+                    val hwidth = strokeWidth2 + (strokeWidth2 * it.absCos).toInt()
                     callback(x - hwidth, x + hwidth, y) // We should use slope to determine the actual width
                 } else {
                     callback(it.minX, it.maxX, y)
