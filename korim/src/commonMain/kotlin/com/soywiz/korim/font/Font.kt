@@ -43,7 +43,7 @@ fun Font.renderGlyphToBitmap(
     val border2 = border * 2
     val iwidth = gmetrics.width.toIntCeil() + border2
     val iheight = gmetrics.height.toIntCeil() + border2
-    val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight)
+    val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight, premultiplied = true)
     image.context2d {
         fillStyle = paint
         font.renderGlyph(this, size, codePoint, gx + border, gy + border, fill = true, metrics = gmetrics)
@@ -62,7 +62,7 @@ fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPai
     val glyphs = arrayListOf<TextToBitmapResult.PlacedGlyph>()
     val iwidth = bounds.width.toInt()
     val iheight = bounds.height.toInt()
-    val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight)
+    val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight, premultiplied = true)
     image.context2d {
         font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
             if (returnGlyphs) {

@@ -94,13 +94,15 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 		//fun mutliplyByAlpha(v: Int, alpha: Double): Int = com.soywiz.korim.color.RGBA.pack(RGBA(v).r, RGBA(v).g, RGBA(v).b, (RGBA(v).a * alpha).toInt())
 		//fun depremultiply(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
 
-        fun mixRgbFactor256(c1: RGBA, c2: RGBA, factor256: Int): RGBA {
+        fun mixRgbFactor256(c1: RGBA, c2: RGBA, factor256: Int): RGBA =
+            RGBA(mixRgbFactor256(c1.value, c2.value, factor256))
+
+        fun mixRgbFactor256(c1: Int, c2: Int, factor256: Int): Int {
             val ifactor256 = (256 - factor256)
-            return RGBA(
-                ((((((c1.value and 0xFF00FF) * ifactor256) +
-                    ((c2.value and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or
-                    ((((c1.value and 0x00FF00) * ifactor256) + ((c2.value and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8
-            )
+            return ((((((c1 and 0xFF00FF) * ifactor256) +
+                    ((c2 and 0xFF00FF) * factor256)) and 0xFF00FF00.toInt()) or
+                    ((((c1 and 0x00FF00) * ifactor256) + ((c2 and 0x00FF00) * factor256)) and 0x00FF0000))) ushr 8
+
         }
 		fun mixRgb(c1: RGBA, c2: RGBA, factor: Double): RGBA = mixRgbFactor256(c1, c2, (factor * 256).toInt())
 
@@ -203,8 +205,15 @@ inline class RGBAPremultiplied(val value: Int) {
         private const val RB_MASK: Int = 0x00FF00FF
         private const val GA_MASK: Int = -16711936 // 0xFF00FF00
 
+        @Deprecated("Use blendAlpha instead")
         fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied =
             RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
+
+        fun blendAlpha(dst: RGBAPremultiplied, src: RGBAPremultiplied): RGBAPremultiplied =
+            RGBAPremultiplied(sumPacked4MulR(src.value, dst.value, 256 - src.a))
+
+        //fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied =
+        //    RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
 
         fun blend(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied {
             val RB = (((c1.value and 0xFF00FF) + (c2.value and 0xFF00FF)) ushr 1) and 0xFF00FF
@@ -260,15 +269,16 @@ fun scale(color: RgbaPremultipliedArray, colorOffset: Int, alpha: FloatArray, al
 
 // @TODO: Critical performance use SIMD if possible
 fun mix(dst: RgbaArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
+    //println("-----------------------")
     for (n in 0 until count) {
-        dst[dstX + n] = RGBAPremultiplied.mix(dst[dstX + n].premultiplied, src[srcX + n]).depremultiplied
+        dst[dstX + n] = RGBAPremultiplied.blendAlpha(dst[dstX + n].premultiplied, src[srcX + n]).depremultiplied
     }
 }
 
 // @TODO: Critical performance use SIMD if possible
 fun mix(dst: RgbaPremultipliedArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
     for (n in 0 until count) {
-        dst[dstX + n] = RGBAPremultiplied.mix(dst[dstX + n], src[srcX + n])
+        dst[dstX + n] = RGBAPremultiplied.blendAlpha(dst[dstX + n], src[srcX + n])
     }
 }
 
