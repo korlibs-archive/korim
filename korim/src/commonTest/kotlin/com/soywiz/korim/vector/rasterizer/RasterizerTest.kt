@@ -29,7 +29,7 @@ class RasterizerTest {
         val log = arrayListOf<String>()
         val stats = Rasterizer.Stats()
         rast.rasterizeFill(Rectangle(0, 0, 10, 10), quality = 8, stats = stats) { a, b, y ->
-            log += "rast(${a.niceStr}, ${b.niceStr}, ${y.niceStr})"
+            log += "rast(${(a.toDouble() / RAST_FIXED_SCALE).niceStr}, ${(a.toDouble() / RAST_FIXED_SCALE).niceStr}, ${(a.toDouble() / RAST_FIXED_SCALE).niceStr})"
             //println(log.last())
         }
         assertEquals(Rasterizer.Stats(edgesChecked=352, edgesEmitted=88, yCount=88), stats)
