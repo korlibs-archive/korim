@@ -11,11 +11,14 @@ import kotlin.math.min
 typealias RasterizerCallback = (x0: Int, x1: Int, y: Int) -> Unit
 
 @PublishedApi
-internal val Double.s: Int get() = (this * RAST_FIXED_SCALE).toInt()
+internal val Double.s: Int get() = (this * RAST_FIXED_SCALE + RAST_FIXED_SCALE_HALF).toInt()
 @PublishedApi
-internal val Int.us: Double get() = this.toDouble() / RAST_FIXED_SCALE
+internal val Int.us: Double get() = (this.toDouble() - RAST_FIXED_SCALE_HALF) / RAST_FIXED_SCALE
 
 const val RAST_FIXED_SCALE = 32 // Important NOTE: Power of two so divisions are >> and remaining &
+const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2) - 1
+//const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2)
+//const val RAST_FIXED_SCALE_HALF = 0
 
 class Rasterizer {
     data class Edge(val ax: Int, val ay: Int, val bx: Int, val by: Int, val wind: Int) {
@@ -179,13 +182,15 @@ class Rasterizer {
             }
         }
 
-        val yCount = ((endY - startY + 1).us * quality).toInt()
-
         yList.clear()
-        for (n in 0 until yCount) {
-            val ratio = n.toDouble() / yCount
-            yList.add(ratio.interpolate(startY.toDouble(), endY.toDouble()).toInt())
+        val q = quality
+        //val q = if (quality == 1) 1 else quality + 1
+        val yCount = (((endY - startY) / RAST_FIXED_SCALE) + 1) * q
+        for (n in 0 until yCount + q - 1) {
+            val y = (startY + (n * RAST_FIXED_SCALE) / q)
+            yList.add(y)
         }
+        //println("yList: ${yList.size}")
 
         if (fill) {
             internalRasterizeFill(yList, stats, func)
