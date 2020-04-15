@@ -32,7 +32,7 @@ class RasterizerTest {
             log += "rast(${(a.toDouble() / RAST_FIXED_SCALE).niceStr}, ${(a.toDouble() / RAST_FIXED_SCALE).niceStr}, ${(a.toDouble() / RAST_FIXED_SCALE).niceStr})"
             //println(log.last())
         }
-        assertEquals(Rasterizer.Stats(edgesChecked=320, edgesEmitted=80, yCount=80), stats)
+        assertEquals(Rasterizer.Stats(edgesChecked=380, edgesEmitted=80, yCount=95), stats)
     }
 
     @Test
