@@ -1,9 +1,9 @@
 package com.soywiz.korim.vector
 
 import com.soywiz.kds.intArrayListOf
-import com.soywiz.kmem.toIntRound
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.color.*
+import com.soywiz.korim.internal.*
 import com.soywiz.korim.vector.filler.*
 import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korim.vector.paint.ColorPaint
@@ -11,8 +11,6 @@ import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korim.vector.paint.NonePaint
 import com.soywiz.korim.vector.rasterizer.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.bezier.*
-import com.soywiz.korma.geom.shape.emitPoints
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -34,6 +32,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 	val gradientFiller = GradientFiller()
 	val bitmapFiller = BitmapFiller()
     val scanlineWriter = ScanlineWriter()
+    private val tempPath = VectorPath()
+    private val tempFillStrokeTemp = FillStrokeTemp()
 
     override fun render(state: Context2d.State, fill: Boolean) {
 		//println("RENDER")
@@ -46,83 +46,44 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
+        rasterizer.reset()
+
         rasterizer.debug = debug
-        state.path.emitPoints2({
+
+        val fillPath = if (fill) {
+            //rasterizer.scale = 1
+            state.path
+        } else {
+            //rasterizer.scale = 1
+            //state.path.getFilledStroke(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, rasterizer.scale)
+            tempPath.clear()
+            state.path.getFilledStroke(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, temp = tempFillStrokeTemp, outFill = tempPath)
+        }
+
+        fun flush() {
+            if (rasterizer.size > 0) {
+                rasterizer.strokeWidth = state.lineWidth
+                rasterizer.quality = if (antialiasing) 4 else 1
+                scanlineWriter.filler = filler
+                scanlineWriter.reset()
+                rasterizer.rasterizeFill(bounds) { x0, x1, y ->
+                    scanlineWriter.select(x0, x1, y)
+                }
+                scanlineWriter.flush()
+                rasterizer.reset()
+            }
+        }
+
+        fillPath.emitPoints2({
         //state.path.emitPoints({
             if (it) rasterizer.close()
-        }, { x, y ->
+        }, { x, y, move ->
+            if (move) {
+                flush()
+            }
             rasterizer.add(x, y)
         })
-        if (rasterizer.size > 0) {
-            rasterizer.strokeWidth = state.lineWidth
-            rasterizer.quality = if (antialiasing) 4 else 1
-            scanlineWriter.filler = filler
-            scanlineWriter.reset()
-            rasterizer.rasterize(bounds, fill) { x0, x1, y ->
-                scanlineWriter.select(x0, x1, y)
-            }
-            scanlineWriter.flush()
-            rasterizer.reset()
-        }
-    }
-
-    @PublishedApi
-    internal inline fun approximateCurve(
-        curveSteps: Int,
-        crossinline compute: (ratio: Double, get: (x: Double, y: Double) -> Unit) -> Unit,
-        crossinline emit: (x: Double, y: Double) -> Unit
-    ) {
-        val rcurveSteps = max(curveSteps, 20)
-        val dt = 1.0 / rcurveSteps
-        var lastX = 0.0
-        var lastY = 0.0
-        var prevX = 0.0
-        var prevY = 0.0
-        var emittedCount = 0
-        compute(0.0) { x, y ->
-            lastX = x
-            lastY = y
-        }
-        for (n in 1 until rcurveSteps) {
-            val ratio = n * dt
-            //println("ratio: $ratio")
-            compute(ratio) { x, y ->
-                //if (emittedCount == 0) {
-                run {
-                    emit(x, y)
-                    emittedCount++
-                    lastX = prevX
-                    lastY = prevY
-                }
-
-                prevX = x
-                prevY = y
-            }
-        }
-        //println("curveSteps: $rcurveSteps, emittedCount=$emittedCount")
-    }
-
-    inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -> Unit, crossinline emit: (x: Double, y: Double) -> Unit) {
-        var lx = 0.0
-        var ly = 0.0
-        flush(false)
-        this.visitCmds(
-            moveTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
-            lineTo = { x, y -> emit(x, y).also { lx = x }.also { ly = y } },
-            quadTo = { x0, y0, x1, y1 ->
-                val sum = Point.distance(lx, ly, x0, y0) + Point.distance(x0, y0, x1, y1)
-                approximateCurve(sum.toInt(), { ratio, get -> Bezier.quadCalc(lx, ly, x0, y0, x1, y1, ratio) { x, y -> get(x, y) } }) { x, y -> emit(x, y) }
-                run { lx = x1 }.also { ly = y1 }
-            },
-            cubicTo = { x0, y0, x1, y1, x2, y2 ->
-                val sum = Point.distance(lx, ly, x0, y0) + Point.distance(x0, y0, x1, y1) + Point.distance(x1, y1, x2, y2)
-                approximateCurve(sum.toInt(), { ratio, get -> Bezier.cubicCalc(lx, ly, x0, y0, x1, y1, x2, y2, ratio) { x, y -> get(x, y) }}) { x, y -> emit(x, y) }
-                run { lx = x2 }.also { ly = y2 }
-
-            },
-            close = { flush(true) }
-        )
-        flush(false)
+        flush()
     }
 
     class SegmentHandler {
@@ -179,8 +140,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         var filler: BaseFiller = NoneFiller
         var ny0 = -1
         var ny = -1
-        val size = bmp.width
-        val width1 = bmp.width - 1
+        val size get() = bmp.width
+        val width1 get() = bmp.width - 1
         val alpha = FloatArray(size)
         val hitbits = IntArray(size)
         val color = RgbaPremultipliedArray(size)

@@ -3,17 +3,11 @@ package com.soywiz.korim.vector.rasterizer
 import com.soywiz.kds.*
 import com.soywiz.kds.iterators.fastForEach
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.interpolation.interpolate
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
 typealias RasterizerCallback = (x0: Int, x1: Int, y: Int) -> Unit
-
-@PublishedApi
-internal val Double.s: Int get() = (this * RAST_FIXED_SCALE + RAST_FIXED_SCALE_HALF).toInt()
-@PublishedApi
-internal val Int.us: Double get() = (this.toDouble() - RAST_FIXED_SCALE_HALF) / RAST_FIXED_SCALE
 
 const val RAST_FIXED_SCALE = 32 // Important NOTE: Power of two so divisions are >> and remaining &
 const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2) - 1
@@ -60,13 +54,29 @@ class Rasterizer {
 
     fun getBounds(out: Rectangle = Rectangle()) = boundsBuilder.getBounds(out)
 
+    var scale: Int = 1
+    //val sscale get() = RAST_FIXED_SCALE * scale
+    //val hscale get() = RAST_FIXED_SCALE_HALF * scale
+    val sscale get() = RAST_FIXED_SCALE
+    val hscale get() = RAST_FIXED_SCALE_HALF
+
+    @PublishedApi
+    internal val Double.s: Int get() = ((this * sscale).toInt() + hscale)
+    //@PublishedApi
+    //internal val Int.us: Double get() = (this.toDouble() - RAST_FIXED_SCALE_HALF) * scale / RAST_FIXED_SCALE
+    //@PublishedApi
+    //internal val Int.us2: Double get() = this.toDouble() * scale/ RAST_FIXED_SCALE
+
+
     private var closed = true
     private var startPathIndex = 0
     fun reset() {
+        closed = true
         startPathIndex = 0
         boundsBuilder.reset()
         pointsX.clear()
         pointsY.clear()
+        edges.clear()
     }
 
     private fun addEdge(ax: Double, ay: Double, bx: Double, by: Double) {
@@ -135,12 +145,6 @@ class Rasterizer {
     }
     var quality: Int = 2
 
-    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) =
-        rasterize(bounds, true, quality, stats, callback)
-
-    fun rasterizeStroke(bounds: Rectangle, lineWidth: Double, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) =
-        run { this.strokeWidth = lineWidth }.also { rasterize(bounds, false, quality, stats, callback) }
-
     data class Stats(
         var edgesChecked: Int = 0,
         var edgesEmitted: Int = 0,
@@ -159,7 +163,7 @@ class Rasterizer {
         }
     }
 
-    fun rasterize(bounds: Rectangle, fill: Boolean, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) {
+    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) {
         stats?.reset()
         val xmin = bounds.left.s
         val xmax = bounds.right.s
@@ -185,50 +189,40 @@ class Rasterizer {
         yList.clear()
         val q = quality
         //val q = if (quality == 1) 1 else quality + 1
-        val yCount = (((endY - startY) / RAST_FIXED_SCALE) + 1) * q
+        val yCount = ((((endY - startY) / sscale).toInt()) + 1) * q
         for (n in 0 until yCount + q - 1) {
-            val y = (startY + (n * RAST_FIXED_SCALE) / q)
+            val y = (startY + (n * sscale / scale) / q)
             yList.add(y)
         }
         //println("yList: ${yList.size}")
 
-        if (fill) {
-            internalRasterizeFill(yList, stats, func)
-        } else {
-            internalRasterizeStroke(yList, stats, func)
+        run {
+            var edgesChecked = 0
+            var edgesEmitted = 0
+            var yCount = 0
+            yList.fastForEach { y ->
+                yCount++
+                tempX.clear()
+                edgesChecked += forEachActiveEdgeAtY(y) {
+                    if (!it.isCoplanarX) {
+                        tempX.add(it.intersectX(y))
+                    }
+                }
+                genericSort(tempX, 0, tempX.size - 1, IntArrayListSort)
+                if (tempX.size >= 2) {
+                    for (i in 0 until tempX.size - 1 step 2) {
+                        val a = tempX[i]
+                        val b = tempX[i + 1]
+                        func(a, b, y)
+                        edgesEmitted++
+                    }
+                }
+            }
+            stats?.chunk(edgesChecked, edgesEmitted, yCount)
         }
     }
     private val yList = IntArrayList(1024)
     private val tempX = IntArrayList(1024)
-
-    private fun internalRasterizeFill(
-        yList: IntArrayList,
-        stats: Stats?,
-        callback: (x0: Int, x1: Int, y: Int) -> Unit
-    ) {
-        var edgesChecked = 0
-        var edgesEmitted = 0
-        var yCount = 0
-        yList.fastForEach { y ->
-            yCount++
-            tempX.clear()
-            edgesChecked += forEachActiveEdgeAtY(y) {
-                if (!it.isCoplanarX) {
-                    tempX.add(it.intersectX(y))
-                }
-            }
-            genericSort(tempX, 0, tempX.size - 1, IntArrayListSort)
-            if (tempX.size >= 2) {
-                for (i in 0 until tempX.size - 1 step 2) {
-                    val a = tempX[i]
-                    val b = tempX[i + 1]
-                    callback(a, b, y)
-                    edgesEmitted++
-                }
-            }
-        }
-        stats?.chunk(edgesChecked, edgesEmitted, yCount)
-    }
 
     // @TODO: Change once KDS is updated
     object IntArrayListSort : SortOps<IntArrayList>() {
@@ -242,29 +236,4 @@ class Rasterizer {
     }
 
     var strokeWidth: Double = 1.0
-
-    private fun internalRasterizeStroke(
-        yList: IntArrayList,
-        stats: Stats?,
-        callback: (x0: Int, x1: Int, y: Int) -> Unit
-    ) {
-        val strokeWidth2 = strokeWidth.s / 2
-        var edgesChecked = 0
-        var edgesEmitted = 0
-        var yCount = 0
-        yList.fastForEach { y ->
-            yCount++
-            edgesChecked += forEachActiveEdgeAtY(y, strokeWidth2) {
-                if (!it.isCoplanarX) {
-                    val x = it.intersectX(y)
-                    val hwidth = strokeWidth2 + (strokeWidth2 * it.absCos).toInt()
-                    callback(x - hwidth, x + hwidth, y) // We should use slope to determine the actual width
-                } else {
-                    callback(it.minX, it.maxX, y)
-                }
-                edgesEmitted++
-            }
-        }
-        stats?.chunk(edgesChecked, edgesEmitted, yCount)
-    }
 }
