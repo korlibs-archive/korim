@@ -6,13 +6,10 @@ import com.soywiz.kmem.extract16Signed
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.unsigned
 import com.soywiz.korim.vector.*
-import com.soywiz.korio.file.VfsFile
-import com.soywiz.korio.lang.UTF16_BE
-import com.soywiz.korio.lang.UTF8
-import com.soywiz.korio.lang.invalidOp
-import com.soywiz.korio.lang.toString
+import com.soywiz.korio.file.*
+import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.encoding.hex
+import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
@@ -55,6 +52,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 
     private fun getTextScale(size: Double) = size / unitsPerEm.toDouble()
 
+    private val tempContours = Array(3) { Contour() }
     private val lineHeight get() = yMax - yMin
 
     private var numGlyphs = 0
@@ -195,7 +193,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		openTable(name)?.callback()
 	}
 
-    private inline fun <T> runTable(name: String, callback: SyncStream.() -> T): T? = openTable(name)?.let { callback(it) }
+    private inline fun <T> runTable(name: String, callback: SyncStream.(Table) -> T): T? = openTable(name)?.let { callback(it, tablesByName[name]!!) }
 
     private fun readNames() = runTableUnit("name") {
 		val format = readU16BE()
@@ -222,22 +220,24 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 	}
 
     private fun readLoca() = runTableUnit("loca") {
+        //println("readLoca! $name")
 		val bytesPerEntry = when (indexToLocFormat) {
 			0 -> 2
 			1 -> 4
 			else -> invalidOp
 		}
 
+        //println("LOCAL: numGlyphs=$numGlyphs, indexToLocFormat=$indexToLocFormat, bytesPerEntry=$bytesPerEntry");
 		val data = readBytesExact(bytesPerEntry * (numGlyphs + 1))
-		locs = IntArray(numGlyphs + 1)
 
-		FastByteArrayInputStream(data).run {
+		locs = FastByteArrayInputStream(data).run {
 			when (indexToLocFormat) {
-				0 -> run { for (n in locs.indices) locs[n] = readU16BE() * 2 }
-				1 -> run { for (n in locs.indices) locs[n] = readS32BE() * 2 }
+				0 -> IntArray(numGlyphs + 1) { readU16BE() * 2 }
+				1 -> IntArray(numGlyphs + 1) { readS32BE() }
 				else -> invalidOp
 			}
 		}
+        //for ((index, loc) in locs.withIndex()) println("LOC[$index] = ${(loc / 2).hex}")
 		//println("locs: ${locs.toList()}")
 	}
 
@@ -418,9 +418,16 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
         val start = locs.getOrNull(index)?.unsigned ?: 0
         val end = locs.getOrNull(index + 1)?.unsigned ?: start
         val size = end - start
+        //println("GLYPH INDEX: $index")
         val glyph = when {
-            size != 0L -> this.glyphCache[index] ?: runTable("glyf") { sliceStart(start).readGlyph(index) }
-            else -> SimpleGlyph(index, 0, 0, 0, 0, intArrayOf(), intArrayOf(), intArrayOf(), intArrayOf(), horMetrics[index].advanceWidth)
+            size != 0L -> this.glyphCache[index] ?: runTable("glyf") { table ->
+                //println("READ GLYPH[$index]: start=$start, end=$end, size=$size, table=$table")
+                sliceStart(start).readGlyph(index)
+            }
+            else -> {
+                //println("EMPTY GLYPH: SIZE: $size, index=$index")
+                SimpleGlyph(index, 0, 0, 0, 0, intArrayOf(), intArrayOf(), intArrayOf(), intArrayOf(), horMetrics[index].advanceWidth)
+            }
         }
         if (cache && !frozen) this.glyphCache[index] = glyph
         return glyph
@@ -485,6 +492,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
         }
 	}
 
+
     private inner class SimpleGlyph(
         index: Int,
 		xMin: Int, yMin: Int,
@@ -497,8 +505,8 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 	) : Glyph(index, xMin, yMin, xMax, yMax, advanceWidth) {
         override fun toString(): String = "SimpleGlyph[$advanceWidth]($index) : $path"
         val npoints: Int get() = xPos.size
-		fun onCurve(n: Int) = (flags[n] and 1) != 0
-		fun contour(n: Int, out: Contour = Contour()) = out.apply {
+        private fun onCurve(n: Int) = (flags[n] and 1) != 0
+		private fun contour(n: Int, out: Contour = Contour()) = out.apply {
 			x = xPos[n]
 			y = yPos[n]
 			onCurve = onCurve(n)
@@ -506,13 +514,18 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 
         // @TODO: Do not use by lazy, since this causes a crash on Kotlin/Native
         override val path = GraphicsPath().also { p ->
+            //println("flags.size: ${flags.size}, contoursIndices.size=${contoursIndices.size}, xPos.size=${xPos.size}, yPos.size=${yPos.size}")
+            //assert(flags.size == contoursIndices.size)
+            //assert(xPos.size == contoursIndices.size)
+            //assert(yPos.size == contoursIndices.size)
             for (n in 0 until contoursIndices.size - 1) {
                 val cstart = contoursIndices[n] + 1
                 val cend = contoursIndices[n + 1]
                 val csize = cend - cstart + 1
 
-                var curr: Contour = contour(cend)
-                var next: Contour = contour(cstart)
+                //if (cend >= xPos.size) break
+                var curr: Contour = contour(cend, tempContours[0])
+                var next: Contour = contour(cstart, tempContours[1])
 
                 if (curr.onCurve) {
                     p.moveTo(curr.x, -curr.y)
@@ -527,7 +540,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
                 for (cpos in 0 until csize) {
                     val prev = curr
                     curr = next
-                    next = contour(cstart + ((cpos + 1) % csize))
+                    next = contour(cstart + ((cpos + 1) % csize), tempContours[(cpos + 2) % 3])
 
                     if (curr.onCurve) {
                         p.lineTo(curr.x, -curr.y)
@@ -583,6 +596,8 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		val xMax = readS16BE()
 		val yMax = readS16BE()
 
+        //println("glyph[$index]: ncontours=$ncontours [${ncontours.hex}], xMin=$xMin, yMin=$yMin -- xMax=$xMax, yMax=$yMax")
+
 		if (ncontours < 0) {
 			//println("WARNING: readCompositeGlyph not implemented")
 
@@ -604,6 +619,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 			do {
 				val flags = readU16BE()
 				val glyphIndex = readU16BE()
+                //println("COMPOUND: flags=${flags.shex}, glyphIndex=$glyphIndex")
 				val signed = (flags and ARGS_ARE_XY_VALUES) != 0
 				val words = (flags and ARG_1_AND_2_ARE_WORDS) != 0
 				val x = readMixBE(signed, words)
@@ -632,13 +648,8 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 
 				//val useMyMetrics = flags hasFlag USE_MY_METRICS
 				val ref = GlyphReference(
-                    getGlyphByIndex(glyphIndex)!!,
-                    x,
-                    y,
-                    scaleX,
-                    scale01,
-                    scale10,
-                    scaleY
+                    getGlyphByIndex(glyphIndex)!!, x, y,
+                    scaleX, scale01, scale10, scaleY
                 )
 				//println("signed=$signed, words=$words, useMyMetrics=$useMyMetrics")
 				//println(ref)
@@ -651,6 +662,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 			contoursIndices[0] = -1
 			for (n in 1..ncontours) contoursIndices[n] = readU16BE()
 			val instructionLength = readU16BE()
+            //println("instructionLength: $instructionLength, $available, ${this@TtfFont.s.length}")
 			val instructions = readBytesExact(instructionLength)
 			val numPoints = contoursIndices.lastOrNull()?.plus(1) ?: 0
 			val flags = IntArrayList()
@@ -676,7 +688,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 
 			for (xy in 0..1) {
 				val pos = if (xy == 0) xPos else yPos
-				var p = 0
+                var p = 0
 				for (n in 0 until numPoints) {
 					val flag = flags[n]
 					val b1 = ((flag ushr (1 + xy)) and 1) != 0
@@ -715,7 +727,7 @@ internal inline class Fixed(val data: Int) {
     }
 }
 
-suspend fun VfsFile.readTtfFont() = TtfFont(this.readAll())
+suspend fun VfsFile.readTtfFont(preload: Boolean = false) = TtfFont(this.readAll(), freeze = preload, extName = this.baseName)
 
 // @TODO: Move to KorMA
 private fun VectorPath.write(path: VectorPath, transform: Matrix) {

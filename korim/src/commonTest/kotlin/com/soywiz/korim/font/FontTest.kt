@@ -3,9 +3,7 @@ package com.soywiz.korim.font
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
-import com.soywiz.korim.vector.buildSvgXml
-import com.soywiz.korim.vector.paint.ColorPaint
-import com.soywiz.korim.vector.paint.DefaultPaint
+import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.paint.LinearGradientPaint
 import com.soywiz.korio.async.suspendTest
 import com.soywiz.korio.file.std.resourcesVfs
@@ -86,8 +84,8 @@ class FontTest {
             fill()
         }.showImageAndWait()
 
-        val font = SystemFont("Arial")
-        //val font = DefaultTtfFont
+        //val font = SystemFont("Arial")
+        val font = DefaultTtfFont
         //val font = BitmapFont(DefaultTtfFont, 64.0)
         //val font = BitmapFont(DefaultTtfFont, 24.0)
         //val font = BitmapFont(SystemFont("Arial"), 24.0)
@@ -127,5 +125,15 @@ class FontTest {
         assertEquals("FontMetrics(size=16, top=15, ascent=15, baseline=0, descent=-3, bottom=-3, leading=0, emHeight=18, lineHeight=18)", fmetrics.toString())
         val gmetrics = font.getGlyphMetrics(16.0, 'k'.toInt())
         assertEquals("GlyphMetrics(codePoint=107 ('k'), existing=true, xadvance=7, bounds=Rectangle(x=0, y=0, width=6, height=10))", gmetrics.toString())
+    }
+
+    @Test
+    fun testReadFont() = suspendTest {
+        val font1 = resourcesVfs["myfont.ttf"].readTtfFont(preload = true)
+        val font2 = resourcesVfs["myfont-bug.ttf"].readTtfFont(preload = true)
+        val font3 = resourcesVfs["myfont-bug2.ttf"].readTtfFont(preload = true)
+        val font4 = resourcesVfs["myfont-bug3.ttf"].readTtfFont(preload = true)
+        //font1.renderTextToBitmap(20.0, "Hello World!", border = 64, nativeRendering = false).bmp.showImageAndWait()
+        //font4.renderTextToBitmap(64.0, "12 Hello World", nativeRendering = true).bmp.showImageAndWait()
     }
 }

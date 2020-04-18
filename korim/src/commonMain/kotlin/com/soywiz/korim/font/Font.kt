@@ -55,13 +55,13 @@ fun Font.renderGlyphToBitmap(
 }
 
 // @TODO: Fix metrics
-fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPaint, fill: Boolean = true, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>, returnGlyphs: Boolean = true, nativeRendering: Boolean = true): TextToBitmapResult {
+fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPaint, fill: Boolean = true, border: Int = 0, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>, returnGlyphs: Boolean = true, nativeRendering: Boolean = true): TextToBitmapResult {
     val font = this
     val bounds = getTextBounds(size, text, renderer = renderer)
     //println("BOUNDS: $bounds")
     val glyphs = arrayListOf<TextToBitmapResult.PlacedGlyph>()
-    val iwidth = bounds.width.toInt()
-    val iheight = bounds.height.toInt()
+    val iwidth = bounds.width.toInt() + border * 2
+    val iheight = bounds.height.toInt() + border * 2
     val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight, premultiplied = true)
     image.context2d {
         font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
