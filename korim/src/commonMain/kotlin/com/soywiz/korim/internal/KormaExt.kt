@@ -42,7 +42,7 @@ internal inline fun approximateCurve(
     //println("curveSteps: $rcurveSteps, emittedCount=$emittedCount")
 }
 
-internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -> Unit, crossinline emit: (x: Double, y: Double, move: Boolean) -> Unit) {
+internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -> Unit = {}, crossinline emit: (x: Double, y: Double, move: Boolean) -> Unit) {
     var lx = 0.0
     var ly = 0.0
     flush(false)

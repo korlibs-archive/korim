@@ -3,6 +3,7 @@ package com.soywiz.korim.vector.rasterizer
 import com.soywiz.kds.*
 import com.soywiz.kds.iterators.fastForEach
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.vector.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
@@ -163,7 +164,7 @@ class Rasterizer {
         }
     }
 
-    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, callback: RasterizerCallback) {
+    fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, winding: Winding = Winding.NON_ZERO, callback: RasterizerCallback) {
         stats?.reset()
         val xmin = bounds.left.s
         val xmax = bounds.right.s
@@ -202,19 +203,80 @@ class Rasterizer {
             var yCount = 0
             yList.fastForEach { y ->
                 yCount++
-                tempX.clear()
+                tempXW.clear()
                 edgesChecked += forEachActiveEdgeAtY(y) {
                     if (!it.isCoplanarX) {
-                        tempX.add(it.intersectX(y))
+                        tempXW.add(it.intersectX(y), it.wind)
                     }
                 }
-                genericSort(tempX, 0, tempX.size - 1, IntArrayListSort)
-                if (tempX.size >= 2) {
-                    for (i in 0 until tempX.size - 1 step 2) {
-                        val a = tempX[i]
-                        val b = tempX[i + 1]
-                        func(a, b, y)
-                        edgesEmitted++
+                genericSort(tempXW, 0, tempXW.size - 1, IntArrayListSort)
+                val tempX = tempXW.x
+                val tempW = tempXW.w
+                if (tempXW.size >= 2) {
+                    when (winding) {
+                        Winding.EVEN_ODD -> {
+                            for (i in 0 until tempX.size - 1 step 2) {
+                                val a = tempX[i]
+                                val b = tempX[i + 1]
+                                func(a, b, y)
+                                edgesEmitted++
+                            }
+                        }
+                        Winding.NON_ZERO -> {
+                            //println("NON-ZERO")
+
+                            var count = 0
+                            var startX = 0
+                            var endX = 0
+                            var pending = false
+
+                            for (i in 0 until tempX.size - 1) {
+                                val a = tempX[i]
+                                count += tempW[i]
+                                val b = tempX[i + 1]
+                                if (count != 0) {
+                                    if (pending && a != endX) {
+                                        func(startX, endX, y)
+                                        edgesEmitted++
+                                        startX = a
+                                        endX = b
+                                    } else {
+                                        if (!pending) {
+                                            startX = a
+                                        }
+                                        endX = b
+                                    }
+                                    //func(a, b, y)
+                                    pending = true
+                                }
+                            }
+
+                            if (pending) {
+                                func(startX, endX, y)
+                                edgesEmitted++
+                            }
+
+                            /*
+                            var count = 0
+                            var i = 0
+                            while (i < tempX.size) {
+                                val startX = tempX[i]
+                                count += tempW[i]
+                                if (count != 0) {
+                                    while (i < tempX.size) {
+                                        count += tempW[i]
+                                        i++
+                                        if (count == 0) break
+                                    }
+                                    val endX = tempX[i - 1]
+                                    func(startX, endX, y)
+                                    edgesEmitted++
+                                } else {
+                                    i++
+                                }
+                            }
+                            */
+                        }
                     }
                 }
             }
@@ -222,18 +284,39 @@ class Rasterizer {
         }
     }
     private val yList = IntArrayList(1024)
-    private val tempX = IntArrayList(1024)
+    private val tempXW = XWithWind()
+
+    private class XWithWind {
+        val x = IntArrayList(1024)
+        val w = IntArrayList(1024)
+        val size get() = x.size
+
+        fun add(x: Int, wind: Int) {
+            this.x.add(x)
+            this.w.add(wind)
+        }
+
+        fun clear() {
+            x.clear()
+            w.clear()
+        }
+    }
 
     // @TODO: Change once KDS is updated
-    object IntArrayListSort : SortOps<IntArrayList>() {
-        override fun compare(subject: IntArrayList, l: Int, r: Int): Int = subject[l].compareTo(subject[r])
-        override fun swap(subject: IntArrayList, indexL: Int, indexR: Int) {
-            val l = subject[indexL]
-            val r = subject[indexR]
-            subject[indexR] = l
-            subject[indexL] = r
+    private object IntArrayListSort : SortOps<XWithWind>() {
+        override fun compare(subject: XWithWind, l: Int, r: Int): Int = subject.x[l].compareTo(subject.x[r])
+        override fun swap(subject: XWithWind, indexL: Int, indexR: Int) {
+            subject.x.swap(indexL, indexR)
+            subject.w.swap(indexL, indexR)
         }
     }
 
     var strokeWidth: Double = 1.0
+}
+
+private fun IntArrayList.swap(x: Int, y: Int) {
+    val l = this[x]
+    val r = this[y]
+    this[x] = r
+    this[y] = l
 }
