@@ -6,6 +6,7 @@ import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.test.*
 
@@ -82,5 +83,26 @@ class RasterizerTest {
             fill()
         }.showImageAndWait()
          */
+    }
+
+    @Test
+    @Ignore
+    fun testLineJoin() = suspendTest {
+        // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineJoin
+        val bmp = NativeImageOrBitmap32(150, 150, native = false).context2d {
+        //val bmp = NativeImageOrBitmap32(150, 150, native = true).context2d {
+            lineWidth = 10.0
+            for ((i, lineJoin) in listOf(LineJoin.ROUND, LineJoin.BEVEL, LineJoin.MITER).withIndex()) {
+                this.lineJoin = lineJoin
+                beginPath()
+                moveTo(-5, 5 + i * 40)
+                lineTo(35, 45 + i * 40)
+                lineTo(75, 5 + i * 40)
+                lineTo(115, 45 + i * 40)
+                lineTo(155, 5 + i * 40)
+                stroke()
+            }
+        }
+        bmp.showImageAndWait()
     }
 }

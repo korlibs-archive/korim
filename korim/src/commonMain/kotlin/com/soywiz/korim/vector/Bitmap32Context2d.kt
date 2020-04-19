@@ -32,8 +32,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 	val gradientFiller = GradientFiller()
 	val bitmapFiller = BitmapFiller()
     val scanlineWriter = ScanlineWriter()
-    private val tempPath = VectorPath(winding = Winding.NON_ZERO)
-    //private val tempPath = VectorPath(winding = Winding.EVEN_ODD)
+    //private val tempPath = VectorPath(winding = Winding.NON_ZERO)
+    private val tempPath = VectorPath(winding = Winding.EVEN_ODD)
     private val tempFillStrokeTemp = FillStrokeTemp()
 
     override fun render(state: Context2d.State, fill: Boolean) {
@@ -58,7 +58,11 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             //rasterizer.scale = 1
             //state.path.getFilledStroke(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, rasterizer.scale)
             tempPath.clear()
-            state.path.strokeToFill(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, temp = tempFillStrokeTemp, outFill = tempPath)
+            state.path.strokeToFill(
+                state.lineWidth, state.lineJoin, state.startLineCap, state.endLineCap,
+                state.miterLimit,
+                temp = tempFillStrokeTemp, outFill = tempPath
+            )
         }
 
         fun flush() {

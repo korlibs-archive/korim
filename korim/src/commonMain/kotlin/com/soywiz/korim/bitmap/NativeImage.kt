@@ -25,6 +25,8 @@ fun Bitmap.toUri(): String {
 	return "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
 }
 
+fun NativeImageOrBitmap32(width: Int, height: Int, native: Boolean = true) =
+    if (native) NativeImage(width, height) else Bitmap32(width, height, premultiplied = true)
 fun NativeImage(width: Int, height: Int) = nativeImageFormatProvider.create(width, height)
 
 fun NativeImage(

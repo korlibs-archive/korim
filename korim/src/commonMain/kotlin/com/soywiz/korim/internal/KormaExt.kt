@@ -64,3 +64,10 @@ internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -
     )
     flush(false)
 }
+
+internal fun VectorPath.getPoints2(out: PointArrayList = PointArrayList()): PointArrayList {
+    emitPoints2 { x, y, move -> out.add(x, y) }
+    return out
+}
+
+internal fun buildPath(out: VectorPath = VectorPath(), block: VectorPath.() -> Unit): VectorPath = out.apply(block)
