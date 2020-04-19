@@ -6,7 +6,7 @@ class Bitmap8(
 	width: Int,
 	height: Int,
 	data: ByteArray = ByteArray(width * height),
-	palette: RgbaArray = RgbaArray(255)
+	palette: RgbaArray = RgbaArray(0x100)
 ) : BitmapIndexed(8, width, height, data, palette) {
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap8(width, height)
 
@@ -17,4 +17,17 @@ class Bitmap8(
     override fun clone() = Bitmap8(width, height, data.copyOf(), RgbaArray(palette.ints.copyOf()))
 
 	override fun toString(): String = "Bitmap8($width, $height, palette=${palette.size})"
+
+    companion object {
+        fun copyRect(
+            src: Bitmap8,
+            srcX: Int,
+            srcY: Int,
+            dst: Bitmap8,
+            dstX: Int,
+            dstY: Int,
+            width: Int,
+            height: Int
+        ) = src.copy(srcX, srcY, dst, dstX, dstY, width, height)
+    }
 }

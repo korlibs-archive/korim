@@ -205,6 +205,8 @@ inline class RGBAPremultiplied(val value: Int) {
         private const val RB_MASK: Int = 0x00FF00FF
         private const val GA_MASK: Int = -16711936 // 0xFF00FF00
 
+        operator fun invoke(rgba: RGBA): RGBAPremultiplied = rgba.premultiplied
+
         @Deprecated("Use blendAlpha instead")
         fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied =
             RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)

@@ -189,7 +189,7 @@ class Bitmap32(
 
 	fun writeChannel(destination: BitmapChannel, input: Bitmap32, source: BitmapChannel) = Bitmap32.copyChannel(input, source, this, destination)
 	fun writeChannel(destination: BitmapChannel, input: Bitmap8) = Bitmap32.copyChannel(input, this, destination)
-	fun extractChannel(channel: BitmapChannel): Bitmap8 = Bitmap8(width, height).also { Bitmap32.copyChannel(this, channel, it) }
+	fun extractChannel(channel: BitmapChannel, out: Bitmap8 = Bitmap8(width, height)): Bitmap8 = out.also { Bitmap32.copyChannel(this, channel, it) }
 
     fun inverted(target: Bitmap32 = Bitmap32(width, height)): Bitmap32 = copyTo(target).apply { invert() }
     fun xored(value: RGBA, target: Bitmap32 = Bitmap32(width, height)) = copyTo(target).apply { xor(value) }
