@@ -8,7 +8,7 @@ class Bitmap8(
 	data: ByteArray = ByteArray(width * height),
 	palette: RgbaArray = RgbaArray(0x100)
 ) : BitmapIndexed(8, width, height, data, palette) {
-	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap8(width, height)
+	override fun createWithThisFormat(width: Int, height: Int): Bitmap = Bitmap8(width, height, palette = palette)
 
 	override fun setInt(x: Int, y: Int, color: Int) = Unit.apply { datau[index(x, y)] = color }
 	override fun getInt(x: Int, y: Int): Int = datau[index(x, y)]
