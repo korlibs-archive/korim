@@ -25,11 +25,14 @@ abstract class BitmapIndexed(
 	inline operator fun get(x: Int, y: Int): Int = getInt(x, y)
 	inline operator fun set(x: Int, y: Int, color: Int): Unit = setInt(x, y, color)
 
-	override fun getInt(x: Int, y: Int): Int = (datau[index_d(x, y)] ushr (bpp * index_m(x, y))) and mask
-	override fun setInt(x: Int, y: Int, color: Int): Unit {
-		val i = index_d(x, y)
-		datau[i] = datau[i].insert(color, bpp * index_m(x, y), bpp)
-	}
+	override fun getInt(x: Int, y: Int): Int = getIntIndex(index(x, y))
+	override fun setInt(x: Int, y: Int, color: Int) = setIntIndex(index(x, y), color)
+
+    open fun getIntIndex(n: Int): Int = (datau[n / n8_dbpp] ushr (bpp * (n % n8_dbpp))) and mask
+    open fun setIntIndex(n: Int, color: Int) {
+        val i = n / n8_dbpp
+        datau[i] = datau[i].insert(color, bpp * (n % n8_dbpp), bpp)
+    }
 
 	override fun getRgba(x: Int, y: Int): RGBA = palette[this[x, y]]
 	fun index_d(x: Int, y: Int) = index(x, y) / n8_dbpp
@@ -78,8 +81,6 @@ abstract class BitmapIndexed(
 	override fun toBMP32(): Bitmap32 = Bitmap32(width, height, premultiplied = premultiplied).also { outBmp ->
         val out = outBmp.data.ints
         val pal = this@BitmapIndexed.palette.ints
-        for (x in 0 until width)
-            for (y in 0 until height)
-                out[y*width+x] = pal[get(x, y)]
+        for (n in 0 until area) out[n] = pal[getIntIndex(n)]
 	}
 }
