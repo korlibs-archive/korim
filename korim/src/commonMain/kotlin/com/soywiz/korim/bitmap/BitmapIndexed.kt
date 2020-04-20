@@ -76,9 +76,10 @@ abstract class BitmapIndexed(
 	}
 
 	override fun toBMP32(): Bitmap32 = Bitmap32(width, height, premultiplied = premultiplied).also { outBmp ->
-		val out = outBmp.data.ints
-		val inp = this@BitmapIndexed.data
-		val pal = this@BitmapIndexed.palette.ints
-		for (n in 0 until min(out.size, inp.size)) out[n] = pal[inp[n].unsigned]
+        val out = outBmp.data.ints
+        val pal = this@BitmapIndexed.palette.ints
+        for (x in 0 until width)
+            for (y in 0 until height)
+                out[y*width+x] = pal[get(x, y)]
 	}
 }
