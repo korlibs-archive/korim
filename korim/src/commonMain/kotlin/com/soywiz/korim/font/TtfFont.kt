@@ -482,12 +482,23 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
         override fun toString(): String = "CompositeGlyph[$advanceWidth](${refs})"
 
         // @TODO: Do not use by lazy, since this causes a crash on Kotlin/Native
-        override val path: GraphicsPath = GraphicsPath().also { out ->
+        override val path: GraphicsPath = run {
+            var commandsSize = 0
+            var dataSize = 0
+
             refs.fastForEach { ref ->
-                val m = Matrix()
-                m.translate(ref.x, ref.y)
-                m.scale(ref.scaleX, ref.scaleY)
-                out.write(ref.glyph.path, m)
+                val gpath = ref.glyph.path
+                commandsSize += gpath.commands.size
+                dataSize += gpath.data.size
+            }
+
+            GraphicsPath(IntArrayList(commandsSize), DoubleArrayList(dataSize)).also { out ->
+                refs.fastForEach { ref ->
+                    val m = Matrix()
+                    m.translate(ref.x, ref.y)
+                    m.scale(ref.scaleX, ref.scaleY)
+                    out.write(ref.glyph.path, m)
+                }
             }
         }
 	}
@@ -513,63 +524,74 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		}
 
         // @TODO: Do not use by lazy, since this causes a crash on Kotlin/Native
-        override val path = GraphicsPath().also { p ->
-            //println("flags.size: ${flags.size}, contoursIndices.size=${contoursIndices.size}, xPos.size=${xPos.size}, yPos.size=${yPos.size}")
-            //assert(flags.size == contoursIndices.size)
-            //assert(xPos.size == contoursIndices.size)
-            //assert(yPos.size == contoursIndices.size)
+        override val path = run {
+            var commandSize = 0
+            var dataSize = 0
+
+            forEachContour { cstart, cend, csize ->
+                commandSize += 1 + (csize * 2) // Bigger than required
+                dataSize += 2 + (csize * 8) // Bigger than required
+            }
+
+            GraphicsPath(IntArrayList(commandSize), DoubleArrayList(dataSize)).also { p ->
+                //println("flags.size: ${flags.size}, contoursIndices.size=${contoursIndices.size}, xPos.size=${xPos.size}, yPos.size=${yPos.size}")
+                //assert(flags.size == contoursIndices.size)
+                //assert(xPos.size == contoursIndices.size)
+                //assert(yPos.size == contoursIndices.size)
+                forEachContour { cstart, cend, csize ->
+                    //if (cend >= xPos.size) break
+                    var curr: Contour = contour(cend, tempContours[0])
+                    var next: Contour = contour(cstart, tempContours[1])
+
+                    when {
+                        curr.onCurve -> p.moveTo(curr.x, -curr.y)
+                        next.onCurve -> p.moveTo(next.x, -next.y)
+                        else -> p.moveTo((curr.x + next.x) * 0.5.toInt(), -((curr.y + next.y) * 0.5).toInt())
+                    }
+
+                    for (cpos in 0 until csize) {
+                        val prev = curr
+                        curr = next
+                        next = contour(cstart + ((cpos + 1) % csize), tempContours[(cpos + 2) % 3])
+
+                        if (curr.onCurve) {
+                            p.lineTo(curr.x, -curr.y)
+                        } else {
+                            var prev2X = prev.x
+                            var prev2Y = prev.y
+                            var next2X = next.x
+                            var next2Y = next.y
+
+                            if (!prev.onCurve) {
+                                prev2X = ((curr.x + prev.x) * 0.5).toInt()
+                                prev2Y = ((curr.y + prev.y) * 0.5).toInt()
+                                p.lineTo(prev2X, -prev2Y)
+                            }
+
+                            if (!next.onCurve) {
+                                next2X = ((curr.x + next.x) * 0.5).toInt()
+                                next2Y = ((curr.y + next.y) * 0.5).toInt()
+                            }
+
+                            p.lineTo(prev2X, -prev2Y)
+                            p.quadTo(curr.x, -curr.y, next2X, -next2Y)
+                        }
+                    }
+
+                    p.close()
+                }
+            }
+        }
+
+        private inline fun forEachContour(block: (cstart: Int, cend: Int, csize: Int) -> Unit) {
             for (n in 0 until contoursIndices.size - 1) {
                 val cstart = contoursIndices[n] + 1
                 val cend = contoursIndices[n + 1]
                 val csize = cend - cstart + 1
-
-                //if (cend >= xPos.size) break
-                var curr: Contour = contour(cend, tempContours[0])
-                var next: Contour = contour(cstart, tempContours[1])
-
-                if (curr.onCurve) {
-                    p.moveTo(curr.x, -curr.y)
-                } else {
-                    if (next.onCurve) {
-                        p.moveTo(next.x, -next.y)
-                    } else {
-                        p.moveTo((curr.x + next.x) * 0.5.toInt(), -((curr.y + next.y) * 0.5).toInt())
-                    }
-                }
-
-                for (cpos in 0 until csize) {
-                    val prev = curr
-                    curr = next
-                    next = contour(cstart + ((cpos + 1) % csize), tempContours[(cpos + 2) % 3])
-
-                    if (curr.onCurve) {
-                        p.lineTo(curr.x, -curr.y)
-                    } else {
-                        var prev2X = prev.x
-                        var prev2Y = prev.y
-                        var next2X = next.x
-                        var next2Y = next.y
-
-                        if (!prev.onCurve) {
-                            prev2X = ((curr.x + prev.x) * 0.5).toInt()
-                            prev2Y = ((curr.y + prev.y) * 0.5).toInt()
-                            p.lineTo(prev2X, -prev2Y)
-                        }
-
-                        if (!next.onCurve) {
-                            next2X = ((curr.x + next.x) * 0.5).toInt()
-                            next2Y = ((curr.y + next.y) * 0.5).toInt()
-                        }
-
-                        p.lineTo(prev2X, -prev2Y)
-                        p.quadTo(curr.x, -curr.y, next2X, -next2Y)
-                    }
-                }
-
-                p.close()
+                block(cstart, cend, csize)
             }
         }
-	}
+    }
 
     private fun SyncStream.readF2DOT14(): Float {
 		val v = readS16BE()
