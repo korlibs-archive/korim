@@ -51,6 +51,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 
         rasterizer.debug = debug
 
+        val doingStroke = !fill
         val fillPath = if (fill) {
             //rasterizer.scale = 1
             state.path
@@ -83,8 +84,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         //state.path.emitPoints({
             if (it) rasterizer.close()
         }, { x, y, move ->
-            if (move) {
-                flush()
+            // When rendering strokes we might want to do each stroke at a time to prevent artifacts.
+            // But on fills this would produce issues when for examplerendering 'o' that are two circles one inside another.
+            if (doingStroke) {
+                if (move) { flush() }
             }
             rasterizer.add(x, y)
         })
