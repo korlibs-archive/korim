@@ -29,6 +29,10 @@ object TGA : ImageFormat("tga") {
 	fun readHeader(s: SyncStream): Info {
 		val idLength = s.readU8()
 		val colorMapType = s.readU8()
+        when (colorMapType) {
+            0, 1 -> Unit //
+            else -> error("Not a TGA. Unsupported colorMapType")
+        }
 		val imageType = s.readU8()
 		when (imageType) {
 			1 -> TODO("Unsupported indexed")
@@ -49,6 +53,9 @@ object TGA : ImageFormat("tga") {
 			24, 32 -> Unit
 			else -> TODO("Not a RGBA tga")
 		}
+
+        if (width < 0 || height < 0) error("Not a TGA. Invalid width/height")
+
 		val imageDescriptor = s.readU8()
 		val flipY = ((imageDescriptor ushr 5) and 1) == 0
 		val storage = ((imageDescriptor ushr 6) and 3)
