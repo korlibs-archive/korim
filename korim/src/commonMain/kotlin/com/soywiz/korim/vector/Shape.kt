@@ -224,7 +224,7 @@ fun Paint.toSvg(svg: SvgBuilder): String {
 		is GradientPaint -> {
 			val stops = (0 until numberOfStops).map {
 				val ratio = this.stops[it]
-				val color = RGBA(this.colors[it])
+				val color = RGBA(this.colors.getAt(it))
 				Xml.Tag("stop", mapOf("offset" to "${ratio * 100}%", "stop-color" to colorToSvg(color)), listOf())
 			}
 
