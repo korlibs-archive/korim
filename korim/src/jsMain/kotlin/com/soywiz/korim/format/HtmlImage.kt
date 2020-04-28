@@ -42,18 +42,19 @@ object HtmlImage {
 		val width = canvas.width
 		val height = canvas.height
 		val len = width * height
-		val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
-		val data = ctx.getImageData(0.0, 0.0, width.toDouble(), height.toDouble())
-		val ddata = data.data
-		var m = 0
-		for (n in 0 until len) {
-			val r = ddata[m++].toInt() and 0xFF
-			val g = ddata[m++].toInt() and 0xFF
-			val b = ddata[m++].toInt() and 0xFF
-			val a = ddata[m++].toInt() and 0xFF
-			out[n] = RGBA(r, g, b, a)
-		}
-		//console.log(out);
+        if (width < 0 || height < 0) return
+        val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
+        val data = ctx.getImageData(0.0, 0.0, width.toDouble(), height.toDouble())
+        val ddata = data.data
+        var m = 0
+        for (n in 0 until len) {
+            val r = ddata[m++].toInt() and 0xFF
+            val g = ddata[m++].toInt() and 0xFF
+            val b = ddata[m++].toInt() and 0xFF
+            val a = ddata[m++].toInt() and 0xFF
+            out[n] = RGBA(r, g, b, a)
+        }
+        //console.log(out);
 	}
 
 	fun renderHtmlCanvasIntoBitmap(canvas: HTMLCanvasElementLike, bmp: Bitmap32): Unit {
