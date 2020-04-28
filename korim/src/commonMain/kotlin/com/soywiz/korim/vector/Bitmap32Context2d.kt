@@ -51,6 +51,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 
         rasterizer.debug = debug
 
+        val doingStroke = !fill
         val fillPath = if (fill) {
             //rasterizer.scale = 1
             state.path
@@ -83,8 +84,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         //state.path.emitPoints({
             if (it) rasterizer.close()
         }, { x, y, move ->
-            if (move) {
-                flush()
+            // When rendering strokes we might want to do each stroke at a time to prevent artifacts.
+            // But on fills this would produce issues when for examplerendering 'o' that are two circles one inside another.
+            if (doingStroke) {
+                if (move) { flush() }
             }
             rasterizer.add(x, y)
         })
@@ -116,8 +119,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         fun add(x0: Int, x1: Int) {
             // @TODO: Maybe we can optimize this if we keep segments in order
             for (n in 0 until size) {
-                val xmin = this.xmin[n]
-                val xmax = this.xmax[n]
+                val xmin = this.xmin.getAt(n)
+                val xmax = this.xmax.getAt(n)
                 if (overlaps(xmin, xmax, x0, x1)) {
                     this.xmin[n] = min(x0, xmin)
                     this.xmax[n] = max(x1, xmax)
@@ -136,7 +139,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 
         inline fun forEachFast(block: (x0: Int, x1: Int) -> Unit) {
             for (n in 0 until size) {
-                block(xmin[n], xmax[n])
+                block(xmin.getAt(n), xmax.getAt(n))
             }
         }
     }

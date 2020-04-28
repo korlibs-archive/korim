@@ -47,8 +47,7 @@ class Rasterizer {
     var debug: Boolean = false
     private val tempRect = Rectangle()
     private val boundsBuilder = BoundsBuilder()
-    private val pointsX = DoubleArrayList(1024)
-    private val pointsY = DoubleArrayList(1024)
+    private val points = PointArrayList(1024)
 
     @PublishedApi
     internal val edges = arrayListOf<Edge>()
@@ -75,8 +74,7 @@ class Rasterizer {
         closed = true
         startPathIndex = 0
         boundsBuilder.reset()
-        pointsX.clear()
-        pointsY.clear()
+        points.clear()
         edges.clear()
     }
 
@@ -85,20 +83,19 @@ class Rasterizer {
     }
 
     private fun addEdge(a: Int, b: Int) {
-        if (pointsX[a] == pointsY[a] && pointsX[b] == pointsY[b]) return
-        addEdge(pointsX[a], pointsY[a], pointsX[b], pointsY[b])
+        if ((points.getX(a) == points.getX(b)) && (points.getY(a) == points.getY(b))) return
+        addEdge(points.getX(a), points.getY(a), points.getX(b), points.getY(b))
     }
 
-    val lastX get() = if (pointsX.size > 0) pointsX[pointsX.size - 1] else Double.NEGATIVE_INFINITY
-    val lastY get() = if (pointsY.size > 0) pointsY[pointsY.size - 1] else Double.NEGATIVE_INFINITY
-    val size get() = pointsX.size
+    val lastX get() = if (points.size > 0) points.getX(points.size - 1) else Double.NEGATIVE_INFINITY
+    val lastY get() = if (points.size > 0) points.getY(points.size - 1) else Double.NEGATIVE_INFINITY
+    val size get() = points.size
 
     @PublishedApi
     internal fun addPoint(x: Double, y: Double) {
         if (!closed && x == lastX && y == lastY) return
         //println("ADD($x, $y)")
-        pointsX.add(x)
-        pointsY.add(y)
+        points.add(x, y)
         boundsBuilder.add(x, y)
         if (!closed) {
             addEdge(size - 2, size - 1)
@@ -139,10 +136,10 @@ class Rasterizer {
         //println("CLOSE")
         //add(pointsX[startPathIndex], pointsY[startPathIndex])
         if (size >= 2) {
-            add(pointsX[startPathIndex], pointsY[startPathIndex])
+            add(points.getX(startPathIndex), points.getY(startPathIndex))
         }
         closed = true
-        startPathIndex = pointsX.size
+        startPathIndex = points.size
     }
     var quality: Int = 2
 
@@ -216,8 +213,8 @@ class Rasterizer {
                     when (winding) {
                         Winding.EVEN_ODD -> {
                             for (i in 0 until tempX.size - 1 step 2) {
-                                val a = tempX[i]
-                                val b = tempX[i + 1]
+                                val a = tempX.getAt(i)
+                                val b = tempX.getAt(i + 1)
                                 func(a, b, y)
                                 edgesEmitted++
                             }
@@ -231,9 +228,9 @@ class Rasterizer {
                             var pending = false
 
                             for (i in 0 until tempX.size - 1) {
-                                val a = tempX[i]
-                                count += tempW[i]
-                                val b = tempX[i + 1]
+                                val a = tempX.getAt(i)
+                                count += tempW.getAt(i)
+                                val b = tempX.getAt(i + 1)
                                 if (count != 0) {
                                     if (pending && a != endX) {
                                         func(startX, endX, y)
@@ -304,7 +301,7 @@ class Rasterizer {
 
     // @TODO: Change once KDS is updated
     private object IntArrayListSort : SortOps<XWithWind>() {
-        override fun compare(subject: XWithWind, l: Int, r: Int): Int = subject.x[l].compareTo(subject.x[r])
+        override fun compare(subject: XWithWind, l: Int, r: Int): Int = subject.x.getAt(l).compareTo(subject.x.getAt(r))
         override fun swap(subject: XWithWind, indexL: Int, indexR: Int) {
             subject.x.swap(indexL, indexR)
             subject.w.swap(indexL, indexR)
@@ -315,8 +312,8 @@ class Rasterizer {
 }
 
 private fun IntArrayList.swap(x: Int, y: Int) {
-    val l = this[x]
-    val r = this[y]
+    val l = this.getAt(x)
+    val r = this.getAt(y)
     this[x] = r
     this[y] = l
 }

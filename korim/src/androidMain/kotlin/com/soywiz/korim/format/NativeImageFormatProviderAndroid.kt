@@ -130,8 +130,9 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.ko
     val matrixValues = FloatArray(9)
     var androidMatrix = android.graphics.Matrix()
 
-    fun GraphicsPath.toAndroid(): Path {
-        val out = Path()
+    fun GraphicsPath.toAndroid(out: Path = Path()): Path {
+        //out.reset()
+        out.rewind()
 
         out.fillType = when (this.winding) {
             Winding.EVEN_ODD -> Path.FillType.EVEN_ODD
@@ -214,11 +215,16 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.ko
         paint.strokeWidth = state.lineWidth.toFloat()
     }
 
+    private val androidClipPath = Path()
+    private val androidPath = Path()
+
     override fun render(state: Context2d.State, fill: Boolean) {
         setState(state, fill)
 
         keep {
-            if (state.clip != null) canvas.clipPath(state.clip?.toAndroid())
+            if (state.clip != null) {
+                canvas.clipPath(state.clip!!.toAndroid(androidClipPath))
+            }
 
             if (fill) {
                 paint.style = android.graphics.Paint.Style.FILL
@@ -233,7 +239,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.ko
             //println(state.path.toAndroid())
             //println(paint.style)
             //println(paint.color)
-            canvas.drawPath(state.path.toAndroid(), paint)
+            canvas.drawPath(state.path.toAndroid(androidPath), paint)
         }
     }
 }

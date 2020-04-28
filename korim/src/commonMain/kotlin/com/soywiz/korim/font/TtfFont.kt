@@ -712,7 +712,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 				val pos = if (xy == 0) xPos else yPos
                 var p = 0
 				for (n in 0 until numPoints) {
-					val flag = flags[n]
+					val flag = flags.getAt(n)
 					val b1 = ((flag ushr (1 + xy)) and 1) != 0
 					val b2 = ((flag ushr (4 + xy)) and 1) != 0
 					if (b1) {
@@ -733,7 +733,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 				xMin, yMin,
 				xMax, yMax,
 				contoursIndices,
-				flags.data.copyOf(flags.size),
+				flags.toIntArray(),
 				xPos, yPos,
 				horMetrics[index].advanceWidth
 			)
@@ -755,8 +755,8 @@ suspend fun VfsFile.readTtfFont(preload: Boolean = false) = TtfFont(this.readAll
 private fun VectorPath.write(path: VectorPath, transform: Matrix) {
     this.commands += path.commands
     for (n in 0 until path.data.size step 2) {
-        val x = path.data[n + 0]
-        val y = path.data[n + 1]
+        val x = path.data.getAt(n + 0)
+        val y = path.data.getAt(n + 1)
         this.data += transform.transformX(x, y)
         this.data += transform.transformY(x, y)
     }

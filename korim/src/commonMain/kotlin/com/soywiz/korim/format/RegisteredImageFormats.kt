@@ -5,7 +5,7 @@ import kotlin.native.concurrent.*
 
 @ThreadLocal
 //private var RegisteredImageFormats_formats: ImageFormats = ImageFormats(PNG) // Do not register anything to not include inflater if not required
-private var RegisteredImageFormats_formats: ImageFormats = ImageFormats()
+private var RegisteredImageFormats_formats: ImageFormats = ImageFormats(BMP, TGA)
 
 object RegisteredImageFormats : ImageFormat() {
     var formats: ImageFormats

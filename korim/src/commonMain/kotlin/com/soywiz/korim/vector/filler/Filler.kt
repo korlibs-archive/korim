@@ -106,8 +106,8 @@ class GradientFiller : BaseFiller() {
                 for (n in 0 until fill.numberOfStops - 1) {
                     val stop0 = stopN(n + 0)
                     val stop1 = stopN(n + 1)
-                    val color0 = RGBA(fill.colors[n + 0])
-                    val color1 = RGBA(fill.colors[n + 1])
+                    val color0 = RGBA(fill.colors.getAt(n + 0))
+                    val color1 = RGBA(fill.colors.getAt(n + 1))
                     for (s in stop0 until stop1) {
                         val ratio = (s - stop0).toDouble() / (stop1 - stop0).toDouble()
                         colors[s] = RGBA.interpolate(color0, color1, ratio).premultiplied

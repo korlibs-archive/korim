@@ -403,7 +403,7 @@ private class QRCodeModel(val typeNumber: Int, val errorCorrectLevel: QRErrorCor
                 maxEcCount = max(maxEcCount, ecCount)
                 dcdata[r] = IntArray(dcCount)
                 for (i in 0 until dcdata[r].size) {
-                    dcdata[r][i] = 0xff and buffer.buffer[i + offset]
+                    dcdata[r][i] = 0xff and buffer.buffer.getAt(i + offset)
                 }
                 offset += dcCount
                 val rsPoly = QRUtil.getErrorCorrectPolynomial(ecCount)

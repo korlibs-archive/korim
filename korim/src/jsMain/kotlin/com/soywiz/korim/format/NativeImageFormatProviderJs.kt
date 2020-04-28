@@ -180,8 +180,8 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 					GradientKind.LINEAR -> {
 						val grad = ctx.createLinearGradient(this.x0, this.y0, this.x1, this.y1)
 						for (n in 0 until this.stops.size) {
-							val stop = this.stops[n]
-							val color = this.colors[n]
+							val stop = this.stops.getAt(n)
+							val color = this.colors.getAt(n)
 							grad.addColorStop(stop, RGBA(color).htmlStringSimple)
 						}
 						grad
@@ -189,8 +189,8 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
                     GradientKind.RADIAL -> {
 						val grad = ctx.createRadialGradient(this.x0, this.y0, this.r0, this.x1, this.y1, this.r1)
 						for (n in 0 until this.stops.size) {
-							val stop = this.stops[n]
-							val color = this.colors[n]
+							val stop = this.stops.getAt(n)
+							val color = this.colors.getAt(n)
 							grad.addColorStop(stop, RGBA(color).htmlStringSimple)
 						}
 						grad
