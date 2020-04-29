@@ -107,7 +107,9 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	private val stack = Stack<State>()
 
 	var lineScaleMode: LineScaleMode by { state::lineScaleMode }.redirected()
-	var lineWidth: Double by { state::lineWidth }.redirected()
+	var lineWidth: Double
+        get() = state.lineWidth
+        set(value) = run { state.lineWidth = value }
 	var lineCap: LineCap by { state::lineCap }.redirected()
     var startLineCap: LineCap by { state::startLineCap }.redirected()
     var endLineCap: LineCap by { state::startLineCap }.redirected()
@@ -119,10 +121,14 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     var fontName: String
         get() = font.name
         set(value) = run { font = fontRegistry[value] }
-    var fontSize: Double by { state::fontSize }.redirected()
+    var fontSize: Double
+        get() = state.fontSize
+        set(value) = run { state.fontSize = value }
 	var verticalAlign: VerticalAlign by { state::verticalAlign }.redirected()
 	var horizontalAlign: HorizontalAlign by { state::horizontalAlign }.redirected()
-	var globalAlpha: Double by { state::globalAlpha }.redirected()
+	var globalAlpha: Double
+        get() = state.globalAlpha
+        set(value) = run { state.globalAlpha = value }
 
 	inline fun fillStyle(paint: Paint, callback: () -> Unit) {
 		val oldStyle = fillStyle
