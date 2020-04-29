@@ -2,6 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
+import com.soywiz.korio.lang.*
 import org.khronos.webgl.get
 import org.khronos.webgl.set
 import org.w3c.dom.*
@@ -42,7 +43,7 @@ object HtmlImage {
 		val width = canvas.width
 		val height = canvas.height
 		val len = width * height
-        if (width < 0 || height < 0) return
+        if (width <= 0 || height <= 0) return
         val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
         val data = ctx.getImageData(0.0, 0.0, width.toDouble(), height.toDouble())
         val ddata = data.data
