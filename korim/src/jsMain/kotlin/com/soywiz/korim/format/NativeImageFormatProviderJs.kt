@@ -221,8 +221,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
 		setFont(state.font, state.fontSize)
-		val t = state.transform
-		ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty)
+        //state.transform.let { t -> ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty) } // @NOTE: Points are already transformed, so this shouldn't be executed
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
@@ -265,6 +264,8 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		if (state.path.isEmpty()) return
 
 		//println("beginPath")
+        //println("RENDER: $width,$height,fill=$fill")
+        //println(" fillStyle=${ctx.fillStyle}, transform=${state.transform}")
 		keep {
 			setState(state, fill, state.fontSize)
 			ctx.beginPath()
@@ -277,11 +278,9 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 				close = { ctx.closePath() }
 			)
 
-			ctx.save()
-
 			if (fill) {
 				transformPaint(state.fillStyle)
-				ctx.fill()
+				ctx.fill(state.path.winding.toCanvasFillRule())
 				//println("fill: $s")
 			} else {
 				transformPaint(state.strokeStyle)
@@ -289,10 +288,13 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 				ctx.stroke()
 				//println("stroke: $s")
 			}
-
-			ctx.restore()
 		}
 	}
+
+    fun Winding.toCanvasFillRule() = when (this) {
+        Winding.NON_ZERO -> CanvasFillRule.NONZERO
+        Winding.EVEN_ODD -> CanvasFillRule.EVENODD
+    }
 
     // @TODO: Do this
     /*
