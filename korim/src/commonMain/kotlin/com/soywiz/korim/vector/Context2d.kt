@@ -106,29 +106,21 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	var state = State()
 	private val stack = Stack<State>()
 
-	var lineScaleMode: LineScaleMode by { state::lineScaleMode }.redirected()
-	var lineWidth: Double
-        get() = state.lineWidth
-        set(value) = run { state.lineWidth = value }
-	var lineCap: LineCap by { state::lineCap }.redirected()
-    var startLineCap: LineCap by { state::startLineCap }.redirected()
-    var endLineCap: LineCap by { state::startLineCap }.redirected()
-    var lineJoin: LineJoin by { state::lineJoin }.redirected()
-	var strokeStyle: Paint by { state::strokeStyle }.redirected()
-	var fillStyle: Paint by { state::fillStyle }.redirected()
-    var fontRegistry: FontRegistry by { state::fontRegistry }.redirected()
-	var font: Font by { state::font }.redirected()
-    var fontName: String
-        get() = font.name
-        set(value) = run { font = fontRegistry[value] }
-    var fontSize: Double
-        get() = state.fontSize
-        set(value) = run { state.fontSize = value }
-	var verticalAlign: VerticalAlign by { state::verticalAlign }.redirected()
-	var horizontalAlign: HorizontalAlign by { state::horizontalAlign }.redirected()
-	var globalAlpha: Double
-        get() = state.globalAlpha
-        set(value) = run { state.globalAlpha = value }
+	var lineScaleMode: LineScaleMode ; get() = state.lineScaleMode ; set(value) = run { state.lineScaleMode = value }
+	var lineWidth: Double ; get() = state.lineWidth ; set(value) = run { state.lineWidth = value }
+	var lineCap: LineCap ; get() = state.lineCap ; set(value) = run { state.lineCap = value }
+    var startLineCap: LineCap ; get() = state.startLineCap ; set(value) = run { state.startLineCap = value }
+    var endLineCap: LineCap ; get() = state.endLineCap ; set(value) = run { state.endLineCap = value }
+    var lineJoin: LineJoin ; get() = state.lineJoin ; set(value) = run { state.lineJoin = value }
+	var strokeStyle: Paint ; get() = state.strokeStyle ; set(value) = run { state.strokeStyle = value }
+	var fillStyle: Paint ; get() = state.fillStyle ; set(value) = run { state.fillStyle = value }
+    var fontRegistry: FontRegistry ; get() = state.fontRegistry ; set(value) = run { state.fontRegistry = value }
+	var font: Font ; get() = state.font ; set(value) = run { state.font = value }
+    var fontName: String ; get() = font.name ; set(value) = run { font = fontRegistry[value] }
+    var fontSize: Double ; get() = state.fontSize ; set(value) = run { state.fontSize = value }
+	var verticalAlign: VerticalAlign ; get() = state.verticalAlign ; set(value) = run { state.verticalAlign = value }
+	var horizontalAlign: HorizontalAlign ; get() = state.horizontalAlign ; set(value) = run { state.horizontalAlign = value }
+	var globalAlpha: Double ; get() = state.globalAlpha ; set(value) = run { state.globalAlpha = value }
 
 	inline fun fillStyle(paint: Paint, callback: () -> Unit) {
 		val oldStyle = fillStyle
