@@ -23,6 +23,7 @@ open class RastScale {
 }
 
 class PolygonScanline : RastScale() {
+    var winding = Winding.NON_ZERO
     val boundsBuilder = BoundsBuilder()
     private val points = PointArrayList(1024)
 

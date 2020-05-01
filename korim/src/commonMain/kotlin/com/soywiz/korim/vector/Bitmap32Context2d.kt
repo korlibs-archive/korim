@@ -47,7 +47,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
-        rasterizer.path.reset()
+        rasterizer.reset()
 
         rasterizer.debug = debug
 
@@ -80,12 +80,21 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             }
         }
 
+        if (state.clip != null) {
+            rasterizer.clip.winding = state.clip!!.winding
+            state.clip!!.emitPoints2({
+                if (it) rasterizer.clip.close()
+            }, { x, y, move ->
+                rasterizer.clip.add(x, y)
+            })
+        }
+
+        rasterizer.path.winding = state.path!!.winding
         fillPath.emitPoints2({
-        //state.path.emitPoints({
             if (it) rasterizer.path.close()
         }, { x, y, move ->
             // When rendering strokes we might want to do each stroke at a time to prevent artifacts.
-            // But on fills this would produce issues when for examplerendering 'o' that are two circles one inside another.
+            // But on fills this would produce issues when for rendering 'o' that are two circles one inside another.
             if (doingStroke) {
                 if (move) { flush() }
             }

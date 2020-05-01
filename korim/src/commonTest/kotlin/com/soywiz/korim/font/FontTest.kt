@@ -77,6 +77,11 @@ class FontTest {
         //BitmapFont(SystemFont("Arial"), 64.0, paint = ColorPaint(Colors.RED)).atlas.showImageAndWait()
 
         Bitmap32(128, 128).context2d {
+            //rect(0, 0, 50, 50)
+            circle(25, 50, 30)
+            clip()
+            beginPath()
+
             moveTo(0, 100)
             lineTo(30, 10)
             lineTo(60, 100)

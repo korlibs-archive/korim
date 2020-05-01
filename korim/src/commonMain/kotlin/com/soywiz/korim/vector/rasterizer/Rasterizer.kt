@@ -44,8 +44,14 @@ class Rasterizer : RastScale() {
     private val clipSegmentSet = SegmentSet()
     private val finalSegmentSet = SegmentSet()
 
+    fun reset() {
+        path.reset()
+        clip.reset()
+    }
+
     fun rasterizeFill(bounds: Rectangle, quality: Int = this.quality, stats: Stats? = null, winding: Winding = Winding.NON_ZERO, callback: RasterizerCallback) {
         stats?.reset()
+        // @TODO: Bounds intersection to reduce the number of
         val xmin = bounds.left.s
         val xmax = bounds.right.s
         path.boundsBuilder.getBounds(tempRect)
@@ -85,7 +91,14 @@ class Rasterizer : RastScale() {
                 path.scanline(y, winding, fillSegmentSet)
                 edgesChecked += path.edgesChecked
 
-                fillSegmentSet.fastForEach { min, max ->
+                if (clip.size > 0) {
+                    clip.scanline(y, clip.winding, clipSegmentSet)
+                    edgesChecked += clip.edgesChecked
+
+                    finalSegmentSet.setToIntersect(fillSegmentSet, clipSegmentSet)
+                }
+
+                (if (clip.size > 0) finalSegmentSet else fillSegmentSet).fastForEach { min, max ->
                     func(min, max, y)
                     edgesEmitted++
                 }
