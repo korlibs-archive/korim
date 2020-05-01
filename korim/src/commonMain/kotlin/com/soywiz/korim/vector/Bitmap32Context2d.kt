@@ -47,7 +47,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
-        rasterizer.reset()
+        rasterizer.path.reset()
 
         rasterizer.debug = debug
 
@@ -67,7 +67,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         }
 
         fun flush() {
-            if (rasterizer.size > 0) {
+            if (rasterizer.path.size > 0) {
                 rasterizer.strokeWidth = state.lineWidth
                 rasterizer.quality = if (antialiasing) 4 else 1
                 scanlineWriter.filler = filler
@@ -76,20 +76,20 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
                     scanlineWriter.select(x0, x1, y)
                 }
                 scanlineWriter.flush()
-                rasterizer.reset()
+                rasterizer.path.reset()
             }
         }
 
         fillPath.emitPoints2({
         //state.path.emitPoints({
-            if (it) rasterizer.close()
+            if (it) rasterizer.path.close()
         }, { x, y, move ->
             // When rendering strokes we might want to do each stroke at a time to prevent artifacts.
             // But on fills this would produce issues when for examplerendering 'o' that are two circles one inside another.
             if (doingStroke) {
                 if (move) { flush() }
             }
-            rasterizer.add(x, y)
+            rasterizer.path.add(x, y)
         })
         flush()
     }
