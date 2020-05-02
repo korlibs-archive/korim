@@ -87,7 +87,7 @@ class RasterizerTest {
     }
 
     @Test
-    //@Ignore
+    @Ignore
     fun testLineJoin() = suspendTest {
         // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineJoin
         val bmp = NativeImageOrBitmap32(500, 500, native = false).context2d {

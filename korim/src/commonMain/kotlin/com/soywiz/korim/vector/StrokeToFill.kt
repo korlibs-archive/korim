@@ -1,5 +1,6 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kds.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
 import com.soywiz.korim.vector.rasterizer.*
@@ -16,6 +17,7 @@ class FillStrokeTemp {
     private var joins: LineJoin = LineJoin.BEVEL
     private var miterLimit: Double = 4.0 // ratio of the width
     internal val strokePoints = PointIntArrayList(1024)
+    internal val doJointList = IntArrayList(1024)
     internal val fillPoints = Array(2) { PointIntArrayList(1024) }
     internal val fillPointsLeft = fillPoints[0]
     internal val fillPointsRight = fillPoints[1]
@@ -144,6 +146,7 @@ class FillStrokeTemp {
             prevEdgeLeft.copyFrom(currEdgeLeft)
             prevEdgeRight.copyFrom(currEdgeRight)
 
+            val doJoin = doJointList.getAt(n) != 0
             currEdge.setTo(sp.getX(n), sp.getY(n), sp.getX(n1), sp.getY(n1), +1)
             currEdgeLeft.setEdgeDisplaced(currEdge, weightD2, currEdge.angle - 90.degrees)
             currEdgeRight.setEdgeDisplaced(currEdge, weightD2, currEdge.angle + 90.degrees)
@@ -156,8 +159,13 @@ class FillStrokeTemp {
                     val angle = Edge.angleBetween(prevEdge, currEdge)
                     val leftAngle = angle > 0.degrees
 
-                    doJoin(fillPointsLeft, prevEdge, currEdge, prevEdgeLeft, currEdgeLeft, joins, miterLimit, scale, leftAngle)
-                    doJoin(fillPointsRight, prevEdge, currEdge, prevEdgeRight, currEdgeRight, joins, miterLimit, scale, !leftAngle)
+                    if (doJoin) {
+                        doJoin(fillPointsLeft, prevEdge, currEdge, prevEdgeLeft, currEdgeLeft, joins, miterLimit, scale, leftAngle)
+                        doJoin(fillPointsRight, prevEdge, currEdge, prevEdgeRight, currEdgeRight, joins, miterLimit, scale, !leftAngle)
+                    } else {
+                        fillPointsLeft.addEdgePointA(currEdgeLeft)
+                        fillPointsRight.addEdgePointA(currEdgeRight)
+                    }
                 }
                 isLast -> {
                     doCap(fillPointsLeft, fillPointsRight, prevEdgeLeft, prevEdgeRight, EdgePoint.B, endCap, scale)
@@ -181,6 +189,7 @@ class FillStrokeTemp {
         }
         outFill.close()
         strokePoints.clear()
+        doJointList.clear()
     }
 
 
@@ -200,17 +209,17 @@ class FillStrokeTemp {
         val scale = RAST_FIXED_SCALE
         val iscale = 1.0 / RAST_FIXED_SCALE
         set(outFill, (lineWidth * scale).toInt(), startCap, endCap, joins, miterLimit)
-        stroke.emitPoints2({ close ->
-            if (close) {
-                computeStroke(iscale, true)
-                strokePoints.clear()
+        stroke.emitPoints2(
+            flush = { close ->
+                if (close) computeStroke(iscale, true)
+            },
+            joint = {
+                doJointList[doJointList.size - 1] = 1
             }
-        }) { x, y, move ->
-            if (move) {
-                computeStroke(iscale, false)
-                strokePoints.clear()
-            }
+        ) { x, y, move ->
+            if (move) computeStroke(iscale, false)
             strokePoints.add((x * scale).toInt(), (y * scale).toInt())
+            doJointList.add(0)
         }
         computeStroke(iscale, false)
     }
