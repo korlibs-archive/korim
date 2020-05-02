@@ -319,7 +319,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     }
 
     fun fillStroke() = run { fill(); stroke() }
-	fun clip() = run { state.clip = state.path }
+	fun clip() = clip(Winding.NON_ZERO)
+    fun clip(winding: Winding) = run {
+        if (state.clip == null) {
+            state.clip = GraphicsPath()
+        }
+        state.clip!!.clear()
+        state.clip!!.winding = winding
+        state.clip!!.write(state.path)
+    }
 
     fun drawShape(
 		shape: Shape,
