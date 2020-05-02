@@ -9,6 +9,7 @@ class StrokeToFillTest {
     private inline fun path(stroke: Double = 2.0, crossinline block: VectorPath.() -> Unit) =
         buildPath { block() }.strokeToFill(stroke).getPoints2().toList().map { it.int }.toString()
 
+    /*
     @Test
     fun testSimple() {
         assertEquals(
@@ -24,6 +25,7 @@ class StrokeToFillTest {
             path { line(0, 0, 0, 10) }
         )
     }
+     */
 
     /*
     @Test
