@@ -43,11 +43,17 @@ internal inline fun approximateCurve(
 }
 
 internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -> Unit = {}, crossinline emit: (x: Double, y: Double, move: Boolean) -> Unit) {
+    var ix = 0.0
+    var iy = 0.0
     var lx = 0.0
     var ly = 0.0
     flush(false)
     this.visitCmds(
-        moveTo = { x, y -> emit(x, y, true).also { lx = x }.also { ly = y } },
+        moveTo = { x, y ->
+            ix = x
+            iy = y
+            emit(x, y, true).also { lx = x }.also { ly = y }
+        },
         lineTo = { x, y -> emit(x, y, false).also { lx = x }.also { ly = y } },
         quadTo = { x0, y0, x1, y1 ->
             val sum = Point.distance(lx, ly, x0, y0) + Point.distance(x0, y0, x1, y1)
@@ -60,7 +66,10 @@ internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -
             run { lx = x2 }.also { ly = y2 }
 
         },
-        close = { flush(true) }
+        close = {
+            emit(ix, iy, false)
+            flush(true)
+        }
     )
     flush(false)
 }

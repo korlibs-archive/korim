@@ -6,6 +6,7 @@ import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
 const val RAST_FIXED_SCALE = 32 // Important NOTE: Power of two so divisions are >> and remaining &
+//const val RAST_FIXED_SCALE = 20 // Important NOTE: Power of two so divisions are >> and remaining &
 const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2) - 1
 //const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2)
 //const val RAST_FIXED_SCALE_HALF = 0

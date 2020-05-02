@@ -29,9 +29,9 @@ class FillStrokeTemp {
     private val currEdgeRight = Edge()
 
     internal fun Edge.setEdgeDisplaced(edge: Edge, width: Int, angle: Angle) = this.apply {
-        val ldx = (width * angle.cosine).toInt()
-        val ldy = (width * angle.sine).toInt()
-        this.setTo(edge.ax - ldx, edge.ay - ldy, edge.bx - ldx, edge.by - ldy, edge.wind)
+        val ldx = (width * angle.cosine)
+        val ldy = (width * angle.sine)
+        this.setTo((edge.ax + ldx).toInt(), (edge.ay + ldy).toInt(), (edge.bx + ldx).toInt(), (edge.by + ldy).toInt(), edge.wind)
     }
 
     internal fun PointIntArrayList.addEdgePointA(e: Edge) = add(e.ax, e.ay)
@@ -96,8 +96,8 @@ class FillStrokeTemp {
             prevEdgeRight.copyFrom(currEdgeRight)
 
             currEdge.setTo(sp.getX(n), sp.getY(n), sp.getX(n1), sp.getY(n1), +1)
-            currEdgeLeft.setEdgeDisplaced(currEdge, weightD2, currEdge.angle + 90.degrees)
-            currEdgeRight.setEdgeDisplaced(currEdge, weightD2, currEdge.angle - 90.degrees)
+            currEdgeLeft.setEdgeDisplaced(currEdge, weightD2, currEdge.angle - 90.degrees)
+            currEdgeRight.setEdgeDisplaced(currEdge, weightD2, currEdge.angle + 90.degrees)
 
             when {
                 isFirst -> {
@@ -112,8 +112,8 @@ class FillStrokeTemp {
                     doJoin(fillPointsRight, prevEdge, currEdge, prevEdgeRight, currEdgeRight, joins, miterLimit, scale, !leftAngle)
                 }
                 isLast -> {
-                    fillPointsLeft.addEdgePointA(currEdgeLeft)
-                    fillPointsRight.addEdgePointA(currEdgeRight)
+                    fillPointsLeft.addEdgePointB(prevEdgeLeft)
+                    fillPointsRight.addEdgePointB(prevEdgeRight)
                 }
             }
         }
@@ -144,6 +144,20 @@ class FillStrokeTemp {
         this.joins = joins
         this.miterLimit = miterLimit * weight
     }
+
+    fun strokeFill(
+        stroke: VectorPath,
+        lineWidth: Double, joins: LineJoin, startCap: LineCap, endCap: LineCap, miterLimit: Double, outFill: VectorPath
+    ) {
+        val scale = RAST_FIXED_SCALE
+        val iscale = 1.0 / RAST_FIXED_SCALE
+        set(outFill, (lineWidth * scale).toInt(), startCap, endCap, joins, miterLimit)
+        stroke.emitPoints2 { x, y, move ->
+            if (move) computeStroke(iscale)
+            strokePoints.add((x * scale).toInt(), (y * scale).toInt())
+        }
+        computeStroke(iscale)
+    }
 }
 
 // @TODO: Implement LineCap + LineJoin
@@ -156,14 +170,8 @@ fun VectorPath.strokeToFill(
     temp: FillStrokeTemp = FillStrokeTemp(),
     outFill: VectorPath = VectorPath(winding = Winding.NON_ZERO)
 ): VectorPath {
-    val stroke = this@strokeToFill
-    val scale = RAST_FIXED_SCALE
-    val iscale = 1.0 / RAST_FIXED_SCALE
-    temp.set(outFill, (lineWidth * scale).toInt(), startCap, endCap, joins, miterLimit)
-    stroke.emitPoints2 { x, y, move ->
-        if (move) temp.computeStroke(iscale)
-        temp.strokePoints.add((x * scale).toInt(), (y * scale).toInt())
-    }
-    temp.computeStroke(iscale)
+    temp.strokeFill(
+        this@strokeToFill, lineWidth, joins, startCap, endCap, miterLimit, outFill
+    )
     return outFill
 }
