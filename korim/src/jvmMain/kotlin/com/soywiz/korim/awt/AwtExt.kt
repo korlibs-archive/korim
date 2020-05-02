@@ -57,6 +57,9 @@ fun awtShowImage(image: BufferedImage): JFrame {
     }
     frame.contentPane = object : Container() {
         override fun paint(g: Graphics) {
+            (g as? Graphics2D)?.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON)
+            (g as? Graphics2D)?.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC)
+            (g as? Graphics2D)?.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY)
             val scaleMode = ScaleMode.SHOW_ALL
             val imageSize = Size(image.width, image.height)
             val containerSize = g.clipBounds.toKorma()

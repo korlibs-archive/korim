@@ -34,7 +34,7 @@ class RasterizerTest {
             //println(log.last())
         }
         //assertEquals(Rasterizer.Stats(edgesChecked=380, edgesEmitted=80, yCount=95), stats)
-        assertEquals(Rasterizer.Stats(edgesChecked=380, edgesEmitted=80, yCount=88), stats)
+        assertEquals(Rasterizer.Stats(edgesChecked = 380, edgesEmitted = 80, yCount = 88), stats)
     }
 
     @Test
@@ -90,20 +90,96 @@ class RasterizerTest {
     @Ignore
     fun testLineJoin() = suspendTest {
         // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineJoin
-        val bmp = NativeImageOrBitmap32(150, 150, native = false).context2d {
-        //val bmp = NativeImageOrBitmap32(150, 150, native = true).context2d {
+        val bmp = NativeImageOrBitmap32(500, 500, native = false).context2d {
+            //val bmp = NativeImageOrBitmap32(150, 150, native = true).context2d {
             lineWidth = 10.0
             for ((i, lineJoin) in listOf(LineJoin.ROUND, LineJoin.BEVEL, LineJoin.MITER).withIndex()) {
                 this.lineJoin = lineJoin
+                keep {
+                    beginPath()
+                    moveTo(-5, 5 + i * 40)
+                    lineTo(35, 45 + i * 40)
+                    lineTo(75, 5 + i * 40)
+                    lineTo(115, 45 + i * 40)
+                    lineTo(155, 5 + i * 40)
+                    stroke()
+                }
+
+                keep {
+                    translate(0, 350)
+                    beginPath()
+                    moveTo(-5, 5 + i * 40)
+                    quadTo(35, 45 + i * 40, 75, 5 + i * 40)
+                    quadTo(115, 45 + i * 40, 155, 5 + i * 40)
+                    stroke()
+                }
+            }
+            beginPath()
+            //lineJoin = LineJoin.MITER
+            lineJoin = LineJoin.BEVEL
+            circle(250, 200, 30)
+            stroke()
+
+            beginPath()
+            moveTo(150, 200)
+            lineTo(200, 250)
+            lineTo(150, 300)
+            lineTo(100, 250)
+            //lineTo(150, 200)
+            close()
+            stroke()
+
+            for (n in listOf(LineCap.BUTT, LineCap.ROUND, LineCap.SQUARE)) {
+                keep {
+                    translate(250, 25)
+                    beginPath()
+                    lineCap = n
+                    moveTo(n.ordinal * 20, 0)
+                    lineTo(n.ordinal * 20, 50)
+                    stroke()
+                }
+            }
+
+            for (n in listOf(LineCap.BUTT, LineCap.ROUND, LineCap.SQUARE)) {
+                keep {
+                    translate(25, 250)
+                    beginPath()
+                    lineCap = n
+                    moveTo(n.ordinal * 20, 0)
+                    lineTo(n.ordinal * 20, -50)
+                    stroke()
+                }
+            }
+
+            keep {
+                val radius = 50
+                translate(400, 100)
                 beginPath()
-                moveTo(-5, 5 + i * 40)
-                lineTo(35, 45 + i * 40)
-                lineTo(75, 5 + i * 40)
-                lineTo(115, 45 + i * 40)
-                lineTo(155, 5 + i * 40)
-                stroke()
+                lineCap = LineCap.ROUND
+                val colorA = Colors.RED
+                val colorB = Colors.BLUE
+                for (n in 0 until 360 step 30) {
+                    stroke(RGBA.interpolate(colorA, colorB, n.toDouble() / 360)) {
+                        beginPath()
+                        moveTo(0, 0)
+                        lineTo(n.degrees.cosine * radius, n.degrees.sine * radius)
+                    }
+                }
             }
         }
         bmp.showImageAndWait()
+    }
+
+    @Test
+    @Ignore
+    fun testLineJoin2() = suspendTest {
+        NativeImageOrBitmap32(500, 500, native = false).context2d {
+            beginPath()
+            lineCap = LineCap.SQUARE
+            lineWidth = 30.0
+            moveTo(200, 200)
+            lineTo(300, 100)
+            stroke()
+        }.showImageAndWait()
     }
 }

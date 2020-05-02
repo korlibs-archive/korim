@@ -1,79 +1,227 @@
 package com.soywiz.korim.vector
 
+import com.soywiz.kds.*
+import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
+import com.soywiz.korim.vector.rasterizer.*
+import com.soywiz.korim.vector.rasterizer.Edge
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.vector.*
 
 class FillStrokeTemp {
-    private var weight: Double = 2.0
+    private var weight: Int = 1
     private lateinit var outFill: VectorPath
     private var startCap: LineCap = LineCap.BUTT
     private var endCap: LineCap = LineCap.BUTT
     private var joins: LineJoin = LineJoin.BEVEL
-    private var miterLimit: Double = 4.0
-    internal val strokePoints = PointArrayList(1024)
-    internal val fillPoints = Array(2) { PointArrayList(1024) }
+    private var miterLimit: Double = 4.0 // ratio of the width
+    internal val strokePoints = PointIntArrayList(1024)
+    internal val doJointList = IntArrayList(1024)
+    internal val fillPoints = Array(2) { PointIntArrayList(1024) }
+    internal val fillPointsLeft = fillPoints[0]
+    internal val fillPointsRight = fillPoints[1]
 
-    internal fun computeStroke() {
-        val weightD2 = weight / 2
-        fillPoints[0].clear()
-        fillPoints[1].clear()
-        val nstrokePoints = strokePoints.size
-        for (n in 0 until nstrokePoints) {
-            val first = n == 0
-            val last = n == nstrokePoints - 1
-            val middle = !first && !last
-            val lastX = if (first) 0.0 else strokePoints.getX(n - 1)
-            val lastY = if (first) 0.0 else strokePoints.getY(n - 1)
-            val x = strokePoints.getX(n)
-            val y = strokePoints.getY(n)
-            val nextX = if (last) 0.0 else strokePoints.getX(n + 1)
-            val nextY = if (last) 0.0 else strokePoints.getY(n + 1)
-            val prevAngle = Angle.between(lastX, lastY, x, y)
-            val pa1 = prevAngle - 90.degrees
-            val pa2 = prevAngle + 90.degrees
-            val nextAngle = Angle.between(x, y, nextX, nextY)
-            val na1 = nextAngle - 90.degrees
-            val na2 = nextAngle + 90.degrees
-            if (first) {
-                fillPoints[0].add(x + na1.cosine * weightD2, y + na1.sine * weightD2)
-                fillPoints[1].add(x + na2.cosine * weightD2, y + na2.sine * weightD2)
-            } else {
-                fillPoints[0].add(x + pa1.cosine * weightD2, y + pa1.sine * weightD2)
-                if (!last) {
-                    val n = if (prevAngle - nextAngle < 0.degrees) 0 else 1
-                    fillPoints[n].add(x + na1.cosine * weightD2, y + na1.sine * weightD2)
+    private val prevEdge = Edge()
+    private val prevEdgeLeft = Edge()
+    private val prevEdgeRight = Edge()
+
+    private val currEdge = Edge()
+    private val currEdgeLeft = Edge()
+    private val currEdgeRight = Edge()
+
+    internal fun Edge.setEdgeDisplaced(edge: Edge, width: Int, angle: Angle) = this.apply {
+        val ldx = (width * angle.cosine)
+        val ldy = (width * angle.sine)
+        this.setTo((edge.ax + ldx).toInt(), (edge.ay + ldy).toInt(), (edge.bx + ldx).toInt(), (edge.by + ldy).toInt(), edge.wind)
+    }
+
+    internal enum class EdgePoint(val n: Int) { A(0), B(1) }
+
+    internal fun PointIntArrayList.addEdgePointA(e: Edge) = add(e.ax, e.ay)
+    internal fun PointIntArrayList.addEdgePointB(e: Edge) = add(e.bx, e.by)
+    internal fun PointIntArrayList.addEdgePointAB(e: Edge, point: EdgePoint) = if (point == EdgePoint.A) addEdgePointA(e) else addEdgePointB(e)
+    internal fun PointIntArrayList.add(e: Point?) = run { if (e != null) add(e.x.toInt(), e.y.toInt()) }
+    internal fun PointIntArrayList.add(x: Double, y: Double) = run { add(x.toInt(), y.toInt()) }
+
+    private val tempP1 = Point()
+    private val tempP2 = Point()
+    private val tempP3 = Point()
+
+    internal fun doJoin(out: PointIntArrayList, mainPrev: Edge, mainCurr: Edge, prev: Edge, curr: Edge, join: LineJoin, miterLimit: Double, scale: Double, forcedMiter: Boolean) {
+        val rjoin = if (forcedMiter) LineJoin.MITER else join
+        when (rjoin) {
+            LineJoin.MITER -> {
+                val intersection2 = tempP1.setTo(mainPrev.bx, mainPrev.by)
+                val intersection = Edge.getIntersectXY(prev, curr, tempP3)
+                if (intersection != null) {
+                    val dist = Point.distance(intersection, intersection2)
+                    if (forcedMiter || dist <= miterLimit) {
+                        out.add(intersection)
+                    } else {
+                        out.addEdgePointB(prev)
+                        out.addEdgePointA(curr)
+                    }
                 }
-                fillPoints[1].add(x + pa2.cosine * weightD2, y + pa2.sine * weightD2)
+            }
+            LineJoin.BEVEL -> {
+                out.addEdgePointB(prev)
+                out.addEdgePointA(curr)
+            }
+            LineJoin.ROUND -> {
+                val i = Edge.getIntersectXY(prev, curr, tempP3)
+                if (i != null) {
+                    val count = (Point.distance(prev.bx, prev.by, curr.ax, curr.ay) * scale).toInt().clamp(4, 64)
+                    for (n in 0..count) {
+                        out.add(Bezier.quadCalc(prev.bx.toDouble(), prev.by.toDouble(), i.x, i.y, curr.ax.toDouble(), curr.ay.toDouble(), n.toDouble() / count, tempP2))
+                    }
+                } else {
+                    out.addEdgePointB(prev)
+                    out.addEdgePointA(curr)
+                }
             }
         }
-        for (n in 0 until fillPoints[0].size) {
-            val x = fillPoints[0].getX(n)
-            val y = fillPoints[0].getY(n)
+    }
+
+    internal fun doCap(l: PointIntArrayList, r: PointIntArrayList, left: Edge, right: Edge, epoint: EdgePoint, cap: LineCap, scale: Double) {
+        val angle = if (epoint == EdgePoint.A) -left.angle else +left.angle
+        val lx = left.getX(epoint.n)
+        val ly = left.getY(epoint.n)
+        val rx = right.getX(epoint.n)
+        val ry = right.getY(epoint.n)
+        when (cap) {
+            LineCap.BUTT -> {
+                l.add(lx, ly)
+                r.add(rx, ry)
+            }
+            LineCap.ROUND, LineCap.SQUARE -> {
+                val ax = (angle.cosine * weight / 2).toInt()
+                val ay = (angle.sine * weight / 2).toInt()
+                val lx2 = lx + ax
+                val ly2 = ly + ay
+                val rx2 = rx + ax
+                val ry2 = ry + ay
+                if (cap == LineCap.SQUARE) {
+                    l.add(lx2, ly2)
+                    r.add(rx2, ry2)
+                } else {
+                    val count = (Point.distance(lx, ly, rx, ry) * scale).toInt().clamp(4, 64)
+                    l.add(lx, ly)
+                    for (n in 0 .. count) {
+                        val m = if (epoint == EdgePoint.A) n else count - n
+                        val ratio = m.toDouble() / count
+                        r.add(Bezier.cubicCalc(
+                            lx.toDouble(), ly.toDouble(),
+                            lx2.toDouble(), ly2.toDouble(),
+                            rx2.toDouble(), ry2.toDouble(),
+                            rx.toDouble(), ry.toDouble(),
+                            ratio,
+                            tempP2
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    internal fun computeStroke(scale: Double, closed: Boolean) {
+        if (strokePoints.isEmpty()) return
+
+        val weightD2 = weight / 2
+        fillPointsLeft.clear()
+        fillPointsRight.clear()
+        val sp = strokePoints
+        val nstrokePoints = sp.size
+
+        for (n in 0 until nstrokePoints) {
+            val isFirst = n == 0
+            val isLast = n == nstrokePoints - 1
+            val isMiddle = !isFirst && (!isLast || closed)
+            val n1 = when {
+                isLast -> if (closed) 1 else n
+                else -> n + 1
+            }
+
+            prevEdge.copyFrom(currEdge)
+            prevEdgeLeft.copyFrom(currEdgeLeft)
+            prevEdgeRight.copyFrom(currEdgeRight)
+
+            val doJoin = doJointList.getAt(n) != 0
+            currEdge.setTo(sp.getX(n), sp.getY(n), sp.getX(n1), sp.getY(n1), +1)
+            currEdgeLeft.setEdgeDisplaced(currEdge, weightD2, currEdge.angle - 90.degrees)
+            currEdgeRight.setEdgeDisplaced(currEdge, weightD2, currEdge.angle + 90.degrees)
+
+            when {
+                isFirst -> {
+                    doCap(fillPointsLeft, fillPointsRight, currEdgeLeft, currEdgeRight, EdgePoint.A, startCap, scale)
+                }
+                isMiddle -> {
+                    val angle = Edge.angleBetween(prevEdge, currEdge)
+                    val leftAngle = angle > 0.degrees
+
+                    if (doJoin) {
+                        doJoin(fillPointsLeft, prevEdge, currEdge, prevEdgeLeft, currEdgeLeft, joins, miterLimit, scale, leftAngle)
+                        doJoin(fillPointsRight, prevEdge, currEdge, prevEdgeRight, currEdgeRight, joins, miterLimit, scale, !leftAngle)
+                    } else {
+                        fillPointsLeft.addEdgePointA(currEdgeLeft)
+                        fillPointsRight.addEdgePointA(currEdgeRight)
+                    }
+                }
+                isLast -> {
+                    doCap(fillPointsLeft, fillPointsRight, prevEdgeLeft, prevEdgeRight, EdgePoint.B, endCap, scale)
+                }
+            }
+        }
+
+        for (n in 0 until fillPointsLeft.size) {
+            val x = fillPointsLeft.getX(n)
+            val y = fillPointsLeft.getY(n)
             if (n == 0) {
-                outFill.moveTo(x, y)
+                outFill.moveTo(x * scale, y * scale)
             } else {
-                outFill.lineTo(x, y)
+                outFill.lineTo(x * scale, y * scale)
             }
         }
         // Draw the rest of the points
-        for (n in 0 until fillPoints[1].size) {
-            val m = fillPoints[1].size - n - 1
-            val x = fillPoints[1].getX(m)
-            val y = fillPoints[1].getY(m)
-            outFill.lineTo(x, y)
+        for (n in 0 until fillPointsRight.size) {
+            val m = fillPointsRight.size - n - 1
+            outFill.lineTo(fillPointsRight.getX(m) * scale, fillPointsRight.getY(m) * scale)
         }
         outFill.close()
         strokePoints.clear()
+        doJointList.clear()
     }
 
-    fun set(outFill: VectorPath, weight: Double, startCap: LineCap, endCap: LineCap, joins: LineJoin, miterLimit: Double) {
+
+    fun set(outFill: VectorPath, weight: Int, startCap: LineCap, endCap: LineCap, joins: LineJoin, miterLimit: Double) {
         this.outFill = outFill
         this.weight = weight
         this.startCap = startCap
         this.endCap = endCap
         this.joins = joins
-        this.miterLimit = miterLimit
+        this.miterLimit = miterLimit * weight
+    }
+
+    fun strokeFill(
+        stroke: VectorPath,
+        lineWidth: Double, joins: LineJoin, startCap: LineCap, endCap: LineCap, miterLimit: Double, outFill: VectorPath
+    ) {
+        val scale = RAST_FIXED_SCALE
+        val iscale = 1.0 / RAST_FIXED_SCALE
+        set(outFill, (lineWidth * scale).toInt(), startCap, endCap, joins, miterLimit)
+        stroke.emitPoints2(
+            flush = { close ->
+                if (close) computeStroke(iscale, true)
+            },
+            joint = {
+                doJointList[doJointList.size - 1] = 1
+            }
+        ) { x, y, move ->
+            if (move) computeStroke(iscale, false)
+            strokePoints.add((x * scale).toInt(), (y * scale).toInt())
+            doJointList.add(0)
+        }
+        computeStroke(iscale, false)
     }
 }
 
@@ -84,16 +232,11 @@ fun VectorPath.strokeToFill(
     startCap: LineCap = LineCap.BUTT,
     endCap: LineCap = startCap,
     miterLimit: Double = 4.0,
-    scale: Int = 1,
     temp: FillStrokeTemp = FillStrokeTemp(),
     outFill: VectorPath = VectorPath(winding = Winding.NON_ZERO)
 ): VectorPath {
-    val stroke = this@strokeToFill
-    temp.set(outFill, lineWidth, startCap, endCap, joins, miterLimit)
-    stroke.emitPoints2 { x, y, move ->
-        if (move) temp.computeStroke()
-        temp.strokePoints.add(x * scale, y * scale)
-    }
-    temp.computeStroke()
+    temp.strokeFill(
+        this@strokeToFill, lineWidth, joins, startCap, endCap, miterLimit, outFill
+    )
     return outFill
 }

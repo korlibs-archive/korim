@@ -54,7 +54,7 @@ class Rasterizer : RastScale() {
         // @TODO: Bounds intersection to reduce the number of
         val xmin = bounds.left.s
         val xmax = bounds.right.s
-        path.boundsBuilder.getBounds(tempRect)
+        path.getBounds(tempRect)
         val startY = max(bounds.top, tempRect.top).s
         val endY = min(bounds.bottom, tempRect.bottom).s
         val func: (x0: Int, x1: Int, y: Int) -> Unit = { a, b, y ->

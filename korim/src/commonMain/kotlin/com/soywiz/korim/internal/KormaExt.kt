@@ -3,7 +3,6 @@ package com.soywiz.korim.internal
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.vector.*
-import kotlin.collections.get
 import kotlin.math.*
 
 @PublishedApi
@@ -42,25 +41,43 @@ internal inline fun approximateCurve(
     //println("curveSteps: $rcurveSteps, emittedCount=$emittedCount")
 }
 
-internal inline fun VectorPath.emitPoints2(crossinline flush: (close: Boolean) -> Unit = {}, crossinline emit: (x: Double, y: Double, move: Boolean) -> Unit) {
+internal inline fun VectorPath.emitPoints2(
+    crossinline flush: (close: Boolean) -> Unit = {},
+    crossinline joint: (close: Boolean) -> Unit = {},
+    crossinline emit: (x: Double, y: Double, move: Boolean) -> Unit
+) {
+    var ix = 0.0
+    var iy = 0.0
     var lx = 0.0
     var ly = 0.0
     flush(false)
     this.visitCmds(
-        moveTo = { x, y -> emit(x, y, true).also { lx = x }.also { ly = y } },
-        lineTo = { x, y -> emit(x, y, false).also { lx = x }.also { ly = y } },
+        moveTo = { x, y ->
+            ix = x
+            iy = y
+            emit(x, y, true).also { lx = x }.also { ly = y }
+        },
+        lineTo = { x, y ->
+            emit(x, y, false).also { lx = x }.also { ly = y }
+            joint(false)
+        },
         quadTo = { x0, y0, x1, y1 ->
             val sum = Point.distance(lx, ly, x0, y0) + Point.distance(x0, y0, x1, y1)
             approximateCurve(sum.toInt(), { ratio, get -> Bezier.quadCalc(lx, ly, x0, y0, x1, y1, ratio) { x, y -> get(x, y) } }) { x, y -> emit(x, y, false) }
             run { lx = x1 }.also { ly = y1 }
+            joint(false)
         },
         cubicTo = { x0, y0, x1, y1, x2, y2 ->
             val sum = Point.distance(lx, ly, x0, y0) + Point.distance(x0, y0, x1, y1) + Point.distance(x1, y1, x2, y2)
             approximateCurve(sum.toInt(), { ratio, get -> Bezier.cubicCalc(lx, ly, x0, y0, x1, y1, x2, y2, ratio) { x, y -> get(x, y) }}) { x, y -> emit(x, y, false) }
             run { lx = x2 }.also { ly = y2 }
-
+            joint(false)
         },
-        close = { flush(true) }
+        close = {
+            emit(ix, iy, false)
+            joint(true)
+            flush(true)
+        }
     )
     flush(false)
 }

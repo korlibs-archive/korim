@@ -1,10 +1,12 @@
 package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.kds.*
+import com.soywiz.kds.iterators.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 
 const val RAST_FIXED_SCALE = 32 // Important NOTE: Power of two so divisions are >> and remaining &
+//const val RAST_FIXED_SCALE = 20 // Important NOTE: Power of two so divisions are >> and remaining &
 const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2) - 1
 //const val RAST_FIXED_SCALE_HALF = (RAST_FIXED_SCALE / 2)
 //const val RAST_FIXED_SCALE_HALF = 0
@@ -24,8 +26,10 @@ open class RastScale {
 
 class PolygonScanline : RastScale() {
     var winding = Winding.NON_ZERO
-    val boundsBuilder = BoundsBuilder()
+    private val boundsBuilder = BoundsBuilder()
     private val points = PointArrayList(1024)
+
+    private val edgesPool = Pool { Edge() }
 
     @PublishedApi
     internal val edges = arrayListOf<Edge>()
@@ -39,11 +43,12 @@ class PolygonScanline : RastScale() {
         startPathIndex = 0
         boundsBuilder.reset()
         points.clear()
+        edges.fastForEach { edgesPool.free(it) }
         edges.clear()
     }
 
     private fun addEdge(ax: Double, ay: Double, bx: Double, by: Double) {
-        edges.add(if (ay < by) Edge(ax.s, ay.s, bx.s, by.s, +1) else Edge(bx.s, by.s, ax.s, ay.s, -1))
+        edges.add(if (ay < by) edgesPool.alloc().setTo(ax.s, ay.s, bx.s, by.s, +1) else edgesPool.alloc().setTo(bx.s, by.s, ax.s, ay.s, -1))
     }
 
     private fun addEdge(a: Int, b: Int) {
