@@ -7,6 +7,9 @@ import kotlin.math.*
 
 @Suppress("DuplicatedCode")
 internal class Edge {
+    fun getX(n: Int) = if (n == 0) this.ax else this.bx
+    fun getY(n: Int) = if (n == 0) this.ay else this.by
+
     companion object {
         operator fun invoke(ax: Int, ay: Int, bx: Int, by: Int, wind: Int = 0) = Edge().setTo(ax, ay, bx, by, wind)
 

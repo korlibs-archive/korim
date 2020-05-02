@@ -34,8 +34,11 @@ class FillStrokeTemp {
         this.setTo((edge.ax + ldx).toInt(), (edge.ay + ldy).toInt(), (edge.bx + ldx).toInt(), (edge.by + ldy).toInt(), edge.wind)
     }
 
+    internal enum class EdgePoint(val n: Int) { A(0), B(1) }
+
     internal fun PointIntArrayList.addEdgePointA(e: Edge) = add(e.ax, e.ay)
     internal fun PointIntArrayList.addEdgePointB(e: Edge) = add(e.bx, e.by)
+    internal fun PointIntArrayList.addEdgePointAB(e: Edge, point: EdgePoint) = if (point == EdgePoint.A) addEdgePointA(e) else addEdgePointB(e)
     internal fun PointIntArrayList.add(e: Point?) = run { if (e != null) add(e.x.toInt(), e.y.toInt()) }
     internal fun PointIntArrayList.add(x: Double, y: Double) = run { add(x.toInt(), y.toInt()) }
 
@@ -78,7 +81,50 @@ class FillStrokeTemp {
         }
     }
 
-    internal fun computeStroke(scale: Double) {
+    internal fun doCap(l: PointIntArrayList, r: PointIntArrayList, left: Edge, right: Edge, epoint: EdgePoint, cap: LineCap, scale: Double) {
+        val angle = if (epoint == EdgePoint.A) -left.angle else +left.angle
+        val lx = left.getX(epoint.n)
+        val ly = left.getY(epoint.n)
+        val rx = right.getX(epoint.n)
+        val ry = right.getY(epoint.n)
+        when (cap) {
+            LineCap.BUTT -> {
+                l.add(lx, ly)
+                r.add(rx, ry)
+            }
+            LineCap.ROUND, LineCap.SQUARE -> {
+                val ax = (angle.cosine * weight / 2).toInt()
+                val ay = (angle.sine * weight / 2).toInt()
+                val lx2 = lx + ax
+                val ly2 = ly + ay
+                val rx2 = rx + ax
+                val ry2 = ry + ay
+                if (cap == LineCap.SQUARE) {
+                    l.add(lx2, ly2)
+                    r.add(rx2, ry2)
+                } else {
+                    val count = (Point.distance(lx, ly, rx, ry) * scale).toInt().clamp(4, 64)
+                    l.add(lx, ly)
+                    for (n in 0 .. count) {
+                        val m = if (epoint == EdgePoint.A) n else count - n
+                        val ratio = m.toDouble() / count
+                        r.add(Bezier.cubicCalc(
+                            lx.toDouble(), ly.toDouble(),
+                            lx2.toDouble(), ly2.toDouble(),
+                            rx2.toDouble(), ry2.toDouble(),
+                            rx.toDouble(), ry.toDouble(),
+                            ratio,
+                            tempP2
+                        ))
+                    }
+                }
+            }
+        }
+    }
+
+    internal fun computeStroke(scale: Double, closed: Boolean) {
+        if (strokePoints.isEmpty()) return
+
         val weightD2 = weight / 2
         fillPointsLeft.clear()
         fillPointsRight.clear()
@@ -88,8 +134,11 @@ class FillStrokeTemp {
         for (n in 0 until nstrokePoints) {
             val isFirst = n == 0
             val isLast = n == nstrokePoints - 1
-            val isMiddle = !isFirst && !isLast
-            val n1 = if (isLast) n else n + 1
+            val isMiddle = !isFirst && (!isLast || closed)
+            val n1 = when {
+                isLast -> if (closed) 1 else n
+                else -> n + 1
+            }
 
             prevEdge.copyFrom(currEdge)
             prevEdgeLeft.copyFrom(currEdgeLeft)
@@ -101,8 +150,7 @@ class FillStrokeTemp {
 
             when {
                 isFirst -> {
-                    fillPointsLeft.addEdgePointA(currEdgeLeft)
-                    fillPointsRight.addEdgePointA(currEdgeRight)
+                    doCap(fillPointsLeft, fillPointsRight, currEdgeLeft, currEdgeRight, EdgePoint.A, startCap, scale)
                 }
                 isMiddle -> {
                     val angle = Edge.angleBetween(prevEdge, currEdge)
@@ -112,8 +160,7 @@ class FillStrokeTemp {
                     doJoin(fillPointsRight, prevEdge, currEdge, prevEdgeRight, currEdgeRight, joins, miterLimit, scale, !leftAngle)
                 }
                 isLast -> {
-                    fillPointsLeft.addEdgePointB(prevEdgeLeft)
-                    fillPointsRight.addEdgePointB(prevEdgeRight)
+                    doCap(fillPointsLeft, fillPointsRight, prevEdgeLeft, prevEdgeRight, EdgePoint.B, endCap, scale)
                 }
             }
         }
@@ -136,6 +183,7 @@ class FillStrokeTemp {
         strokePoints.clear()
     }
 
+
     fun set(outFill: VectorPath, weight: Int, startCap: LineCap, endCap: LineCap, joins: LineJoin, miterLimit: Double) {
         this.outFill = outFill
         this.weight = weight
@@ -152,11 +200,19 @@ class FillStrokeTemp {
         val scale = RAST_FIXED_SCALE
         val iscale = 1.0 / RAST_FIXED_SCALE
         set(outFill, (lineWidth * scale).toInt(), startCap, endCap, joins, miterLimit)
-        stroke.emitPoints2 { x, y, move ->
-            if (move) computeStroke(iscale)
+        stroke.emitPoints2({ close ->
+            if (close) {
+                computeStroke(iscale, true)
+                strokePoints.clear()
+            }
+        }) { x, y, move ->
+            if (move) {
+                computeStroke(iscale, false)
+                strokePoints.clear()
+            }
             strokePoints.add((x * scale).toInt(), (y * scale).toInt())
         }
-        computeStroke(iscale)
+        computeStroke(iscale, false)
     }
 }
 
