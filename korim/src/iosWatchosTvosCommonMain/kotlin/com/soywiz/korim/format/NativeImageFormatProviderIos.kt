@@ -70,7 +70,7 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseN
             CGContextRelease(ctx)
 
             Bitmap32(width, height, RgbaArray(out), premultiplied = premultiplied)
-            //}.wrapNative(premultiplied)
-        }).await().wrapNative(premultiplied)
+            //}.wrapNativeExt(premultiplied)
+        }).await().wrapNativeExt(premultiplied)
     }
 }

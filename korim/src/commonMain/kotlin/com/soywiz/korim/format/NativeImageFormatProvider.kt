@@ -50,7 +50,7 @@ open class BaseNativeImageFormatProvider : NativeImageFormatProvider() {
         //return BitmapNativeImage(bmp32)
         return createBitmapNativeImage(if (premultiplied) bmp32.premultipliedIfRequired() else bmp32.depremultipliedIfRequired())
     }
-    //protected fun Bitmap.wrapNative(premultiplied: Boolean = true) = wrapNative(this, premultiplied)
+    protected fun Bitmap.wrapNativeExt(premultiplied: Boolean = true) = wrapNative(this, premultiplied)
 
     override fun create(width: Int, height: Int): NativeImage = createBitmapNativeImage(Bitmap32(width, height, premultiplied = true))
     override fun copy(bmp: Bitmap): NativeImage = createBitmapNativeImage(bmp)
