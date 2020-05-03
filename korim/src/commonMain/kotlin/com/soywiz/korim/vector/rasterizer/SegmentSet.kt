@@ -16,8 +16,15 @@ class SegmentSet {
 
     fun add(min: Int, max: Int) {
         check(min <= max)
-        this.min.add(min)
-        this.max.add(max)
+        when {
+            // Extend from the right
+            size > 0 && this.max.getAt(size - 1) == min -> this.max[size - 1] = max
+            // @TODO: Extend from the left, and detect intersections and merge
+            else -> {
+                this.min.add(min)
+                this.max.add(max)
+            }
+        }
     }
 
     inline fun fastForEach(block: (min: Int, max: Int) -> Unit) {

@@ -153,10 +153,11 @@ class FillStrokeTemp {
 
             when {
                 isFirst -> {
-                    doCap(fillPointsLeft, fillPointsRight, currEdgeLeft, currEdgeRight, EdgePoint.A, startCap, scale)
+                    doCap(fillPointsLeft, fillPointsRight, currEdgeLeft, currEdgeRight, EdgePoint.A, if (closed) LineCap.BUTT else startCap, scale)
                 }
                 isMiddle -> {
                     val angle = Edge.angleBetween(prevEdge, currEdge)
+                    //val leftAngle = !(angle > 0.degrees && angle < 180.degrees)
                     val leftAngle = angle > 0.degrees
 
                     if (doJoin) {
@@ -168,7 +169,11 @@ class FillStrokeTemp {
                     }
                 }
                 isLast -> {
-                    doCap(fillPointsLeft, fillPointsRight, prevEdgeLeft, prevEdgeRight, EdgePoint.B, endCap, scale)
+                    if (closed) {
+                        doCap(fillPointsLeft, fillPointsRight, currEdgeLeft, currEdgeRight, EdgePoint.B, LineCap.BUTT, scale)
+                    } else {
+                        doCap(fillPointsLeft, fillPointsRight, prevEdgeLeft, prevEdgeRight, EdgePoint.B, endCap, scale)
+                    }
                 }
             }
         }
@@ -188,6 +193,8 @@ class FillStrokeTemp {
             outFill.lineTo(fillPointsRight.getX(m) * scale, fillPointsRight.getY(m) * scale)
         }
         outFill.close()
+        outFill.winding = Winding.NON_ZERO
+        //outFill.winding = Winding.EVEN_ODD
         strokePoints.clear()
         doJointList.clear()
     }
