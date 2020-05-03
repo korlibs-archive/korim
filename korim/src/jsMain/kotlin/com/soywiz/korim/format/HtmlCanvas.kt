@@ -1,6 +1,5 @@
 package com.soywiz.korim.format
 
-import com.soywiz.korim.format.internal.*
 import com.soywiz.korio.util.*
 import org.khronos.webgl.*
 import org.w3c.dom.*
