@@ -4,5 +4,4 @@ apply<KorlibsPlugin>()
 
 korlibs {
     dependencyProject(":korim")
-//    dependencyNodeModule("canvas", npmCanvasVersion)
 }

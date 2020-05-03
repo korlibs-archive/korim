@@ -14,7 +14,7 @@ import kotlin.native.concurrent.*
 
 private val ImageIOWorker by lazy { Worker.start() }
 
-actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
+actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeImageFormatProvider() {
     override fun createBitmapNativeImage(bmp: Bitmap) = CoreGraphicsNativeImage(bmp.toBMP32().premultipliedIfRequired())
 
     override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {

@@ -3,9 +3,7 @@ package com.soywiz.korim.format
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
-import com.soywiz.korim.format.internal.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.font.TextMetrics
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.renderer.Renderer
 import com.soywiz.korio.file.*
@@ -24,7 +22,7 @@ import kotlin.coroutines.*
 import kotlin.js.*
 import kotlin.math.*
 
-actual val nativeImageFormatProvider: NativeImageFormatProvider = HtmlNativeImageFormatProvider
+actual val nativeImageFormatProvider: NativeImageFormatProvider = if (OS.isJsNodeJs) BaseNativeImageFormatProvider() else HtmlNativeImageFormatProvider
 
 open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: Int) :
 	NativeImage(width, height, texSource, true) {
@@ -52,9 +50,7 @@ open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: In
 }
 
 object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
-	override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {
-		return HtmlNativeImage(BrowserImage.decodeToCanvas(data, premultiplied))
-	}
+	override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = HtmlNativeImage(BrowserImage.decodeToCanvas(data, premultiplied))
 
 	override suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage {
 		//println("HtmlNativeImageFormatProvider.decode($vfs, '$path')")
@@ -112,17 +108,13 @@ object BrowserImage {
     private fun toNodeJsBuffer(@Suppress("UNUSED_PARAMETER") ba: ByteArray): dynamic = js("(Buffer.from(ba.buffer))")
 
 	suspend fun decodeToCanvas(bytes: ByteArray, premultiplied: Boolean = true): HTMLCanvasElementLike {
-        if (OS.isJsNodeJs) {
-            val canvas = nodeJsCanvas ?: error("Canvas not available")
-            return (canvas.loadImage(toNodeJsBuffer(bytes)) as Promise<HTMLCanvasElementLike>).await()
-        } else {
-            val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
-            val blobURL = URL.createObjectURL(blob)
-            try {
-                return loadCanvas(blobURL)
-            } finally {
-                URL.revokeObjectURL(blobURL)
-            }
+        if (OS.isJsNodeJs) error("Canvas not available on NodeJS")
+        val blob = Blob(arrayOf(bytes), BlobPropertyBag(type = "image/png"))
+        val blobURL = URL.createObjectURL(blob)
+        try {
+            return loadCanvas(blobURL)
+        } finally {
+            URL.revokeObjectURL(blobURL)
         }
 	}
 
@@ -139,25 +131,17 @@ object BrowserImage {
 		// Doesn't work with Kotlin.JS
 		//val img = document.createElement("img") as HTMLImageElement
 		//println("[1]")
-		if (OS.isJsNodeJs) {
-            val canvas = nodeJsCanvas ?: error("Canvas not available")
-            (canvas.loadImage(jsUrl) as Promise<HTMLImageElementLike>).then({ v ->
-				c.resume(v)
-			}, { v ->
-				c.resumeWithException(v)
-			})
-			Unit
-		} else {
-			val img = document.createElement("img").unsafeCast<HTMLImageElement>()
-			img.onload = {
-				c.resume(img.unsafeCast<HTMLImageElementLike>())
-			}
-			img.onerror = { _, _, _, _, _ ->
-				c.resumeWithException(RuntimeException("error loading image $jsUrl"))
-			}
-			img.src = jsUrl
-			Unit
-		}
+        if (OS.isJsNodeJs) error("Canvas not available on NodeJS")
+
+        val img = document.createElement("img").unsafeCast<HTMLImageElement>()
+        img.onload = {
+            c.resume(img.unsafeCast<HTMLImageElementLike>())
+        }
+        img.onerror = { _, _, _, _, _ ->
+            c.resumeWithException(RuntimeException("error loading image $jsUrl"))
+        }
+        img.src = jsUrl
+        Unit
 	}
 
 	suspend fun loadCanvas(jsUrl: String): HTMLCanvasElementLike {

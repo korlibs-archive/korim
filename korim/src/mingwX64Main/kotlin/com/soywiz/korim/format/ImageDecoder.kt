@@ -12,7 +12,7 @@ import kotlin.native.concurrent.*
 
 private val ImageIOWorker by lazy { Worker.start() }
 
-actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeNativeImageFormatProvider() {
+actual val nativeImageFormatProvider: NativeImageFormatProvider = object : BaseNativeImageFormatProvider() {
     override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage {
         data class Info(val data: ByteArray, val premultiplied: Boolean)
         return wrapNative(
