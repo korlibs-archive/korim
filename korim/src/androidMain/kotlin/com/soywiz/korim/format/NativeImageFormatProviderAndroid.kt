@@ -208,7 +208,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap, val antialiasin
     }
 
     fun DoubleArrayList.toFloatArray() = map(Double::toFloat).toFloatArray()
-    fun IntArrayList.toColorScaledAlpha(alpha: Double) = c.colors.mapInt { RGBA(it).withScaledAlpha(alpha).value }.toIntArray()
+    fun IntArrayList.toColorScaledAlpha(alpha: Double) = mapInt { RGBA(it).withScaledAlpha(alpha).value }.toIntArray()
     fun RGBA.withScaledAlpha(scale: Double): RGBA = this.withA((this.a * scale.clamp01()).toInt())
 
     inline fun <T> keep(callback: () -> T): T {
