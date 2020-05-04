@@ -158,7 +158,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 	fun Paint.toJsStr(): Any? {
 		return when (this) {
 			is NonePaint -> "none"
-			is ColorPaint -> this.color.htmlStringSimple
+			is ColorPaint -> this.color.htmlColor
 			is GradientPaint -> {
 				when (kind) {
 					GradientKind.LINEAR -> {
@@ -189,7 +189,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		}
 	}
 
-	inline private fun <T> keep(callback: () -> T): T {
+	private inline fun <T> keep(callback: () -> T): T {
 		ctx.save()
 		try {
 			return callback()
