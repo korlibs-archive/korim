@@ -179,10 +179,18 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 						}
 						grad
 					}
+                    GradientKind.SWEEP -> {
+                        "fuchsia"
+                    }
 				}
 			}
 			is BitmapPaint -> {
-				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), if (this.repeat) "repeat" else "no-repeat")
+				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), when {
+                    repeatX && repeatY -> "repeat"
+                    repeatX -> "repeat-x"
+                    repeatY -> "repeat-y"
+                    else -> "no-repeat"
+                })
 				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
 			else -> "black"

@@ -200,8 +200,8 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap, val antialiasin
             is BitmapPaint -> {
                 val androidBitmap = c.bitmap.toAndroidBitmap()
                 val colorAlpha = Colors.WHITE.withAd(alpha)
-                val shaderA = LinearGradient(0f, 0f, androidBitmap.width.toFloat(), 0f, colorAlpha.value, colorAlpha.value, Shader.TileMode.CLAMP);
-                val shaderB = BitmapShader(androidBitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP);
+                val shaderA = LinearGradient(0f, 0f, androidBitmap.width.toFloat(), 0f, colorAlpha.value, colorAlpha.value, Shader.TileMode.CLAMP)
+                val shaderB = BitmapShader(androidBitmap, c.cycleX.toTileMode(), c.cycleY.toTileMode())
                 out.shader =  ComposeShader(shaderA, shaderB, PorterDuff.Mode.SRC_IN)
             }
         }

@@ -381,7 +381,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
+    fun createPattern(
+        bitmap: Bitmap,
+        cycleX: CycleMethod = CycleMethod.NO_CYCLE,
+        cycleY: CycleMethod = cycleX,
+        smooth: Boolean = true,
+        transform: Matrix = Matrix()
+    ) = BitmapPaint(bitmap, transform, cycleX, cycleY, smooth)
+
+    fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
         font.getTextBounds(fontSize, text, out = out)
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
