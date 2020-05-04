@@ -4,11 +4,12 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korio.async.*
+import com.soywiz.korio.util.*
 import kotlin.test.*
 
 class GradientTest {
     @Test
-    fun test() = suspendTest {
+    fun test() = suspendTest({ !OS.isAndroid }) {
         val tex = Bitmap32(24, 24) { x, y -> if ((x / 3 + y / 3) % 2 == 0) Colors.RED else Colors.BLUE }
         //NativeImageOrBitmap32(512, 512, true).context2d {
         NativeImageOrBitmap32(512, 512, false).context2d {
