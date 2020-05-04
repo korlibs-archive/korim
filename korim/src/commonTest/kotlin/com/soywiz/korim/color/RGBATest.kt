@@ -19,16 +19,16 @@ class RGBATest {
 		assertEquals("#007fffff", Colors["#007fffff"].asPremultiplied().depremultiplied.hexString)
 
 		assertEquals("#2666ff7f", Colors["#13337f7f"].asPremultiplied().depremultipliedAccurate.hexString)
-		assertEquals("#2666fe7f", Colors["#13337f7f"].asPremultiplied().depremultiplied.hexString)
+		assertEquals("#2666fe7f", Colors["#13337f7f"].asPremultiplied().depremultipliedFast.hexString)
 
 		assertEquals("#00ffff7f", Colors["#007fff7f"].asPremultiplied().depremultipliedAccurate.hexString)
-		assertEquals("#00fefe7f", Colors["#007fff7f"].asPremultiplied().depremultiplied.hexString)
+		assertEquals("#00fefe7f", Colors["#007fff7f"].asPremultiplied().depremultipliedFast.hexString)
 
 		assertEquals("#00ffff3f", Colors["#007fff3f"].asPremultiplied().depremultipliedAccurate.hexString)
-		assertEquals("#00fcfc3f", Colors["#007fff3f"].asPremultiplied().depremultiplied.hexString)
+		assertEquals("#00fcfc3f", Colors["#007fff3f"].asPremultiplied().depremultipliedFast.hexString)
 
 		assertEquals("#00000000", Colors["#007fff00"].asPremultiplied().depremultipliedAccurate.hexString)
-		assertEquals("#00000000", Colors["#007fff00"].asPremultiplied().depremultiplied.hexString)
+		assertEquals("#00000000", Colors["#007fff00"].asPremultiplied().depremultipliedFast.hexString)
 	}
 
 	@Test
