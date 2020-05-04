@@ -9,6 +9,7 @@ import kotlin.js.*
 import kotlin.jvm.*
 import kotlin.math.*
 
+// @TODO: Create separate classes for premultiplied and non-premultiplied variants
 @OptIn(KorimInternal::class)
 class Bitmap32(
     width: Int,

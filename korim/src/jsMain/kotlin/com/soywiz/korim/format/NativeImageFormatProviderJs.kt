@@ -158,7 +158,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 	fun Paint.toJsStr(): Any? {
 		return when (this) {
 			is NonePaint -> "none"
-			is ColorPaint -> this.color.htmlStringSimple
+			is ColorPaint -> this.color.htmlColor
 			is GradientPaint -> {
 				when (kind) {
 					GradientKind.LINEAR -> {
@@ -179,17 +179,25 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 						}
 						grad
 					}
+                    GradientKind.SWEEP -> {
+                        "fuchsia"
+                    }
 				}
 			}
 			is BitmapPaint -> {
-				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), if (this.repeat) "repeat" else "no-repeat")
+				ctx.createPattern(this.bitmap.toHtmlNative().texSource.unsafeCast<CanvasImageSource>(), when {
+                    repeatX && repeatY -> "repeat"
+                    repeatX -> "repeat-x"
+                    repeatY -> "repeat-y"
+                    else -> "no-repeat"
+                })
 				//ctx.call("createPattern", this.bitmap.toHtmlNative().canvas)
 			}
 			else -> "black"
 		}
 	}
 
-	inline private fun <T> keep(callback: () -> T): T {
+	private inline fun <T> keep(callback: () -> T): T {
 		ctx.save()
 		try {
 			return callback()

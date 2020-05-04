@@ -116,7 +116,7 @@ fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 	return out
 }
 
-val BufferedImage.premultiplied: Boolean get() = (this.type == BufferedImage.TYPE_INT_ARGB_PRE)
+val BufferedImage.premultiplied: Boolean get() = this.isAlphaPremultiplied
 
 fun BufferedImage.toBMP32(): Bitmap32 {
 	//println("Convert BufferedImage into BMP32!")

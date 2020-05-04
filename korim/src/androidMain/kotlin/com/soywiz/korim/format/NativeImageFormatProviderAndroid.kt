@@ -2,19 +2,19 @@ package com.soywiz.korim.format
 
 import android.app.*
 import android.graphics.*
+import android.graphics.Paint
 import android.text.*
 import android.view.*
 import android.widget.*
+import com.soywiz.kds.*
+import com.soywiz.kmem.*
 import com.soywiz.korio.android.androidContext
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.paint.ColorPaint
-import com.soywiz.korim.vector.paint.GradientKind
-import com.soywiz.korim.vector.paint.GradientPaint
-import com.soywiz.korim.vector.paint.NonePaint
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 
@@ -112,10 +112,10 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) :
         return Bitmap32(width, height, out, premultiplied = premultiplied)
     }
 
-    override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap))
+    override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap, antialiasing))
 }
 
-class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.korim.vector.renderer.Renderer() {
+class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap, val antialiasing: Boolean) : com.soywiz.korim.vector.renderer.Renderer() {
     override val width: Int get() = bmp.width
     override val height: Int get() = bmp.height
     //val paint = TextPaint(TextPaint.ANTI_ALIAS_FLAG).apply {
@@ -160,33 +160,56 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.ko
         return out
     }
 
-    fun convertPaint(c: com.soywiz.korim.vector.paint.Paint, m: com.soywiz.korma.geom.Matrix, out: Paint) {
+    fun CycleMethod.toTileMode() = when (this) {
+        CycleMethod.NO_CYCLE -> Shader.TileMode.CLAMP
+        CycleMethod.REFLECT -> Shader.TileMode.MIRROR
+        CycleMethod.REPEAT -> Shader.TileMode.REPEAT
+    }
+
+    fun convertPaint(c: com.soywiz.korim.vector.paint.Paint, m: com.soywiz.korma.geom.Matrix, out: Paint, alpha: Double) {
         when (c) {
             is NonePaint -> {
                 out.shader = null
             }
             is ColorPaint -> {
-                out.color = BGRA.packRGBA(c.color)
+                val cc = c.color.withScaledAlpha(alpha)
+                out.setARGB(cc.a, cc.r, cc.g, cc.b)
                 out.shader = null
             }
             is GradientPaint -> {
-                when (c.kind) {
+                out.shader = when (c.kind) {
                     GradientKind.LINEAR ->
-                        out.shader = LinearGradient(
+                        LinearGradient(
                             c.x0(m).toFloat(), c.y0(m).toFloat(),
                             c.x1(m).toFloat(), c.y1(m).toFloat(),
-                            c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
+                            c.colors.toColorScaledAlpha(alpha), c.stops.toFloatArray(), c.cycle.toTileMode()
                         )
                     GradientKind.RADIAL ->
-                        out.shader = RadialGradient(
+                        RadialGradient(
                             c.x1(m).toFloat(), c.y1(m).toFloat(), c.r1(m).toFloat(),
-                            c.colors.toIntArray(), c.stops.map(Double::toFloat).toFloatArray(), Shader.TileMode.CLAMP
+                            c.colors.toColorScaledAlpha(alpha), c.stops.toFloatArray(), c.cycle.toTileMode()
                         )
+                    GradientKind.SWEEP ->
+                        SweepGradient(
+                            c.x0(m).toFloat(), c.y0(m).toFloat(),
+                            c.colors.toColorScaledAlpha(alpha), c.stops.toFloatArray()
+                        )
+                    else -> null
                 }
-
+            }
+            is BitmapPaint -> {
+                val androidBitmap = c.bitmap.toAndroidBitmap()
+                val colorAlpha = Colors.WHITE.withAd(alpha)
+                val shaderA = LinearGradient(0f, 0f, androidBitmap.width.toFloat(), 0f, colorAlpha.value, colorAlpha.value, Shader.TileMode.CLAMP)
+                val shaderB = BitmapShader(androidBitmap, c.cycleX.toTileMode(), c.cycleY.toTileMode())
+                out.shader =  ComposeShader(shaderA, shaderB, PorterDuff.Mode.SRC_IN)
             }
         }
     }
+
+    fun DoubleArrayList.toFloatArray() = map(Double::toFloat).toFloatArray()
+    fun IntArrayList.toColorScaledAlpha(alpha: Double) = mapInt { RGBA(it).withScaledAlpha(alpha).value }.toIntArray()
+    fun RGBA.withScaledAlpha(scale: Double): RGBA = this.withA((this.a * scale.clamp01()).toInt())
 
     inline fun <T> keep(callback: () -> T): T {
         canvas.save()
@@ -226,13 +249,9 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap) : com.soywiz.ko
                 canvas.clipPath(state.clip!!.toAndroid(androidClipPath))
             }
 
-            if (fill) {
-                paint.style = android.graphics.Paint.Style.FILL
-                convertPaint(state.fillStyle, state.transform, paint)
-            } else {
-                paint.style = android.graphics.Paint.Style.STROKE
-                convertPaint(state.strokeStyle, state.transform, paint)
-            }
+            paint.style = if (fill) Paint.Style.FILL else android.graphics.Paint.Style.STROKE
+            convertPaint(state.fillOrStrokeStyle(fill), state.transform, paint, state.globalAlpha.clamp01())
+            paint.isAntiAlias = antialiasing
 
             //println("-----------------")
             //println(canvas.matrix)

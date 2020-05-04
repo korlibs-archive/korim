@@ -160,6 +160,7 @@ inline class RGBAPremultiplied(val value: Int) {
     val bd: Double get() = b.toDouble() / 255.0
     val ad: Double get() = a.toDouble() / 255.0
 
+    // @TODO: Use SIMD
     val depremultiplied: RGBA get() {
         //val A = (value ushr 24) + 1
         //val R = (((value and 0x0000FF) shl 8) / A) and 0x0000F0
@@ -167,6 +168,28 @@ inline class RGBAPremultiplied(val value: Int) {
         //val B = (((value and 0xFF0000) shl 8) / A) and 0xFF0000
         //return RGBA((value and 0x00FFFFFF.inv()) or B or G or R)
 
+        //val A = a
+        //val A1 = A + 1
+        //val R = ((r shl 8) / A1) and 0xFF
+        //val G = ((g shl 8) / A1) and 0xFF
+        //val B = ((b shl 8) / A1) and 0xFF
+        //return RGBA(R, G, B, A)
+
+        //val A = a
+        //val R = ((r * 255) / a) and 0xFF
+        //val G = ((g * 255) / a) and 0xFF
+        //val B = ((b * 255) / a) and 0xFF
+        //return RGBA(R, G, B, A)
+
+        val A = a
+        val Af = (255f / A.toFloat())
+        val R = (r * Af).toInt()
+        val G = (g * Af).toInt()
+        val B = (b * Af).toInt()
+        return RGBA(R, G, B, A)
+    }
+
+    val depremultipliedFast: RGBA get() {
         val A = a
         val A1 = A + 1
         val R = ((r shl 8) / A1) and 0xFF

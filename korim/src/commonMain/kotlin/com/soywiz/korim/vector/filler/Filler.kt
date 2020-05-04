@@ -7,7 +7,7 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.color.RGBAPremultiplied
 import com.soywiz.korim.color.RgbaPremultipliedArray
-import com.soywiz.korim.vector.Context2d
+import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.paint.BitmapPaint
 import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korim.vector.paint.GradientPaint
@@ -35,6 +35,8 @@ class ColorFiller : BaseFiller() {
 }
 
 class BitmapFiller : BaseFiller() {
+    private var cycleX: CycleMethod = CycleMethod.NO_CYCLE
+    private var cycleY: CycleMethod = CycleMethod.NO_CYCLE
     private var texture: Bitmap32 = Bitmaps.transparent.bmp
     private var transform: Matrix = Matrix()
     private var linear: Boolean = true
@@ -43,6 +45,8 @@ class BitmapFiller : BaseFiller() {
     private val compTrans = Matrix()
 
     fun set(fill: BitmapPaint, state: Context2d.State) = this.apply {
+        this.cycleX = fill.cycleX
+        this.cycleY = fill.cycleY
         this.texture = fill.bmp32
         this.transform = fill.transform
         this.linear = fill.smooth
@@ -75,8 +79,8 @@ class BitmapFiller : BaseFiller() {
         }
         */
         for (n in x0..x1) {
-            val tx = compTrans.transformX(n, y)
-            val ty = compTrans.transformY(n, y)
+            val tx = cycleX.apply(compTrans.transformX(n, y), texture.width.toDouble())
+            val ty = cycleY.apply(compTrans.transformY(n, y), texture.height.toDouble())
             val color = if (linear) lookupLinear(tx, ty) else lookupNearest(tx, ty)
             data[offset + n] = color.premultiplied
         }

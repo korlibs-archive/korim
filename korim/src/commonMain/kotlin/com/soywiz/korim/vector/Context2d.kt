@@ -96,6 +96,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
                 endLineCap = value
             }
 
+        fun fillOrStrokeStyle(fill: Boolean) = if (fill) fillStyle else strokeStyle
+
         fun clone(): State = this.copy(
 			transform = transform.clone(),
 			clip = clip?.clone(),
@@ -364,10 +366,12 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, block: GradientPaint.() -> Unit = {}) =
-        LinearGradientPaint(x0, y0, x1, y1, block)
-    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, block: GradientPaint.() -> Unit = {}) =
-        RadialGradientPaint(x0, y0, r0, x1, y1, r1, block)
+    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, block: GradientPaint.() -> Unit = {}) =
+        LinearGradientPaint(x0, y0, x1, y1, cycle, block)
+    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, block: GradientPaint.() -> Unit = {}) =
+        RadialGradientPaint(x0, y0, r0, x1, y1, r1, cycle, block)
+    inline fun createSweepGradient(x0: Number, y0: Number, block: GradientPaint.() -> Unit = {}) =
+        SweepGradientPaint(x0, y0, block)
 
     fun createColor(color: RGBA) = ColorPaint(color)
 	fun createPattern(
@@ -377,7 +381,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		transform: Matrix = Matrix()
 	) = BitmapPaint(bitmap, transform, repeat, smooth)
 
-	fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
+    fun createPattern(
+        bitmap: Bitmap,
+        cycleX: CycleMethod = CycleMethod.NO_CYCLE,
+        cycleY: CycleMethod = cycleX,
+        smooth: Boolean = true,
+        transform: Matrix = Matrix()
+    ) = BitmapPaint(bitmap, transform, cycleX, cycleY, smooth)
+
+    fun getTextBounds(text: String, out: TextMetrics = TextMetrics()): TextMetrics =
         font.getTextBounds(fontSize, text, out = out)
 
     @Suppress("NOTHING_TO_INLINE") // Number inlining
