@@ -182,7 +182,7 @@ inline class RGBAPremultiplied(val value: Int) {
         //return RGBA(R, G, B, A)
 
         val A = a
-        val Af = A.toFloat() / 255
+        val Af = (255f / A.toFloat())
         val R = (r * Af).toInt()
         val G = (g * Af).toInt()
         val B = (b * Af).toInt()

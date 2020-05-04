@@ -274,6 +274,9 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 								defaultColor
 							}
 						}
+                        else -> {
+                            defaultColor
+                        }
 					}
 
 				}
