@@ -5,7 +5,7 @@ import com.soywiz.korim.color.Colors
 import com.soywiz.korim.format.showImageAndWait
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.paint.LinearGradientPaint
-import com.soywiz.korio.async.suspendTest
+import com.soywiz.korio.async.*
 import com.soywiz.korio.file.std.resourcesVfs
 import com.soywiz.korma.geom.degrees
 import com.soywiz.korma.geom.vector.*
@@ -133,7 +133,7 @@ class FontTest {
     }
 
     @Test
-    fun testReadFont() = suspendTest {
+    fun testReadFont() = suspendTestNoBrowser {
         val font1 = resourcesVfs["myfont.ttf"].readTtfFont(preload = true)
         val font2 = resourcesVfs["myfont-bug.ttf"].readTtfFont(preload = true)
         val font3 = resourcesVfs["myfont-bug2.ttf"].readTtfFont(preload = true)

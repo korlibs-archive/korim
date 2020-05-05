@@ -7,7 +7,7 @@ import kotlin.test.*
 
 class GIFTest {
     @Test
-    fun test() = suspendTest {
+    fun test() = suspendTestNoBrowser {
         val data = resourcesVfs["small-animated-gif-images-2.gif"].readImageData(GIF)
         assertEquals(500, data.width)
         assertEquals(500, data.height)
