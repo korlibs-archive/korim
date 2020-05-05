@@ -41,7 +41,9 @@ suspend fun ImageData.showImagesAndWait(kind: Int = 0) = run { for (frame in fra
 suspend fun SizedDrawable.showImageAndWait(kind: Int = 0) = this.render().toBMP32().showImageAndWait(kind)
 
 open class BaseNativeImageFormatProvider : NativeImageFormatProvider() {
-    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = wrapNative(RegisteredImageFormats.decode(data), premultiplied)
+    open val formats: ImageFormat get() = RegisteredImageFormats
+
+    override suspend fun decode(data: ByteArray, premultiplied: Boolean): NativeImage = wrapNative(formats.decode(data), premultiplied)
     override suspend fun decode(vfs: Vfs, path: String, premultiplied: Boolean): NativeImage = decode(vfs[path].readBytes(), premultiplied)
     protected open fun createBitmapNativeImage(bmp: Bitmap) = BitmapNativeImage(bmp)
     protected open fun wrapNative(bmp: Bitmap, premultiplied: Boolean): BitmapNativeImage {

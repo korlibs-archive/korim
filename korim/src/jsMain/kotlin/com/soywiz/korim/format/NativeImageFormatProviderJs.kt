@@ -22,7 +22,11 @@ import kotlin.coroutines.*
 import kotlin.js.*
 import kotlin.math.*
 
-actual val nativeImageFormatProvider: NativeImageFormatProvider = if (OS.isJsNodeJs) BaseNativeImageFormatProvider() else HtmlNativeImageFormatProvider
+actual val nativeImageFormatProvider: NativeImageFormatProvider = if (OS.isJsNodeJs) NodeJsNativeImageFormatProvider else HtmlNativeImageFormatProvider
+
+object NodeJsNativeImageFormatProvider : BaseNativeImageFormatProvider() {
+    override val formats: ImageFormat by lazy { RegisteredImageFormats.also { it.register(PNG) } }
+}
 
 open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: Int) :
 	NativeImage(width, height, texSource, true) {
