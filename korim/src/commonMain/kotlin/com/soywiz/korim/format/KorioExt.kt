@@ -17,23 +17,31 @@ val nativeImageFormatProviders: List<NativeImageFormatProvider> get() = listOf(n
 suspend fun displayImage(bmp: Bitmap, kind: Int = 0) = nativeImageFormatProvider.display(bmp, kind)
 
 suspend fun decodeImageBytes(bytes: ByteArray): NativeImage {
+    val exceptions = arrayListOf<Throwable>()
 	for (nip in nativeImageFormatProviders) {
 		try {
 			return nip.decode(bytes)
 		} catch (t: Throwable) {
+            exceptions += t
 		}
 	}
-	throw UnsupportedOperationException("No format supported")
+    for (v in nativeImageFormatProviders) println(v)
+    for (v in exceptions) v.printStackTrace()
+	throw UnsupportedOperationException("No format supported trying to decode ByteArray")
 }
 
 suspend fun decodeImageFile(file: VfsFile): NativeImage {
+    val exceptions = arrayListOf<Throwable>()
 	for (nip in nativeImageFormatProviders) {
 		try {
 			return nip.decode(file.vfs, file.path)
 		} catch (t: Throwable) {
+            exceptions += t
 		}
 	}
-	throw UnsupportedOperationException("No format supported")
+    for (v in nativeImageFormatProviders) println(v)
+    for (e in exceptions) e.printStackTrace()
+	throw UnsupportedOperationException("No format supported trying to decode $file")
 }
 
 suspend fun VfsFile.readNativeImage(): NativeImage = decodeImageFile(this)
