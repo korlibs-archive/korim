@@ -5,9 +5,8 @@ import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.paint.BitmapPaint
-import com.soywiz.korim.vector.paint.GradientKind
-import com.soywiz.korim.vector.paint.GradientPaint
+import com.soywiz.korim.vector.filler.*
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
@@ -90,4 +89,32 @@ class Bitmap32Context2dTest {
             assertEquals("#00000000", bmp[101, 101].hexString)
         }
     }
+
+    @Test
+    fun testBug1() = suspendTest {
+        val color = Colors.RED
+        //val bmp = NativeImage(20, 200).context2d {
+        val bmp = Bitmap32(20, 200).context2d {
+            fillStyle = ColorPaint(color)
+            beginPath()
+            rect(0, 20, 20, 180)
+            triangleLeftUp(20.0, 0.0, 180.0)
+            triangleLeftDown(20.0, 0.0, 20.0)
+            fill()
+        }
+        //bmp.showImageAndWait()
+        assertEquals(color, bmp.toBMP32()[10, 100])
+    }
+}
+
+
+
+fun VectorBuilder.triangleLeftUp(size: Double, x: Double, y: Double) = this.triangle(x, y, x, y + size, x + size, y)
+fun VectorBuilder.triangleLeftDown(size: Double, x: Double, y: Double) = this.triangle(x, y, x, y - size, x + size, y)
+
+fun VectorBuilder.triangle(x1: Double, y1: Double, x2: Double, y2: Double, x3: Double, y3: Double) {
+    this.moveTo(x1, y1)
+    this.lineTo(x2, y2)
+    this.lineTo(x3, y3)
+    this.lineTo(x1, y1)
 }
