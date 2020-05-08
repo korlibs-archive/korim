@@ -67,7 +67,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         }
 
         fun flush() {
-            if (rasterizer.path.size > 0) {
+            if (rasterizer.path.isNotEmpty()) {
                 rasterizer.strokeWidth = state.lineWidth
                 rasterizer.quality = if (antialiasing) 4 else 1
                 scanlineWriter.filler = filler
@@ -85,20 +85,27 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             state.clip!!.emitPoints2(flush = {
                 if (it) rasterizer.clip.close()
             }, emit = { x, y, move ->
-                rasterizer.clip.add(x, y)
+                rasterizer.clip.add(x, y, move)
             })
         }
 
         rasterizer.path.winding = state.path!!.winding
+        //rasterizer.path.winding = Winding.NON_ZERO
+        //println("------------- $bmp : ${state.path!!.winding}")
         fillPath.emitPoints2(flush = {
-            if (it) rasterizer.path.close()
+            if (it) {
+                //println("CLOSE")
+                rasterizer.path.close()
+            }
         }, emit = { x, y, move ->
             // When rendering strokes we might want to do each stroke at a time to prevent artifacts.
             // But on fills this would produce issues when for rendering 'o' that are two circles one inside another.
             if (doingStroke) {
+                //rasterizer.path.close()
                 if (move) { flush() }
             }
-            rasterizer.path.add(x, y)
+            //println("POINT: $x, $y")
+            rasterizer.path.add(x, y, move)
         })
         flush()
     }

@@ -7,7 +7,6 @@ import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
-import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.*
 import kotlin.test.*
@@ -24,10 +23,10 @@ class RasterizerTest {
         val rast = Rasterizer()
         rast.quality = 1
         rast.path.reset()
-        rast.path.add(0, 10)
-        rast.path.add(2, 0)
-        rast.path.add(10, 0)
-        rast.path.add(10, 10)
+        rast.path.moveTo(0.0, 10.0)
+        rast.path.lineTo(2.0, 0.0)
+        rast.path.lineTo(10.0, 0.0)
+        rast.path.lineTo(10.0, 10.0)
         rast.path.close()
         val log = arrayListOf<String>()
         val stats = Rasterizer.Stats()
