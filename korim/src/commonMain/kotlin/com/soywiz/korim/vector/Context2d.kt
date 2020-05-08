@@ -260,7 +260,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	fun strokeDot(x: Double, y: Double) = run { beginPath(); moveTo(x, y); lineTo(x, y); stroke() }
 
-	fun path(path: GraphicsPath) = this.write(path)
+	fun path(path: GraphicsPath) {
+        this.write(path)
+        //this.write(path, state.transform)
+    }
 	fun draw(d: Drawable) = run { d.draw(this) }
 
 	fun strokeRect(x: Double, y: Double, width: Double, height: Double) =
@@ -503,6 +506,16 @@ private fun VectorBuilder.write(path: VectorPath) {
         lineTo = { x, y -> lineTo(x, y) },
         quadTo = { x0, y0, x1, y1 -> quadTo(x0, y0, x1, y1) },
         cubicTo = { x0, y0, x1, y1, x2, y2 -> cubicTo(x0, y0, x1, y1, x2, y2) },
+        close = { close() }
+    )
+}
+
+private fun VectorBuilder.write(path: VectorPath, m: Matrix) {
+    path.visitCmds(
+        moveTo = { x, y -> moveTo(m.transformX(x, y), m.transformY(x, y)) },
+        lineTo = { x, y -> lineTo(m.transformX(x, y), m.transformY(x, y)) },
+        quadTo = { x0, y0, x1, y1 -> quadTo(m.transformX(x0, y0), m.transformY(x0, y0), m.transformX(x1, y1), m.transformY(x1, y1)) },
+        cubicTo = { x0, y0, x1, y1, x2, y2 -> cubicTo(m.transformX(x0, y0), m.transformY(x0, y0), m.transformX(x1, y1), m.transformY(x1, y1), m.transformX(x2, y2), m.transformY(x2, y2)) },
         close = { close() }
     )
 }

@@ -133,4 +133,5 @@ internal class Edge {
     val absSin get() = sin.absoluteValue
 
     override fun toString(): String = "Edge([$ax,$ay]-[$bx,$by])"
+    fun toString(scale: Double): String = "Edge([${(ax * scale).toInt()},${(ay * scale).toInt()}]-[${(bx * scale).toInt()},${(by * scale).toInt()}])"
 }
