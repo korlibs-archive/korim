@@ -35,7 +35,7 @@ class RasterizerTest {
             //println(log.last())
         }
         //assertEquals(Rasterizer.Stats(edgesChecked=380, edgesEmitted=80, yCount=95), stats)
-        assertEquals(Rasterizer.Stats(edgesChecked = 380, edgesEmitted = 80, yCount = 88), stats)
+        assertEquals(Rasterizer.Stats(edgesChecked = 190, edgesEmitted = 80, yCount = 88), stats)
     }
 
     @Test
