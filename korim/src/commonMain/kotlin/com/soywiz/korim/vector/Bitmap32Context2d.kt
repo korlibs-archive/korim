@@ -11,6 +11,7 @@ import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korim.vector.paint.NonePaint
 import com.soywiz.korim.vector.rasterizer.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korma.geom.shape.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
@@ -34,7 +35,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
     val scanlineWriter = ScanlineWriter()
     //private val tempPath = VectorPath(winding = Winding.NON_ZERO)
     private val tempPath = VectorPath(winding = Winding.EVEN_ODD)
-    private val tempFillStrokeTemp = FillStrokeTemp()
+    private val tempFillStrokeTemp = StrokeToFill()
 
     override fun render(state: Context2d.State, fill: Boolean) {
 		//println("RENDER")
