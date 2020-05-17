@@ -70,7 +70,9 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         fun flush() {
             if (rasterizer.path.isNotEmpty()) {
                 rasterizer.strokeWidth = state.lineWidth
+                //rasterizer.quality = if (antialiasing) 5 else 1
                 rasterizer.quality = if (antialiasing) 4 else 1
+                //rasterizer.quality = if (antialiasing) 2 else 1
                 scanlineWriter.filler = filler
                 scanlineWriter.reset()
                 rasterizer.rasterizeFill(bounds, winding = fillPath.winding) { x0, x1, y ->
@@ -199,19 +201,15 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
                 ny0 = y0
                 subRowCount++
             }
-            segments.add(i0, i1)
-            //println("ROW[$y0]: $x0,$x1")
-            if (i0 == i1) {
-                put(i0, (x1 - x0).absoluteValue.toFloat() / RAST_FIXED_SCALE)
-            } else {
-                put(i0, 1f - i0m.toFloat() / RAST_FIXED_SCALE)
-                put(i1, if (i1m == 0) 1f else i1m.toFloat() / RAST_FIXED_SCALE)
+            if (i1 > i0) {
+                segments.add(i0, i1)
+                //println("ROW[$y0]: $x0,$x1")
                 //println("i1=$i1, x1=$x1")
-                for (x in i0 + 1 until i1) {
-                    put(x, 1f)
-                }
+                put(i0, 1f - i0m.toFloat() / RAST_FIXED_SCALE)
+                for (x in i0 + 1 until i1) put(x, 1f)
+                if (i1m != 0) put(i1, i1m.toFloat() / RAST_FIXED_SCALE)
+                //alphaCount++
             }
-            //alphaCount++
         }
 
         private fun computeAlpha(v: Int, p: Float, left: Boolean): Float = when {
