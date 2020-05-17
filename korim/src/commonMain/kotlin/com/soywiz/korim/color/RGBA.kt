@@ -301,10 +301,17 @@ fun mix(dst: RgbaArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count
 }
 
 // @TODO: Critical performance use SIMD if possible
-fun mix(dst: RgbaPremultipliedArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
-    for (n in 0 until count) {
-        dst[dstX + n] = RGBAPremultiplied.blendAlpha(dst[dstX + n], src[srcX + n])
-    }
+fun mix(dst: RgbaPremultipliedArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) = mix(dst, dstX, dst, dstX, src, srcX, count)
+fun mix(tgt: RgbaPremultipliedArray, tgtX: Int, dst: RgbaPremultipliedArray, dstX: Int, src: RgbaPremultipliedArray, srcX: Int, count: Int) {
+    for (n in 0 until count) tgt[tgtX + n] = RGBAPremultiplied.blendAlpha(dst[dstX + n], src[srcX + n])
+}
+
+fun premultiply(src: RgbaArray, srcN: Int, dst: RgbaPremultipliedArray, dstN: Int, count: Int) {
+    for (n in 0 until count) dst[dstN + n] = src[srcN + n].premultiplied
+}
+
+fun depremultiply(src: RgbaPremultipliedArray, srcN: Int, dst: RgbaArray, dstN: Int, count: Int) {
+    for (n in 0 until count) dst[dstN + n] = src[srcN + n].depremultiplied
 }
 
 //infix fun RGBA.mix(dst: RGBA): RGBA = RGBA.mix(this, dst)

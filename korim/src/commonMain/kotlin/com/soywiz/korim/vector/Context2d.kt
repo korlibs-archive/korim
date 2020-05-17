@@ -87,7 +87,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var fontSize: Double = 24.0,
         var verticalAlign: VerticalAlign = VerticalAlign.BASELINE,
         var horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
-        var globalAlpha: Double = 1.0
+        var globalAlpha: Double = 1.0,
+        var globalCompositeOperation: CompositeOperation = CompositeMode.SOURCE_OVER
 	) {
         var lineCap: LineCap
             get() = startLineCap
@@ -123,6 +124,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	var verticalAlign: VerticalAlign ; get() = state.verticalAlign ; set(value) = run { state.verticalAlign = value }
 	var horizontalAlign: HorizontalAlign ; get() = state.horizontalAlign ; set(value) = run { state.horizontalAlign = value }
 	var globalAlpha: Double ; get() = state.globalAlpha ; set(value) = run { state.globalAlpha = value }
+    var globalCompositeOperation: CompositeOperation ; get() = state.globalCompositeOperation ; set(value) = run { state.globalCompositeOperation = value }
 
 	inline fun fillStyle(paint: Paint, callback: () -> Unit) {
 		val oldStyle = fillStyle
