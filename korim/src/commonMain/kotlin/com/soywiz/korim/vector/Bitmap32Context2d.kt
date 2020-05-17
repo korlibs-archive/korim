@@ -47,8 +47,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 			else -> TODO()
 		}
 
+        scanlineWriter.compositeMode = state.globalCompositeOperation
         rasterizer.reset()
-
         rasterizer.debug = debug
 
         val doingStroke = !fill
@@ -161,6 +161,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
     }
 
     inner class ScanlineWriter {
+        var compositeMode: CompositeOperation = CompositeOperation.DEFAULT
         var filler: BaseFiller = NoneFiller
         var ny0 = -1
         var ny = -1
@@ -168,6 +169,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         val width1 get() = bmp.width - 1
         val alpha = FloatArray(size)
         val hitbits = IntArray(size)
+        val origin = RgbaPremultipliedArray(size)
         val color = RgbaPremultipliedArray(size)
         val segments = SegmentHandler()
         var subRowCount = 0
@@ -236,11 +238,10 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
                 filler.fill(color, 0, xmin, xmax, ny)
                 for (n in xmin..xmax) alpha[n] *= scale
                 scale(color, xmin, alpha, xmin, count)
-                if (bmp.premultiplied) {
-                    mix(bmp.dataPremult, bmp.index(0, ny) + x, color, x, count)
-                } else {
-                    mix(bmp.data, bmp.index(0, ny) + x, color, x, count)
-                }
+                val index = bmp.index(0, ny) + x
+                if (bmp.premultiplied) com.soywiz.kmem.arraycopy(bmp.dataPremult.ints, index, origin.ints, x, count) else premultiply(bmp.data, index, origin, x, count)
+                compositeMode.blend(origin, x, color, x, count)
+                if (bmp.premultiplied) com.soywiz.kmem.arraycopy(origin.ints, x, bmp.dataPremult.ints, index, count) else depremultiply(origin, x, bmp.data, index, count)
             }
         }
     }

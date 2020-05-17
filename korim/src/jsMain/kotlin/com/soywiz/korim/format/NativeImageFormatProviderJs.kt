@@ -214,8 +214,49 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
+    fun CompositeMode.toJsStr() = when (this) {
+        CompositeMode.CLEAR -> "clear"
+        CompositeMode.COPY -> "copy"
+        CompositeMode.SOURCE_OVER -> "source-over"
+        CompositeMode.DESTINATION_OVER -> "destination-over"
+        CompositeMode.SOURCE_IN -> "source-in"
+        CompositeMode.DESTINATION_IN -> "destination-in"
+        CompositeMode.SOURCE_OUT -> "source-out"
+        CompositeMode.DESTINATION_OUT -> "destination-out"
+        CompositeMode.SOURCE_ATOP -> "source-atop"
+        CompositeMode.DESTINATION_ATOP -> "destination-atop"
+        CompositeMode.XOR -> "xor"
+        CompositeMode.LIGHTER -> "lighter"
+    }
+
+    fun BlendMode.toJsStr() = when (this) {
+        BlendMode.NORMAL -> "normal"
+        BlendMode.MULTIPLY -> "multiply"
+        BlendMode.SCREEN -> "screen"
+        BlendMode.OVERLAY -> "overlay"
+        BlendMode.DARKEN -> "darken"
+        BlendMode.LIGHTEN -> "lighten"
+        BlendMode.COLOR_DODGE -> "color-dodge"
+        BlendMode.COLOR_BURN -> "color-burn"
+        BlendMode.HARD_LIGHT -> "hard-light"
+        BlendMode.SOFT_LIGHT -> "soft-light"
+        BlendMode.DIFFERENCE -> "difference"
+        BlendMode.EXCLUSION -> "exclusion"
+        BlendMode.HUE -> "hue"
+        BlendMode.SATURATION -> "saturation"
+        BlendMode.COLOR -> "color"
+        BlendMode.LUMINOSITY -> "luminosity"
+    }
+
+    fun CompositeOperation.toJsStr() = when (this) {
+        is CompositeMode -> this.toJsStr()
+        is BlendMode -> this.toJsStr()
+        else -> "source-over" // Default
+    }
+
 	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
 		ctx.globalAlpha = state.globalAlpha
+        ctx.globalCompositeOperation = state.globalCompositeOperation.toJsStr()
 		setFont(state.font, state.fontSize)
         //state.transform.let { t -> ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty) } // @NOTE: Points are already transformed, so this shouldn't be executed
 		if (fill) {
