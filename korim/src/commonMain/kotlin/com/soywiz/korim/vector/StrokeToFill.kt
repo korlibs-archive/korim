@@ -3,12 +3,13 @@ package com.soywiz.korim.vector
 import com.soywiz.kds.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.internal.*
-import com.soywiz.korim.vector.rasterizer.*
-import com.soywiz.korim.vector.rasterizer.Edge
+import com.soywiz.korma.annotations.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.bezier.*
 import com.soywiz.korma.geom.vector.*
 
+// @TODO: Move to KorMA
+@OptIn(KormaExperimental::class)
 class FillStrokeTemp {
     private var weight: Int = 1
     private lateinit var outFill: VectorPath

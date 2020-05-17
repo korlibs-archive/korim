@@ -17,4 +17,18 @@ class Context2DCommonTest {
         }.toBMP32().depremultipliedIfRequired()
         assertEquals(semiTransparentAlpha, image[5, 5])
     }
+
+    @Test
+    fun testFillAlpha2() = suspendTest({ !OS.isAndroid }) {
+        val image = NativeImage(3, 3).context2d {
+            fill(Colors.WHITE) {
+                rect(1, 1, 1, 1)
+            }
+        }.toBMP32().depremultipliedIfRequired()
+        assertEquals(listOf(
+            Colors.TRANSPARENT_BLACK, Colors.TRANSPARENT_BLACK, Colors.TRANSPARENT_BLACK,
+            Colors.TRANSPARENT_BLACK, Colors.WHITE, Colors.TRANSPARENT_BLACK,
+            Colors.TRANSPARENT_BLACK, Colors.TRANSPARENT_BLACK, Colors.TRANSPARENT_BLACK
+        ), image.data.toList())
+    }
 }

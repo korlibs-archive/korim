@@ -2,14 +2,17 @@ package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.kds.*
 import com.soywiz.kds.iterators.fastForEach
+import com.soywiz.korma.annotations.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
+import com.soywiz.korma.segment.*
 import kotlin.math.absoluteValue
 import kotlin.math.max
 import kotlin.math.min
 
 typealias RasterizerCallback = (x0: Int, x1: Int, y: Int) -> Unit
 
+@OptIn(KormaExperimental::class)
 class Rasterizer : RastScale() {
     var debug: Boolean = false
     private val tempRect = Rectangle()
@@ -40,9 +43,9 @@ class Rasterizer : RastScale() {
     val path = PolygonScanline()
     val clip = PolygonScanline()
 
-    private val fillSegmentSet = SegmentSet()
-    private val clipSegmentSet = SegmentSet()
-    private val finalSegmentSet = SegmentSet()
+    private val fillSegmentSet = IntSegmentSet()
+    private val clipSegmentSet = IntSegmentSet()
+    private val finalSegmentSet = IntSegmentSet()
 
     fun reset() {
         path.reset()
