@@ -20,7 +20,8 @@ class Context2DCommonTest {
 
     @Test
     fun testFillAlpha2() = suspendTest({ !OS.isAndroid }) {
-        val image = NativeImage(3, 3).context2d {
+        //val image = NativeImage(3, 3).context2d {
+        val image = Bitmap32(3, 3).context2d {
             fill(Colors.WHITE) {
                 rect(1, 1, 1, 1)
             }
