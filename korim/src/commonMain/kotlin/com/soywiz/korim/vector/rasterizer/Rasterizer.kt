@@ -104,7 +104,7 @@ class Rasterizer : RastScale() {
                     finalSegmentSet.setToIntersect(fillSegmentSet, clipSegmentSet)
                 }
 
-                (if (clip.isNotEmpty()) finalSegmentSet else fillSegmentSet).fastForEach { min, max ->
+                (if (clip.isNotEmpty()) finalSegmentSet else fillSegmentSet).fastForEach { _, min, max ->
                     func(min, max, y)
                     edgesEmitted++
                 }
