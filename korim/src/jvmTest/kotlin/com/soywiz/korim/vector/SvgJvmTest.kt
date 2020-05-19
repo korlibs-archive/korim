@@ -13,6 +13,7 @@ class SvgJvmTest {
         val svg = SVG(resourcesVfs["tiger.svg"].readString())
         //svg.renderToImage(512, 512).showImageAndWait()
         //svg.render().showImageAndWait()
+        //svg.render(native = false).showImageAndWait()
     }
 
     @Test

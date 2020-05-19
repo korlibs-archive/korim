@@ -275,6 +275,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				//dumpTokens()
 
 				beginPath()
+                moveTo(0, 0) // Supports relative positioning as first command
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
                     val relative = cmd in 'a'..'z' // lower case
@@ -289,15 +290,31 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
 						'C', 'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n(), relative)
                         'S', 's' -> while (isNextNumber()) {
+                            // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
                             // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+
+                            // S produces the same type of curve as earlier—but if it follows another S command or a C command,
+                            // the first control point is assumed to be a reflection of the one used previously.
+                            // If the S command doesn't follow another S or C command, then the current position of the cursor
+                            // is used as the first control point. In this case the result is the same as what the Q command
+                            // would have produced with the same parameters.
+
                             // @TODO: Cubic using the last position?
                             val x2 = n()
                             val y2 = n()
                             val x = n()
                             val y = n()
-                            val x1 = x2 // @TODO: Reflected version of x2
-                            val y1 = y2 // @TODO: Reflected version of y2
+
+                            // @TODO: Is this the way to compute x1, y1?
+                            val x1 = x2
+                            val y1 = y2
+                            //val x1 = x2 - (x - x2)
+                            //val y1 = y2 - (y - y2)
+                            //val x1 = (x + x2) / 2
+                            //val y1 = (y + y2) / 2
+
                             rCubicTo(x1, y1, x2, y2, x, y, relative)
+                            //rLineTo(x, y, relative)
                         }
                         'A', 'a' -> TODO("arcs not implemented")
                         'Z', 'z' -> close()
