@@ -261,6 +261,8 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 					return 0.0
 				}
                 fun n(): Double = readNumber()
+                fun nX(relative: Boolean): Double = if (relative) lastX + readNumber() else readNumber()
+                fun nY(relative: Boolean): Double = if (relative) lastY + readNumber() else readNumber()
 
 				fun readNextTokenCmd(): Char? {
 					while (tl.hasMore) {
@@ -276,6 +278,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
 				beginPath()
                 moveTo(0, 0) // Supports relative positioning as first command
+                var lastCX = 0.0
+                var lastCY = 0.0
+                var lastCmd = '-'
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
                     val relative = cmd in 'a'..'z' // lower case
@@ -289,37 +294,47 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'V', 'v' -> while (isNextNumber()) rLineToV(n(), relative)
 						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
 						'C', 'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n(), relative)
-                        'S', 's' -> while (isNextNumber()) {
-                            // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
-                            // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+                        'S', 's' -> {
+                            var lastCurve = lastCmd == 'S' || lastCmd == 's'
+                            var n = 0
+                            while (isNextNumber()) {
+                                // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
+                                // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
 
-                            // S produces the same type of curve as earlier—but if it follows another S command or a C command,
-                            // the first control point is assumed to be a reflection of the one used previously.
-                            // If the S command doesn't follow another S or C command, then the current position of the cursor
-                            // is used as the first control point. In this case the result is the same as what the Q command
-                            // would have produced with the same parameters.
+                                // S produces the same type of curve as earlier—but if it follows another S command or a C command,
+                                // the first control point is assumed to be a reflection of the one used previously.
+                                // If the S command doesn't follow another S or C command, then the current position of the cursor
+                                // is used as the first control point. In this case the result is the same as what the Q command
+                                // would have produced with the same parameters.
 
-                            // @TODO: Cubic using the last position?
-                            val x2 = n()
-                            val y2 = n()
-                            val x = n()
-                            val y = n()
+                                // @TODO: Cubic using the last position?
+                                val x2 = nX(relative)
+                                val y2 = nY(relative)
+                                val x = nX(relative)
+                                val y = nY(relative)
 
-                            // @TODO: Is this the way to compute x1, y1?
-                            val x1 = x2
-                            val y1 = y2
-                            //val x1 = x2 - (x - x2)
-                            //val y1 = y2 - (y - y2)
-                            //val x1 = (x + x2) / 2
-                            //val y1 = (y + y2) / 2
+                                // @TODO: Is this the way to compute x1, y1?
+                                val x1 = if (lastCurve) (lastX * 2) - lastCX else lastX
+                                val y1 = if (lastCurve) (lastY * 2) - lastCY else lastY
+                                //val x1 = x2 - (x - x2)
+                                //val y1 = y2 - (y - y2)
+                                //val x1 = (x + x2) / 2
+                                //val y1 = (y + y2) / 2
 
-                            rCubicTo(x1, y1, x2, y2, x, y, relative)
-                            //rLineTo(x, y, relative)
+                                lastCX = x2
+                                lastCY = y2
+
+                                cubicTo(x1, y1, x2, y2, x, y)
+                                n++
+                                lastCurve = true
+                                //rLineTo(x, y, relative)
+                            }
                         }
                         'A', 'a' -> TODO("arcs not implemented")
                         'Z', 'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
+                    lastCmd = cmd
 				}
                 warningProcessor?.invoke("Parsed SVG Path: '${state.path.toSvgPathString()}'")
                 warningProcessor?.invoke("Original SVG Path: '$d'")
