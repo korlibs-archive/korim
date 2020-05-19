@@ -260,6 +260,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 					}
 					return 0.0
 				}
+                fun n(): Double = readNumber()
+                fun nX(relative: Boolean): Double = if (relative) lastX + readNumber() else readNumber()
+                fun nY(relative: Boolean): Double = if (relative) lastY + readNumber() else readNumber()
 
 				fun readNextTokenCmd(): Char? {
 					while (tl.hasMore) {
@@ -274,55 +277,68 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				//dumpTokens()
 
 				beginPath()
+                moveTo(0, 0) // Supports relative positioning as first command
+                var lastCX = 0.0
+                var lastCY = 0.0
+                var lastCmd = '-'
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
+                    val relative = cmd in 'a'..'z' // lower case
 					when (cmd) {
-						'M' -> {
-							moveTo(readNumber(), readNumber())
-							while (isNextNumber()) lineTo(readNumber(), readNumber())
+						'M', 'm' -> {
+							rMoveTo(n(), n(), relative)
+							while (isNextNumber()) rLineTo(n(), n(), relative)
 						}
-						'm' -> {
-							rMoveTo(readNumber(), readNumber())
-							while (isNextNumber()) rLineTo(readNumber(), readNumber())
-						}
-						'L' -> while (isNextNumber()) lineTo(readNumber(), readNumber())
-						'l' -> while (isNextNumber()) rLineTo(readNumber(), readNumber())
-						'H' -> while (isNextNumber()) lineToH(readNumber())
-						'h' -> while (isNextNumber()) rLineToH(readNumber())
-						'V' -> while (isNextNumber()) lineToV(readNumber())
-						'v' -> while (isNextNumber()) rLineToV(readNumber())
-						'Q' -> while (isNextNumber()) quadTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'q' -> while (isNextNumber()) rQuadTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'C' -> while (isNextNumber()) cubicTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'c' -> while (isNextNumber()) rCubicTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'Z' -> close()
-						'z' -> close()
+						'L', 'l' -> while (isNextNumber()) rLineTo(n(), n(), relative)
+						'H', 'h' -> while (isNextNumber()) rLineToH(n(), relative)
+						'V', 'v' -> while (isNextNumber()) rLineToV(n(), relative)
+						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
+						'C', 'c' -> while (isNextNumber()) {
+                            val x1 = nX(relative)
+                            val y1 = nY(relative)
+                            val x2 = nX(relative)
+                            val y2 = nY(relative)
+                            val x = nX(relative)
+                            val y = nY(relative)
+                            lastCX = x2
+                            lastCY = y2
+                            cubicTo(x1, y1, x2, y2, x, y)
+                        }
+                        'S', 's' -> {
+                            var lastCurve = lastCmd == 'S' || lastCmd == 's' || lastCmd == 'C' || lastCmd == 'c'
+                            var n = 0
+                            while (isNextNumber()) {
+                                // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
+                                // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+
+                                // S produces the same type of curve as earlier—but if it follows another S command or a C command,
+                                // the first control point is assumed to be a reflection of the one used previously.
+                                // If the S command doesn't follow another S or C command, then the current position of the cursor
+                                // is used as the first control point. In this case the result is the same as what the Q command
+                                // would have produced with the same parameters.
+
+                                val x2 = nX(relative)
+                                val y2 = nY(relative)
+                                val x = nX(relative)
+                                val y = nY(relative)
+
+                                // @TODO: Is this the way to compute x1, y1?
+                                val x1 = if (lastCurve) (lastX * 2) - lastCX else lastX
+                                val y1 = if (lastCurve) (lastY * 2) - lastCY else lastY
+
+                                lastCX = x2
+                                lastCY = y2
+
+                                cubicTo(x1, y1, x2, y2, x, y)
+                                n++
+                                lastCurve = true
+                            }
+                        }
+                        'A', 'a' -> TODO("arcs not implemented")
+                        'Z', 'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
+                    lastCmd = cmd
 				}
                 warningProcessor?.invoke("Parsed SVG Path: '${state.path.toSvgPathString()}'")
                 warningProcessor?.invoke("Original SVG Path: '$d'")
@@ -540,3 +556,28 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 }
+
+// @TODO: Move to korma
+private inline fun VectorBuilder.rCubicTo(cx1: Number, cy1: Number, cx2: Number, cy2: Number, ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rCubicTo(cx1, cy1, cx2, cy2, ax, ay) else cubicTo(cx1, cy1, cx2, cy2, ax, ay)
+
+private inline fun VectorBuilder.rQuadTo(cx: Number, cy: Number, ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rQuadTo(cx, cy, ax, ay) else quadTo(cx, cy, ax, ay)
+
+private inline fun VectorBuilder.rLineTo(ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rLineTo(ax, ay) else lineTo(ax, ay)
+
+private inline fun VectorBuilder.rMoveTo(ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rMoveTo(ax, ay) else moveTo(ax, ay)
+
+private inline fun VectorBuilder.rMoveToH(ax: Number, relative: Boolean) =
+    if (relative) rMoveToH(ax) else moveToH(ax)
+
+private inline fun VectorBuilder.rMoveToV(ay: Number, relative: Boolean) =
+    if (relative) rMoveToV(ay) else moveToV(ay)
+
+private inline fun VectorBuilder.rLineToH(ax: Number, relative: Boolean) =
+    if (relative) rLineToH(ax) else lineToH(ax)
+
+private inline fun VectorBuilder.rLineToV(ay: Number, relative: Boolean) =
+    if (relative) rLineToV(ay) else lineToV(ay)
