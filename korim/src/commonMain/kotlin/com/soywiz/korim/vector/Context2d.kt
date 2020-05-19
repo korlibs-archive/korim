@@ -223,11 +223,17 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 
 	fun shear(sx: Double, sy: Double) = transform(1.0, sy, sx, 1.0, 0.0, 0.0)
 
-    override val lastX: Double get() = state.path.lastX
-    override val lastY: Double get() = state.path.lastY
+    var moveX: Double = 0.0
+    var moveY: Double = 0.0
+    override var lastX: Double = 0.0
+    override var lastY: Double = 0.0
     override val totalPoints: Int  get() = state.path.totalPoints
 
-    override fun close() = state.path.close()
+    override fun close() {
+        state.path.close()
+        lastX = moveX
+        lastY = moveY
+    }
 
     private fun transX(x: Double, y: Double) = state.transform.transformX(x, y)
     private fun transY(x: Double, y: Double) = state.transform.transformY(x, y)
@@ -235,18 +241,35 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     //private fun transX(x: Double, y: Double) = x
     //private fun transY(x: Double, y: Double) = y
 
-    override fun moveTo(x: Double, y: Double) = state.path.moveTo(transX(x, y), transY(x, y))
-    override fun lineTo(x: Double, y: Double) = state.path.lineTo(transX(x, y), transY(x, y))
-    override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) = state.path.quadTo(
-        transX(cx, cy), transY(cx, cy),
-        transX(ax, ay), transY(ax, ay)
-    )
-    override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) =
+    override fun moveTo(x: Double, y: Double) {
+        state.path.moveTo(transX(x, y), transY(x, y))
+        lastX = x
+        lastY = y
+        moveX = x
+        moveY = y
+    }
+    override fun lineTo(x: Double, y: Double) {
+        state.path.lineTo(transX(x, y), transY(x, y))
+        lastX = x
+        lastY = y
+    }
+    override fun quadTo(cx: Double, cy: Double, ax: Double, ay: Double) {
+        state.path.quadTo(
+            transX(cx, cy), transY(cx, cy),
+            transX(ax, ay), transY(ax, ay)
+        )
+        lastX = ax
+        lastY = ay
+    }
+    override fun cubicTo(cx1: Double, cy1: Double, cx2: Double, cy2: Double, ax: Double, ay: Double) {
         state.path.cubicTo(
             transX(cx1, cy1), transY(cx1, cy1),
             transX(cx2, cy2), transY(cx2, cy2),
             transX(ax, ay), transY(ax, ay)
         )
+        lastX = ax
+        lastY = ay
+    }
 
 	inline fun strokeRect(x: Number, y: Number, width: Number, height: Number) =
 		strokeRect(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
