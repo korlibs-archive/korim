@@ -260,6 +260,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 					}
 					return 0.0
 				}
+                fun n(): Double = readNumber()
 
 				fun readNextTokenCmd(): Char? {
 					while (tl.hasMore) {
@@ -278,48 +279,46 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 					val cmd = readNextTokenCmd() ?: break
 					when (cmd) {
 						'M' -> {
-							moveTo(readNumber(), readNumber())
-							while (isNextNumber()) lineTo(readNumber(), readNumber())
+							moveTo(n(), n())
+							while (isNextNumber()) lineTo(n(), n())
 						}
 						'm' -> {
-							rMoveTo(readNumber(), readNumber())
-							while (isNextNumber()) rLineTo(readNumber(), readNumber())
+							rMoveTo(n(), n())
+							while (isNextNumber()) rLineTo(n(), n())
 						}
-						'L' -> while (isNextNumber()) lineTo(readNumber(), readNumber())
-						'l' -> while (isNextNumber()) rLineTo(readNumber(), readNumber())
-						'H' -> while (isNextNumber()) lineToH(readNumber())
-						'h' -> while (isNextNumber()) rLineToH(readNumber())
-						'V' -> while (isNextNumber()) lineToV(readNumber())
-						'v' -> while (isNextNumber()) rLineToV(readNumber())
-						'Q' -> while (isNextNumber()) quadTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'q' -> while (isNextNumber()) rQuadTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'C' -> while (isNextNumber()) cubicTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'c' -> while (isNextNumber()) rCubicTo(
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber(),
-							readNumber()
-						)
-						'Z' -> close()
+						'L' -> while (isNextNumber()) lineTo(n(), n())
+						'l' -> while (isNextNumber()) rLineTo(n(), n())
+						'H' -> while (isNextNumber()) lineToH(n())
+						'h' -> while (isNextNumber()) rLineToH(n())
+						'V' -> while (isNextNumber()) lineToV(n())
+						'v' -> while (isNextNumber()) rLineToV(n())
+						'Q' -> while (isNextNumber()) quadTo(n(), n(), n(), n())
+						'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n())
+						'C' -> while (isNextNumber()) cubicTo(n(), n(), n(), n(), n(), n())
+						'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n())
+
+                        // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+                        // @TODO: Cubic using the last position?
+                        'S', 's' -> while (isNextNumber()) {
+                            val x2 = n()
+                            val y2 = n()
+                            val x = n()
+                            val y = n()
+                            val x1 = x2 // @TODO: Reflected version of x2
+                            val y1 = y2 // @TODO: Reflected version of y2
+                            if (cmd == 's') {
+                                rCubicTo(x1, y1, x2, y2, x, y)
+                                //rLineTo(x, y)
+                            } else {
+                                cubicTo(x1, y1, x2, y2, x, y)
+                                //lineTo(x, y)
+                            }
+                        }
+
+                        'A' -> TODO("arcs not implemented")
+                        'a' -> TODO("arcs not implemented")
+
+                        'Z' -> close()
 						'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
