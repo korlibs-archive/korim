@@ -293,9 +293,19 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'H', 'h' -> while (isNextNumber()) rLineToH(n(), relative)
 						'V', 'v' -> while (isNextNumber()) rLineToV(n(), relative)
 						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
-						'C', 'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n(), relative)
+						'C', 'c' -> while (isNextNumber()) {
+                            val x1 = nX(relative)
+                            val y1 = nY(relative)
+                            val x2 = nX(relative)
+                            val y2 = nY(relative)
+                            val x = nX(relative)
+                            val y = nY(relative)
+                            lastCX = x2
+                            lastCY = y2
+                            cubicTo(x1, y1, x2, y2, x, y)
+                        }
                         'S', 's' -> {
-                            var lastCurve = lastCmd == 'S' || lastCmd == 's'
+                            var lastCurve = lastCmd == 'S' || lastCmd == 's' || lastCmd == 'C' || lastCmd == 'c'
                             var n = 0
                             while (isNextNumber()) {
                                 // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
@@ -307,7 +317,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                                 // is used as the first control point. In this case the result is the same as what the Q command
                                 // would have produced with the same parameters.
 
-                                // @TODO: Cubic using the last position?
                                 val x2 = nX(relative)
                                 val y2 = nY(relative)
                                 val x = nX(relative)
@@ -316,10 +325,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                                 // @TODO: Is this the way to compute x1, y1?
                                 val x1 = if (lastCurve) (lastX * 2) - lastCX else lastX
                                 val y1 = if (lastCurve) (lastY * 2) - lastCY else lastY
-                                //val x1 = x2 - (x - x2)
-                                //val y1 = y2 - (y - y2)
-                                //val x1 = (x + x2) / 2
-                                //val y1 = (y + y2) / 2
 
                                 lastCX = x2
                                 lastCY = y2
@@ -327,7 +332,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                                 cubicTo(x1, y1, x2, y2, x, y)
                                 n++
                                 lastCurve = true
-                                //rLineTo(x, y, relative)
                             }
                         }
                         'A', 'a' -> TODO("arcs not implemented")
