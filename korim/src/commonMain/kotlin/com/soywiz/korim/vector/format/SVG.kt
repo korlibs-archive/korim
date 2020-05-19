@@ -277,49 +277,30 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				beginPath()
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
+                    val relative = cmd in 'a'..'z' // lower case
 					when (cmd) {
-						'M' -> {
-							moveTo(n(), n())
-							while (isNextNumber()) lineTo(n(), n())
+						'M', 'm' -> {
+							rMoveTo(n(), n(), relative)
+							while (isNextNumber()) rLineTo(n(), n(), relative)
 						}
-						'm' -> {
-							rMoveTo(n(), n())
-							while (isNextNumber()) rLineTo(n(), n())
-						}
-						'L' -> while (isNextNumber()) lineTo(n(), n())
-						'l' -> while (isNextNumber()) rLineTo(n(), n())
-						'H' -> while (isNextNumber()) lineToH(n())
-						'h' -> while (isNextNumber()) rLineToH(n())
-						'V' -> while (isNextNumber()) lineToV(n())
-						'v' -> while (isNextNumber()) rLineToV(n())
-						'Q' -> while (isNextNumber()) quadTo(n(), n(), n(), n())
-						'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n())
-						'C' -> while (isNextNumber()) cubicTo(n(), n(), n(), n(), n(), n())
-						'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n())
-
-                        // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
-                        // @TODO: Cubic using the last position?
+						'L', 'l' -> while (isNextNumber()) rLineTo(n(), n(), relative)
+						'H', 'h' -> while (isNextNumber()) rLineToH(n(), relative)
+						'V', 'v' -> while (isNextNumber()) rLineToV(n(), relative)
+						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
+						'C', 'c' -> while (isNextNumber()) rCubicTo(n(), n(), n(), n(), n(), n(), relative)
                         'S', 's' -> while (isNextNumber()) {
+                            // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
+                            // @TODO: Cubic using the last position?
                             val x2 = n()
                             val y2 = n()
                             val x = n()
                             val y = n()
                             val x1 = x2 // @TODO: Reflected version of x2
                             val y1 = y2 // @TODO: Reflected version of y2
-                            if (cmd == 's') {
-                                rCubicTo(x1, y1, x2, y2, x, y)
-                                //rLineTo(x, y)
-                            } else {
-                                cubicTo(x1, y1, x2, y2, x, y)
-                                //lineTo(x, y)
-                            }
+                            rCubicTo(x1, y1, x2, y2, x, y, relative)
                         }
-
-                        'A' -> TODO("arcs not implemented")
-                        'a' -> TODO("arcs not implemented")
-
-                        'Z' -> close()
-						'z' -> close()
+                        'A', 'a' -> TODO("arcs not implemented")
+                        'Z', 'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
 				}
@@ -539,3 +520,28 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 }
+
+// @TODO: Move to korma
+private inline fun VectorBuilder.rCubicTo(cx1: Number, cy1: Number, cx2: Number, cy2: Number, ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rCubicTo(cx1, cy1, cx2, cy2, ax, ay) else cubicTo(cx1, cy1, cx2, cy2, ax, ay)
+
+private inline fun VectorBuilder.rQuadTo(cx: Number, cy: Number, ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rQuadTo(cx, cy, ax, ay) else quadTo(cx, cy, ax, ay)
+
+private inline fun VectorBuilder.rLineTo(ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rLineTo(ax, ay) else lineTo(ax, ay)
+
+private inline fun VectorBuilder.rMoveTo(ax: Number, ay: Number, relative: Boolean) =
+    if (relative) rMoveTo(ax, ay) else moveTo(ax, ay)
+
+private inline fun VectorBuilder.rMoveToH(ax: Number, relative: Boolean) =
+    if (relative) rMoveToH(ax) else moveToH(ax)
+
+private inline fun VectorBuilder.rMoveToV(ay: Number, relative: Boolean) =
+    if (relative) rMoveToV(ay) else moveToV(ay)
+
+private inline fun VectorBuilder.rLineToH(ax: Number, relative: Boolean) =
+    if (relative) rLineToH(ax) else lineToH(ax)
+
+private inline fun VectorBuilder.rLineToV(ay: Number, relative: Boolean) =
+    if (relative) rLineToV(ay) else lineToV(ay)
