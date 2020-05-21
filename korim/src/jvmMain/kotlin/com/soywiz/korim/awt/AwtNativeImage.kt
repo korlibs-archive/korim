@@ -3,10 +3,6 @@ package com.soywiz.korim.awt
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.font.Font
-import com.soywiz.korim.font.FontMetrics
-import com.soywiz.korim.font.GlyphMetrics
-import com.soywiz.korim.font.SystemFont
 import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.paint.GradientPaint
 import com.soywiz.korma.geom.*
@@ -14,11 +10,9 @@ import com.soywiz.korma.geom.vector.*
 import java.awt.*
 import java.awt.Rectangle
 import java.awt.RenderingHints.*
-import java.awt.font.*
 import java.awt.geom.*
 import java.awt.image.*
 import java.nio.*
-import kotlin.math.absoluteValue
 
 const val AWT_INTERNAL_IMAGE_TYPE_PRE = BufferedImage.TYPE_INT_ARGB_PRE
 const val AWT_INTERNAL_IMAGE_TYPE = BufferedImage.TYPE_INT_ARGB
@@ -52,7 +46,7 @@ class AwtNativeImage private constructor(val awtImage: BufferedImage, val dummy:
             val iindex = index(x, y0 + y)
             val oindex = offset + (y0 * width)
             com.soywiz.kmem.arraycopy(awtData, iindex, out.ints, oindex, width)
-            convR(out.ints, oindex, width)
+            conv(out.ints, oindex, width)
         }
     }
 
@@ -61,19 +55,19 @@ class AwtNativeImage private constructor(val awtImage: BufferedImage, val dummy:
             val iindex = index(x, y0 + y)
             val oindex = offset + (y0 * width)
             com.soywiz.kmem.arraycopy(out.ints, oindex, awtData, iindex, width)
-            convW(awtData, iindex, width)
+            conv(awtData, iindex, width)
         }
     }
 
-    override fun setRgba(x: Int, y: Int, v: RGBA) = run { awtData[index(x, y)] = convR(v.value) }
-    override fun getRgba(x: Int, y: Int): RGBA = RGBA(convW(awtData[index(x, y)]))
+    override fun setRgba(x: Int, y: Int, v: RGBA) = run { awtData[index(x, y)] = conv(v.value) }
+    override fun getRgba(x: Int, y: Int): RGBA = RGBA(conv(awtData[index(x, y)]))
 
     private val rbufferData: ByteBuffer by lazy { ByteBuffer.allocateDirect(width * height * 4) }
 
     private var rbufferVersion = -1
 	private val rbuffer: ByteBuffer get() = run {
         if (rbufferVersion != version) {
-            rbufferVersion++
+            rbufferVersion = version
             rbufferData.also { buf ->
                 buf.clear()
                 val ib = buf.asIntBuffer()
@@ -88,11 +82,8 @@ class AwtNativeImage private constructor(val awtImage: BufferedImage, val dummy:
 
     private fun argb2rgba(col: Int): Int = (col shl 8) or (col ushr 24)
 
-    private fun convR(data: Int) = BGRA.bgraToRgba(data)
-    private fun convR(data: IntArray, offset: Int, size: Int) = BGRA.bgraToRgba(data, offset, size)
-
-    private fun convW(data: Int) = BGRA.rgbaToBgra(data)
-    private fun convW(data: IntArray, offset: Int, size: Int) = BGRA.rgbaToBgra(data, offset, size)
+    private fun conv(data: Int) = BGRA.bgraToRgba(data)
+    private fun conv(data: IntArray, offset: Int, size: Int) = BGRA.bgraToRgba(data, offset, size)
 
     val buffer: ByteBuffer get() = rbuffer.apply { (this as Buffer).rewind() }
 }
