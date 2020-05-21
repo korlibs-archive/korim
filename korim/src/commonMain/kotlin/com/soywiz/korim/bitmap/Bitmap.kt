@@ -197,11 +197,13 @@ fun <T : Bitmap> T.extract(x: Int, y: Int, width: Int, height: Int): T {
 }
 
 inline fun <T : Bitmap> T.context2d(antialiased: Boolean = true, callback: Context2d.() -> Unit): T {
-    val ctx = getContext2d(antialiased)
-    try {
-        callback(ctx)
-    } finally {
-        ctx.dispose()
+    lock {
+        val ctx = getContext2d(antialiased)
+        try {
+            callback(ctx)
+        } finally {
+            ctx.dispose()
+        }
     }
     return this
 }
