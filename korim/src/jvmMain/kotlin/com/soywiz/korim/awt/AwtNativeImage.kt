@@ -66,8 +66,8 @@ class AwtNativeImage private constructor(val awtImage: BufferedImage, val dummy:
 
     private var rbufferVersion = -1
 	private val rbuffer: ByteBuffer get() = run {
-        if (rbufferVersion != version) {
-            rbufferVersion = version
+        if (rbufferVersion != contentVersion) {
+            rbufferVersion = contentVersion
             rbufferData.also { buf ->
                 buf.clear()
                 val ib = buf.asIntBuffer()

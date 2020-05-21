@@ -23,18 +23,13 @@ abstract class Bitmap(
     var contentVersion: Int = 0
 	var texture: Any? = null
 
-    protected var version = 0
-
-    @Suppress("unused")
-    val KorimInternalObject.version get() = this@Bitmap.version
-
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
 	override val size: Size get() = Size(width, height)
 
     open fun lock() = Unit
-    open fun unlock(rect: Rectangle? = null) = version++
+    open fun unlock(rect: Rectangle? = null) = contentVersion++
 
     inline fun lock(rect: Rectangle? = null, block: () -> Unit) {
         lock()
