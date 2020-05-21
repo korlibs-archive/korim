@@ -49,21 +49,24 @@ private fun bswap32(v: IntArray, offset: Int, size: Int) {
     for (n in offset until offset + size) v[n] = bswap32(v[n])
 }
 
-open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: Int) :
-	NativeImage(width, height, texSource, true) {
+open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: Int) :
+	NativeImage(width, height, texSourceBase, true) {
 	override val name: String = "HtmlNativeImage"
-	val element: HTMLElement get() = texSource as HTMLElement
+    var texSource: TexImageSource = texSourceBase
+        private set
+	val element: HTMLElement get() = texSource.unsafeCast<HTMLElement>()
 
 	constructor(img: HTMLImageElementLike) : this(img, img.width, img.height)
 	constructor(canvas: HTMLCanvasElementLike) : this(canvas, canvas.width, canvas.height)
 
-	val lazyCanvasElement: HTMLCanvasElementLike by lazy {
+    val lazyCanvasElement: HTMLCanvasElementLike by lazy {
         if (texSource.asDynamic().src !== undefined) {
             BrowserImage.imageToCanvas(texSource.unsafeCast<HTMLImageElementLike>())
         } else {
             texSource.unsafeCast<HTMLCanvasElementLike>()
-        }
+        }.also { texSource = it }
 	}
+
     val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
     override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
