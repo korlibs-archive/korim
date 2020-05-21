@@ -1,5 +1,6 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
@@ -43,14 +44,22 @@ open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: In
             texSource.unsafeCast<HTMLCanvasElementLike>()
         }
 	}
+    val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
-	override fun toNonNativeBmp(): Bitmap {
-		val data = RgbaArray(width * height)
-		HtmlImage.renderHtmlCanvasIntoBitmap(lazyCanvasElement, data)
-		return Bitmap32(width, height, data)
-	}
+    override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val idata = ctx.getImageData(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
+        val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
+        arraycopy(data, 0, out.ints, offset, width * height)
+    }
 
-	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(lazyCanvasElement))
+    override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val idata = ctx.createImageData(width.toDouble(), height.toDouble())
+        val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
+        arraycopy(out.ints, offset, data, 0, width * height)
+        ctx.putImageData(idata, x.toDouble(), y.toDouble())
+    }
+
+    override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(lazyCanvasElement))
 }
 
 object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {

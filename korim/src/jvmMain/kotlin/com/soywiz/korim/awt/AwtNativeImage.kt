@@ -36,34 +36,65 @@ fun BufferedImage.clone(
 	return out
 }
 
-class AwtNativeImage(val awtImage: BufferedImage) : NativeImage(awtImage.width, awtImage.height, awtImage, premultiplied = (awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE)) {
+class AwtNativeImage private constructor(val awtImage: BufferedImage, val dummy: Boolean) : NativeImage(awtImage.width, awtImage.height, awtImage, premultiplied = (awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE)) {
+    init {
+        check((awtImage.type == BufferedImage.TYPE_INT_ARGB_PRE) || (awtImage.type == BufferedImage.TYPE_INT_ARGB))
+    }
+    val dataBuffer = awtImage.raster.dataBuffer as DataBufferInt
+    val awtData = dataBuffer.data
+    constructor(awtImage: BufferedImage) : this(awtConvertImageIfRequired(awtImage), true)
 	override val name: String = "AwtNativeImage"
-	override fun toNonNativeBmp(): Bitmap = awtImage.toBMP32()
+
 	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AwtContext2dRender(awtImage, antialiasing))
 
-	val dataBuffer = awtImage.raster.dataBuffer
+    override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        for (y0 in 0 until height) {
+            val iindex = index(x, y0 + y)
+            val oindex = offset + (y0 * width)
+            com.soywiz.kmem.arraycopy(awtData, iindex, out.ints, oindex, width)
+            convR(out.ints, oindex, width)
+        }
+    }
 
-	private val rbuffer: ByteBuffer by lazy {
-		ByteBuffer.allocateDirect(width * height * 4).apply {
-            (this as Buffer).clear()
-			val ib = asIntBuffer()
-			when (dataBuffer) {
-				// @TODO: Swap Bytes
-				is DataBufferByte -> put(dataBuffer.data)
-				is DataBufferInt -> ib.put(dataBuffer.data)
-				else -> TODO("dataBuffer: $dataBuffer")
-			}
-			for (n in 0 until area) ib.put(n, argb2rgba(ib.get(n)))
-            (this as Buffer).position(width * height * 4)
-			//println("BYTES: ${bytes.size}")
-			//println("BYTES: ${bytes.size}")
-            (this as Buffer).flip()
-		}
+    override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        for (y0 in 0 until height) {
+            val iindex = index(x, y0 + y)
+            val oindex = offset + (y0 * width)
+            com.soywiz.kmem.arraycopy(out.ints, oindex, awtData, iindex, width)
+            convW(awtData, iindex, width)
+        }
+    }
+
+    override fun setRgba(x: Int, y: Int, v: RGBA) = run { awtData[index(x, y)] = convR(v.value) }
+    override fun getRgba(x: Int, y: Int): RGBA = RGBA(convW(awtData[index(x, y)]))
+
+    private val rbufferData: ByteBuffer by lazy { ByteBuffer.allocateDirect(width * height * 4) }
+
+    private var rbufferVersion = -1
+	private val rbuffer: ByteBuffer get() = run {
+        if (rbufferVersion != version) {
+            rbufferVersion++
+            rbufferData.also { buf ->
+                buf.clear()
+                val ib = buf.asIntBuffer()
+                ib.put(dataBuffer.data)
+                for (n in 0 until area) ib.put(n, argb2rgba(ib.get(n)))
+                buf.position(width * height * 4)
+                buf.flip()
+            }
+        }
+        return rbufferData
 	}
 
-	private fun argb2rgba(col: Int): Int = (col shl 8) or (col ushr 24)
+    private fun argb2rgba(col: Int): Int = (col shl 8) or (col ushr 24)
 
-	val buffer: ByteBuffer get() = rbuffer.apply { (this as Buffer).rewind() }
+    private fun convR(data: Int) = BGRA.bgraToRgba(data)
+    private fun convR(data: IntArray, offset: Int, size: Int) = BGRA.bgraToRgba(data, offset, size)
+
+    private fun convW(data: Int) = BGRA.rgbaToBgra(data)
+    private fun convW(data: IntArray, offset: Int, size: Int) = BGRA.rgbaToBgra(data, offset, size)
+
+    val buffer: ByteBuffer get() = rbuffer.apply { (this as Buffer).rewind() }
 }
 
 //fun createRenderingHints(antialiasing: Boolean): RenderingHints = RenderingHints(mapOf<RenderingHints.Key, Any>())

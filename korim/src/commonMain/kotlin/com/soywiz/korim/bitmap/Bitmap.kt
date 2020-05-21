@@ -2,11 +2,13 @@ package com.soywiz.korim.bitmap
 
 import com.soywiz.kds.*
 import com.soywiz.kmem.*
+import com.soywiz.korim.annotation.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korma.geom.*
 import kotlin.math.*
+import kotlin.native.concurrent.*
 
 abstract class Bitmap(
     val width: Int,
@@ -15,15 +17,44 @@ abstract class Bitmap(
     var premultiplied: Boolean,
     val backingArray: Any?
 ) : Sizeable, Extra by Extra.Mixin() {
+    @ThreadLocal
+    protected val tempRgba: RgbaArray by lazy { RgbaArray(width * 2) }
+
     var contentVersion: Int = 0
 	var texture: Any? = null
+
+    protected var version = 0
+
+    @Suppress("unused")
+    val KorimInternalObject.version get() = this@Bitmap.version
 
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
 	override val size: Size get() = Size(width, height)
 
-	open fun setRgba(x: Int, y: Int, v: RGBA): Unit = TODO()
+    open fun lock() = Unit
+    open fun unlock(rect: Rectangle? = null) = version++
+
+    inline fun lock(rect: Rectangle? = null, block: () -> Unit) {
+        lock()
+        try {
+            block()
+        } finally {
+            unlock(rect)
+        }
+    }
+
+    open fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        var n = offset
+        for (y0 in 0 until height) for (x0 in 0 until width) out[n++] = getRgba(x0 + x, y0 + y)
+    }
+    open fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        var n = offset
+        for (y0 in 0 until height) for (x0 in 0 until width) setRgba(x0 + x, y0 + y, out[n++])
+    }
+
+    open fun setRgba(x: Int, y: Int, v: RGBA): Unit = TODO()
     open fun getRgba(x: Int, y: Int): RGBA = Colors.TRANSPARENT_BLACK
 
 	open fun setInt(x: Int, y: Int, color: Int): Unit = Unit
@@ -80,9 +111,8 @@ abstract class Bitmap(
 
 	protected open fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		for (y in 0 until height) {
-			for (x in 0 until width) {
-				dst.setInt(dstX + x, dstY + y, this.getInt(srcX + x, srcY + y))
-			}
+            readPixelsUnsafe(srcX, srcY + y, width, 1, tempRgba, 0)
+            dst.writePixelsUnsafe(dstX, dstY + y, width, 1, tempRgba, 0)
 		}
 	}
 
@@ -137,14 +167,10 @@ abstract class Bitmap(
 	open fun createWithThisFormat(width: Int, height: Int): Bitmap = invalidOp("Unsupported createWithThisFormat ($this)")
 
 	open fun toBMP32(): Bitmap32 = Bitmap32(width, height, premultiplied = premultiplied).also { out ->
-        val array = out.data
-        var n = 0
-        for (y in 0 until height) {
-            for (x in 0 until width) {
-                array[n++] = getRgba(x, y)
-            }
-        }
+        this.readPixelsUnsafe(0, 0, width, height, out.data, 0)
     }
+
+    fun toBMP32IfRequired(): Bitmap32 = if (this is Bitmap32) this else this.toBMP32()
 
     fun contentEquals(other: Bitmap): Boolean {
         if (this.width != other.width) return false

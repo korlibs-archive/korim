@@ -1,20 +1,45 @@
 package com.soywiz.korim.bitmap
 
+import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korio.lang.*
-import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
 
 abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplied: Boolean) : Bitmap(width, height, 32, premultiplied, null) {
 	open val name: String = "NativeImage"
     open fun toUri(): String = "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
 
-	abstract fun toNonNativeBmp(): Bitmap
+	open fun toNonNativeBmp(): Bitmap {
+        val out = Bitmap32(width, height)
+        readPixelsUnsafe(0, 0, width, height, out.data, 0)
+        return out
+    }
+    abstract override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int)
+    abstract override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int)
 
-	override fun swapRows(y0: Int, y1: Int) = throw UnsupportedOperationException()
+    override fun setRgba(x: Int, y: Int, v: RGBA) {
+        this.tempRgba[0] = v
+        writePixelsUnsafe(x, y, 1, 1, tempRgba, 0)
+    }
+
+    override fun getRgba(x: Int, y: Int): RGBA {
+        readPixelsUnsafe(x, y, 1, 1, tempRgba, 0)
+        return tempRgba[0]
+    }
+
+    override fun setInt(x: Int, y: Int, color: Int) = setRgba(x, y, RGBA(color))
+    override fun getInt(x: Int, y: Int): Int = getRgba(x, y).value
+
+    override fun swapRows(y0: Int, y1: Int) {
+        readPixelsUnsafe(0, y0, width, 1, tempRgba, 0)
+        readPixelsUnsafe(0, y1, width, 1, tempRgba, width)
+        writePixelsUnsafe(0, y1, width, 1, tempRgba, 0)
+        writePixelsUnsafe(0, y0, width, 1, tempRgba, width)
+    }
+
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap = NativeImage(width, height)
-    override fun toBMP32(): Bitmap32 = toNonNativeBmp().toBMP32()
+    override fun toBMP32(): Bitmap32 = toNonNativeBmp().toBMP32IfRequired()
     override fun toString(): String = "$name($width, $height)"
 }
 

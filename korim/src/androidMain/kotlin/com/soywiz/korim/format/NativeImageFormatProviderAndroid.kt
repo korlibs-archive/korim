@@ -106,10 +106,12 @@ class AndroidNativeImage(val androidBitmap: android.graphics.Bitmap) :
     NativeImage(androidBitmap.width, androidBitmap.height, androidBitmap, premultiplied = androidBitmap.isPremultiplied()) {
     override val name: String = "AndroidNativeImage"
 
-    override fun toNonNativeBmp(): Bitmap {
-        val out = RgbaArray(width * height)
-        androidBitmap.getPixels(out.ints, 0, width, 0, 0, width, height)
-        return Bitmap32(width, height, out, premultiplied = premultiplied)
+    override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        androidBitmap.getPixels(out.ints, offset, this.width, x, y, width, height)
+    }
+
+    override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        androidBitmap.setPixels(out.ints, offset, this.width, x, y, width, height)
     }
 
     override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(AndroidContext2dRenderer(androidBitmap, antialiasing))
