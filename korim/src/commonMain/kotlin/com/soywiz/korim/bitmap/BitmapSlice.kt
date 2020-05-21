@@ -24,7 +24,11 @@ interface BmpSlice : Extra {
 	val rotatedAngle: Int
 }
 
+fun <T : Bitmap> BmpSlice.asBitmapSlice(): BitmapSlice<T> = this as BitmapSlice<T>
+
 fun BmpSlice.getIntBounds(out: RectangleInt = RectangleInt()) = out.setTo(left, top, width, height)
+
+fun BmpSlice.extract(): Bitmap = bmp.extract(left, top, width, height)
 
 class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt, override val name: String = "unknown", rotated: Boolean = false) : BmpSlice, Extra by Extra.Mixin() {
 	val premultiplied get() = bmp.premultiplied

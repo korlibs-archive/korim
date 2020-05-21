@@ -1,6 +1,7 @@
 package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
+import com.soywiz.korim.color.*
 import com.soywiz.korim.font.FontMetrics
 import com.soywiz.korim.font.GlyphMetrics
 import com.soywiz.korim.font.SystemFont
@@ -27,6 +28,7 @@ abstract class NativeImageFormatProvider {
 
     abstract suspend fun display(bitmap: Bitmap, kind: Int): Unit
 	abstract fun create(width: Int, height: Int): NativeImage
+    //open fun create(width: Int, height: Int, premultiplied: Boolean): NativeImage = create(width, height)
 	open fun copy(bmp: Bitmap): NativeImage = create(bmp.width, bmp.height).apply { context2d { drawImage(bmp, 0, 0) } }
 	open fun mipmap(bmp: Bitmap, levels: Int): NativeImage = bmp.toBMP32().mipmap(levels).ensureNative()
 	open fun mipmap(bmp: Bitmap): NativeImage {
@@ -64,10 +66,13 @@ open class BaseNativeImageFormatProvider : NativeImageFormatProvider() {
 }
 
 open class BitmapNativeImage(val bitmap: Bitmap32) : NativeImage(bitmap.width, bitmap.height, bitmap, bitmap.premultiplied) {
+    @Suppress("unused")
     val intData: IntArray = bitmap.data.ints
-
     constructor(bitmap: Bitmap) : this(bitmap.toBMP32())
-
     override fun getContext2d(antialiasing: Boolean): Context2d = bitmap.getContext2d(antialiasing)
-    override fun toNonNativeBmp(): Bitmap = bitmap
+    override fun toBMP32(): Bitmap32 = bitmap
+    override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) = bitmap.readPixelsUnsafe(x, y, width, height, out, offset)
+    override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) = bitmap.writePixelsUnsafe(x, y, width, height, out, offset)
+    override fun setRgba(x: Int, y: Int, v: RGBA) = bitmap.setRgba(x, y, v)
+    override fun getRgba(x: Int, y: Int): RGBA = bitmap.getRgba(x, y)
 }

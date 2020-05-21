@@ -1,5 +1,6 @@
 package com.soywiz.korim.format
 
+import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
@@ -14,6 +15,7 @@ import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 import org.khronos.webgl.*
+import org.khronos.webgl.set
 import org.w3c.dom.*
 import org.w3c.dom.url.*
 import org.w3c.files.*
@@ -28,29 +30,63 @@ object NodeJsNativeImageFormatProvider : BaseNativeImageFormatProvider() {
     override val formats: ImageFormat by lazy { RegisteredImageFormats.also { it.register(PNG) } }
 }
 
-open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: Int) :
-	NativeImage(width, height, texSource, true) {
+private val tempB = ArrayBuffer(4)
+private val tempI = Int32Array(tempB)
+private val temp8 = Uint8Array(tempB)
+
+private val isLittleEndian: Boolean by lazy {
+    tempI[0] = 1
+    temp8[0].toInt() == 1
+}
+private val isBigEndian get() = !isLittleEndian
+
+private fun bswap32(v: Int): Int {
+    return (v ushr 24) or (v shl 24) or ((v and 0xFF00) shl 8) or (v ushr 8) and 0xFF00
+}
+
+private fun bswap32(v: IntArray, offset: Int, size: Int) {
+    // @TODO: Use Create Uint8Array from the buffer?
+    for (n in offset until offset + size) v[n] = bswap32(v[n])
+}
+
+open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: Int) :
+	NativeImage(width, height, texSourceBase, true) {
 	override val name: String = "HtmlNativeImage"
-	val element: HTMLElement get() = texSource as HTMLElement
+    var texSource: TexImageSource = texSourceBase
+        private set
+	val element: HTMLElement get() = texSource.unsafeCast<HTMLElement>()
 
 	constructor(img: HTMLImageElementLike) : this(img, img.width, img.height)
 	constructor(canvas: HTMLCanvasElementLike) : this(canvas, canvas.width, canvas.height)
 
-	val lazyCanvasElement: HTMLCanvasElementLike by lazy {
+    val lazyCanvasElement: HTMLCanvasElementLike by lazy {
         if (texSource.asDynamic().src !== undefined) {
             BrowserImage.imageToCanvas(texSource.unsafeCast<HTMLImageElementLike>())
         } else {
             texSource.unsafeCast<HTMLCanvasElementLike>()
-        }
+        }.also { texSource = it }
 	}
 
-	override fun toNonNativeBmp(): Bitmap {
-		val data = RgbaArray(width * height)
-		HtmlImage.renderHtmlCanvasIntoBitmap(lazyCanvasElement, data)
-		return Bitmap32(width, height, data)
-	}
+    val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
-	override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(lazyCanvasElement))
+    override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val size = width * height
+        val idata = ctx.getImageData(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
+        val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
+        arraycopy(data, 0, out.ints, offset, size)
+        if (isBigEndian) bswap32(out.ints, offset, size)
+    }
+
+    override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val size = width * height
+        val idata = ctx.createImageData(width.toDouble(), height.toDouble())
+        val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
+        arraycopy(out.ints, offset, data, 0, size)
+        if (isBigEndian) bswap32(data, 0, size)
+        ctx.putImageData(idata, x.toDouble(), y.toDouble())
+    }
+
+    override fun getContext2d(antialiasing: Boolean): Context2d = Context2d(CanvasContext2dRenderer(lazyCanvasElement))
 }
 
 object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {

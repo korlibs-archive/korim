@@ -26,7 +26,6 @@ class Bitmap16(
 	override fun getInt(x: Int, y: Int): Int = data[index(x, y)].toInt() and 0xFFFF
 
 	override fun setRgba(x: Int, y: Int, v: RGBA) = setInt(x, y, format.packRGBA(v))
-
 	override fun getRgba(x: Int, y: Int): RGBA = format.unpackToRGBA(data[index(x, y)].toInt())
 
 	override fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {

@@ -104,9 +104,7 @@ fun awtConvertImage(image: BufferedImage): BufferedImage {
 }
 
 fun awtConvertImageIfRequired(image: BufferedImage): BufferedImage =
-	if ((image.type == BufferedImage.TYPE_INT_ARGB_PRE) || (image.type == BufferedImage.TYPE_INT_ARGB)) image else awtConvertImage(
-		image
-	)
+	if ((image.type == BufferedImage.TYPE_INT_ARGB_PRE) || (image.type == BufferedImage.TYPE_INT_ARGB)) image else awtConvertImage(image)
 
 fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 	val ints = (out.raster.dataBuffer as DataBufferInt).data
@@ -118,14 +116,7 @@ fun Bitmap32.transferTo(out: BufferedImage): BufferedImage {
 
 val BufferedImage.premultiplied: Boolean get() = this.isAlphaPremultiplied
 
-fun BufferedImage.toBMP32(): Bitmap32 {
-	//println("Convert BufferedImage into BMP32!")
-	val image = awtConvertImageIfRequired(this)
-	val ints = (image.raster.dataBuffer as DataBufferInt).data.copyOf() // copyOf required to not mutate the bitmap
-	val area = image.width * image.height
-	for (n in 0 until area) ints[n] = BGRA.rgbaToBgra(ints[n]) // Fast toggle bytes
-	return Bitmap32(image.width, image.height, RgbaArray(ints), premultiplied)
-}
+fun BufferedImage.toBMP32(): Bitmap32 = AwtNativeImage(this).toBMP32()
 
 fun ImageIOReadFormat(s: InputStream, type: Int = AWT_INTERNAL_IMAGE_TYPE_PRE): BufferedImage {
 	return ImageIO.read(s)?.clone(type = type) ?: error("Can't read image")
