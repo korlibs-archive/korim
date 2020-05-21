@@ -10,11 +10,9 @@ abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplie
 	open val name: String = "NativeImage"
     open fun toUri(): String = "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
 
-	open fun toNonNativeBmp(): Bitmap {
-        val out = Bitmap32(width, height)
-        readPixelsUnsafe(0, 0, width, height, out.data, 0)
-        return out
-    }
+	fun toNonNativeBmp(): Bitmap = toBMP32()
+    override fun toBMP32(): Bitmap32 = Bitmap32(width, height, Colors.TRANSPARENT_BLACK, premultiplied).also { readPixelsUnsafe(0, 0, width, height, it.data, 0) }
+
     abstract override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int)
     abstract override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int)
 
@@ -39,7 +37,6 @@ abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplie
     }
 
 	override fun createWithThisFormat(width: Int, height: Int): Bitmap = NativeImage(width, height)
-    override fun toBMP32(): Bitmap32 = toNonNativeBmp().toBMP32IfRequired()
     override fun toString(): String = "$name($width, $height)"
 }
 

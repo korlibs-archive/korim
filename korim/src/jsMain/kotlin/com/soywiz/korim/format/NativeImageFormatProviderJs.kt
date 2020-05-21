@@ -15,6 +15,7 @@ import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 import org.khronos.webgl.*
+import org.khronos.webgl.set
 import org.w3c.dom.*
 import org.w3c.dom.url.*
 import org.w3c.files.*
@@ -27,6 +28,25 @@ actual val nativeImageFormatProvider: NativeImageFormatProvider = if (OS.isJsNod
 
 object NodeJsNativeImageFormatProvider : BaseNativeImageFormatProvider() {
     override val formats: ImageFormat by lazy { RegisteredImageFormats.also { it.register(PNG) } }
+}
+
+private val tempB = ArrayBuffer(4)
+private val tempI = Int32Array(tempB)
+private val temp8 = Uint8Array(tempB)
+
+private val isLittleEndian: Boolean by lazy {
+    tempI[0] = 1
+    temp8[0].toInt() == 1
+}
+private val isBigEndian get() = !isLittleEndian
+
+private fun bswap32(v: Int): Int {
+    return (v ushr 24) or (v shl 24) or ((v and 0xFF00) shl 8) or (v ushr 8) and 0xFF00
+}
+
+private fun bswap32(v: IntArray, offset: Int, size: Int) {
+    // @TODO: Use Create Uint8Array from the buffer?
+    for (n in offset until offset + size) v[n] = bswap32(v[n])
 }
 
 open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: Int) :
@@ -47,15 +67,19 @@ open class HtmlNativeImage(val texSource: TexImageSource, width: Int, height: In
     val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
     override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val size = width * height
         val idata = ctx.getImageData(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
         val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
-        arraycopy(data, 0, out.ints, offset, width * height)
+        arraycopy(data, 0, out.ints, offset, size)
+        if (isBigEndian) bswap32(out.ints, offset, size)
     }
 
     override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        val size = width * height
         val idata = ctx.createImageData(width.toDouble(), height.toDouble())
         val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
-        arraycopy(out.ints, offset, data, 0, width * height)
+        arraycopy(out.ints, offset, data, 0, size)
+        if (isBigEndian) bswap32(data, 0, size)
         ctx.putImageData(idata, x.toDouble(), y.toDouble())
     }
 
