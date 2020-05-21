@@ -180,7 +180,7 @@ class BitmapFont(
                     g.codePoint to Glyph(fontSize, g.codePoint, slice, -border, -border, m.xadvance.toIntCeil())
                 }.toIntMap(),
                 kernings = IntMap(),
-                atlas = atlas,
+                atlas = atlas.mipmaps(mipmaps),
                 name = fontName
             )
         }

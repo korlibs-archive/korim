@@ -20,8 +20,14 @@ abstract class Bitmap(
     @ThreadLocal
     protected val tempRgba: RgbaArray by lazy { RgbaArray(width * 2) }
 
+    /** Version of the content. lock+unlock mutates this version to allow for example to re-upload the bitmap to the GPU when synchronizing bitmaps into textures */
     var contentVersion: Int = 0
+
+    /** Associated texture object to this Bitmap that could be used by other engines */
 	var texture: Any? = null
+
+    /** Specifies whether mipmaps should be created for this [Bitmap] */
+    var mipmaps: Boolean = false
 
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
@@ -207,3 +213,6 @@ fun <T : Bitmap> T.checkMatchDimensions(other: T): T {
     check((this.width == other.width) && (this.height == other.height)) { "Bitmap doesn't have the same dimensions (${width}x${height}) != (${other.width}x${other.height})" }
     return other
 }
+
+/** Enable or disable mipmap generation for this [Bitmap] (Not used directly by KorIM, but KorGE) */
+fun <T : Bitmap> T.mipmaps(enable: Boolean = true): T = this.apply { this.mipmaps = enable }
