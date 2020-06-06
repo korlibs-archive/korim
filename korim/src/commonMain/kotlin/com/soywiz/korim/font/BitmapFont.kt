@@ -3,7 +3,6 @@ package com.soywiz.korim.font
 import com.soywiz.kds.Extra
 import com.soywiz.kds.IntMap
 import com.soywiz.kds.toIntMap
-import com.soywiz.klock.measureTimeWithResult
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.nextPowerOfTwo
 import com.soywiz.kmem.toIntCeil
@@ -27,8 +26,6 @@ import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.get
 import com.soywiz.korio.util.unquote
 import com.soywiz.korma.geom.Rectangle
-import com.soywiz.korma.geom.RectangleInt
-import com.soywiz.korma.geom.setTo
 import kotlin.collections.component1
 import kotlin.collections.component2
 import kotlin.collections.set
@@ -127,7 +124,8 @@ class BitmapFont(
 		val yoffset: Int,
 		val xadvance: Int
 	) {
-        val bmp = texture.extract().toBMP32()
+        val bmp: Bitmap32 by lazy { texture.extract().toBMP32() }
+
         internal val naturalMetrics = GlyphMetrics(
             fontSize, true, -1,
             Rectangle(xoffset, yoffset, texture.width, texture.height),
