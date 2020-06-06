@@ -70,6 +70,7 @@ open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: In
     val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
     override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        if (width <= 0 || height <= 0) return
         val size = width * height
         val idata = ctx.getImageData(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
         val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
@@ -78,6 +79,7 @@ open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: In
     }
 
     override fun writePixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
+        if (width <= 0 || height <= 0) return
         val size = width * height
         val idata = ctx.createImageData(width.toDouble(), height.toDouble())
         val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()

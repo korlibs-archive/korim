@@ -18,7 +18,15 @@ import com.soywiz.korim.vector.paint.*
 import com.soywiz.korma.geom.vector.*
 import kotlinx.coroutines.*
 
-actual val nativeImageFormatProvider: NativeImageFormatProvider = AndroidNativeImageFormatProvider
+actual val nativeImageFormatProvider: NativeImageFormatProvider by lazy {
+    try {
+        //     java.lang.RuntimeException: Method createBitmap in android.graphics.Bitmap not mocked. See http://g.co/androidstudio/not-mocked for details.
+        android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
+        AndroidNativeImageFormatProvider
+    } catch (e: RuntimeException) {
+        BaseNativeImageFormatProvider()
+    }
+}
 
 object AndroidNativeImageFormatProvider : NativeImageFormatProvider() {
     override suspend fun display(bitmap: Bitmap, kind: Int) {
