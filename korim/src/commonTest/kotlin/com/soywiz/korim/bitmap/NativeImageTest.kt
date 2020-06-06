@@ -26,4 +26,12 @@ class NativeImageTest {
         assertEquals(Colors.PINK, bmp.getRgba(2, 3))
         //bmp.showImageAndWait()
     }
+
+    @Test
+    fun testEmptyNativeImage() {
+        val array = RgbaArray(0)
+        val image = NativeImage(0, 0)
+        image.writePixelsUnsafe(0, 0, 0, 0, array, 0)
+        image.readPixelsUnsafe(0, 0, 0, 0, array, 0)
+    }
 }
