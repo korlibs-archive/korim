@@ -31,7 +31,15 @@ fun BmpSlice.getIntBounds(out: RectangleInt = RectangleInt()) = out.setTo(left, 
 
 fun BmpSlice.extract(): Bitmap = bmp.extract(left, top, width, height)
 
-class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt, override val name: String = "unknown", rotated: Boolean = false) : BmpSlice, Extra by Extra.Mixin() {
+data class BitmapSlice<out T : Bitmap>(
+    override val bmp: T,
+    val bounds: RectangleInt,
+    override val name: String = "unknown",
+    override val rotated: Boolean = false,
+    override val rotatedAngle: Int = 0
+) : BmpSlice, Extra by Extra.Mixin() {
+    // @TODO: compute right rotation
+
 	val premultiplied get() = bmp.premultiplied
 	override var parent: Any? = null
 
@@ -88,9 +96,6 @@ class BitmapSlice<out T : Bitmap>(override val bmp: T, val bounds: RectangleInt,
             }
         }
     }
-
-	override val rotated: Boolean = false
-	override val rotatedAngle: Int = 0
 
 	override fun toString(): String = "BitmapSlice($name:${SizeInt(bounds.width, bounds.height)})"
 }
