@@ -61,7 +61,8 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             //state.path.getFilledStroke(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, rasterizer.scale)
             tempPath.clear()
             state.path.strokeToFill(
-                state.lineWidth, state.lineJoin, state.startLineCap, state.endLineCap,
+                state.lineWidth,
+                state.lineJoin, state.startLineCap, state.endLineCap,
                 state.miterLimit,
                 temp = tempFillStrokeTemp, outFill = tempPath
             )
