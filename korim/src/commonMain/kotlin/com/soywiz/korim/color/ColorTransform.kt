@@ -51,11 +51,17 @@ data class ColorTransform(
 	var colorMul: RGBA
 		get() = computeColors()._colorMul
 		set(v) = run {
-            _mR = v.rd
-            _mG = v.gd
-            _mB = v.bd
-            _mA = v.ad
-            dirty = true
+            val mR = v.rd
+            val mG = v.gd
+            val mB = v.bd
+            val mA = v.ad
+            if (_mR != mR || _mG != mG || _mB != mB || _mA != mA) {
+                _mR = mR
+                _mG = mG
+                _mB = mB
+                _mA = mA
+                dirty = true
+            }
         }
 
 	var colorAdd: Int
@@ -64,11 +70,18 @@ data class ColorTransform(
 			return computeColors()._colorAdd
 		}
 		set(v) {
-			_aR = ColorAdd.unpackComponent(RGBA(v).r)
-			_aG = ColorAdd.unpackComponent(RGBA(v).g)
-			_aB = ColorAdd.unpackComponent(RGBA(v).b)
-			_aA = ColorAdd.unpackComponent(RGBA(v).a)
-			dirty = true
+            val c = RGBA(v)
+            aR = ColorAdd.unpackComponent(c.r)
+			aG = ColorAdd.unpackComponent(c.g)
+			aB = ColorAdd.unpackComponent(c.b)
+			aA = ColorAdd.unpackComponent(c.a)
+            if (_aR != aR || _aG != aG || _aB != aB || _aA != aA) {
+                _aR = aR
+                _aG = aG
+                _aB = aB
+                _aA = aA
+                dirty = true
+            }
 		}
 
 	var mR: Double get() = _mR; set(v) = run { _mR = v; dirty = true }
