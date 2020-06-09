@@ -244,7 +244,7 @@ class AndroidContext2dRenderer(val bmp: android.graphics.Bitmap, val antialiasin
 
     private fun setState(state: Context2d.State, fill: Boolean) {
         //canvas.matrix = androidMatrix.setTo(state.transform)
-        paint.strokeWidth = state.lineWidth.toFloat()
+        paint.strokeWidth = state.scaledLineWidth.toFloat()
     }
 
     private val androidClipPath = Path()

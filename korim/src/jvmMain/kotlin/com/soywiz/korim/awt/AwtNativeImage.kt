@@ -360,9 +360,8 @@ class AwtContext2dRender(val awtImage: BufferedImage, val antialiasing: Boolean 
 		if (fill) {
 			g.paint = state.fillStyle.toAwt(awtTransform)
 		} else {
-			val strokeSize = (state.lineWidth).toFloat()
 			g.stroke = BasicStroke(
-				strokeSize * ((state.transform.a + state.transform.d) * 0.5).toFloat(),
+				state.scaledLineWidth.toFloat(),
 				state.lineCap.toAwt(),
 				state.lineJoin.toAwt(),
 				state.miterLimit.toFloat()

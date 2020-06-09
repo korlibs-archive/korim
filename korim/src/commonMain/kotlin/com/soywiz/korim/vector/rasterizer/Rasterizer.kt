@@ -113,6 +113,4 @@ class Rasterizer : RastScale() {
         }
     }
     private val yList = IntArrayList(1024)
-
-    var strokeWidth: Double = 1.0
 }

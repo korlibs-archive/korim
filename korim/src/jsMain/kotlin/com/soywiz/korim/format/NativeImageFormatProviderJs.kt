@@ -300,7 +300,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
-			ctx.lineWidth = state.lineWidth
+			ctx.lineWidth = state.scaledLineWidth
 			ctx.lineJoin = when (state.lineJoin) {
 				LineJoin.BEVEL -> CanvasLineJoin.BEVEL
 				LineJoin.MITER -> CanvasLineJoin.MITER

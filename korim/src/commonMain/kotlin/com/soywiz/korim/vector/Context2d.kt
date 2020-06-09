@@ -90,6 +90,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var globalAlpha: Double = 1.0,
         var globalCompositeOperation: CompositeOperation = CompositeMode.SOURCE_OVER
 	) {
+        val scaledLineWidth get() = lineWidth * ((transform.a + transform.d) * 0.5).toFloat()
+
         var lineCap: LineCap
             get() = startLineCap
             set(value) {

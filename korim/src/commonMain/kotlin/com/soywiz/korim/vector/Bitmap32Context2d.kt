@@ -61,7 +61,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
             //state.path.getFilledStroke(state.lineWidth, state.startLineCap, state.endLineCap, state.lineJoin, rasterizer.scale)
             tempPath.clear()
             state.path.strokeToFill(
-                state.lineWidth,
+                state.scaledLineWidth,
                 state.lineJoin, state.startLineCap, state.endLineCap,
                 state.miterLimit,
                 temp = tempFillStrokeTemp, outFill = tempPath
@@ -70,7 +70,7 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
 
         fun flush() {
             if (rasterizer.path.isNotEmpty()) {
-                rasterizer.strokeWidth = state.lineWidth
+                //rasterizer.strokeWidth = state.lineWidth
                 //rasterizer.quality = if (antialiasing) 5 else 1
                 rasterizer.quality = if (antialiasing) 4 else 1
                 //rasterizer.quality = if (antialiasing) 2 else 1
