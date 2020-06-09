@@ -127,7 +127,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 	override fun draw(c: Context2d) {
 		c.keep {
 			c.strokeStyle = NonePaint
-			c.fillStyle = NonePaint
+			c.fillStyle = NonePaint //ColorPaint(Colors.BLACK)
 			drawElement(root, c)
 		}
 	}
@@ -284,6 +284,10 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
                     val relative = cmd in 'a'..'z' // lower case
+                    var lastCurve = when (lastCmd) {
+                        'S', 'C', 'T', 'Q', 's', 'c', 't', 'q' -> true
+                        else -> false
+                    }
 					when (cmd) {
 						'M', 'm' -> {
 							rMoveTo(n(), n(), relative)
@@ -292,7 +296,15 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 						'L', 'l' -> while (isNextNumber()) rLineTo(n(), n(), relative)
 						'H', 'h' -> while (isNextNumber()) rLineToH(n(), relative)
 						'V', 'v' -> while (isNextNumber()) rLineToV(n(), relative)
-						'Q', 'q' -> while (isNextNumber()) rQuadTo(n(), n(), n(), n(), relative)
+						'Q', 'q' -> while (isNextNumber()) {
+                            val cx = nX(relative)
+                            val cy = nY(relative)
+                            val x2 = nX(relative)
+                            val y2 = nY(relative)
+                            lastCX = cx
+                            lastCY = cy
+                            quadTo(cx, cy, x2, y2)
+                        }
 						'C', 'c' -> while (isNextNumber()) {
                             val x1 = nX(relative)
                             val y1 = nY(relative)
@@ -305,8 +317,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                             cubicTo(x1, y1, x2, y2, x, y)
                         }
                         'S', 's' -> {
-                            var lastCurve = lastCmd == 'S' || lastCmd == 's' || lastCmd == 'C' || lastCmd == 'c'
-                            var n = 0
                             while (isNextNumber()) {
                                 // https://www.stkent.com/2015/07/03/building-smooth-paths-using-bezier-curves.html
                                 // https://developer.mozilla.org/en-US/docs/Web/SVG/Tutorial/Paths
@@ -322,14 +332,27 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                                 val x = nX(relative)
                                 val y = nY(relative)
 
-                                // @TODO: Is this the way to compute x1, y1?
-                                val x1 = if (lastCurve) (lastX * 2) - lastCX else lastX
-                                val y1 = if (lastCurve) (lastY * 2) - lastCY else lastY
+                                val x1 = if (lastCurve) lastX * 2 - lastCX else lastX
+                                val y1 = if (lastCurve) lastY * 2 - lastCY else lastY
 
                                 lastCX = x2
                                 lastCY = y2
 
                                 cubicTo(x1, y1, x2, y2, x, y)
+                                lastCurve = true
+                            }
+                        }
+                        'T', 't' -> {
+                            var n = 0
+                            while (isNextNumber()) {
+                                val x2 = nX(relative)
+                                val y2 = nY(relative)
+                                val cx = if (lastCurve) lastX * 2 - lastCX else lastX
+                                val cy = if (lastCurve) lastY * 2 - lastCY else lastY
+                                //println("[$cmd]: $lastX, $lastY, $cx, $cy, $x2, $y2 :: $lastX - $lastCX :: $cx :: $lastCurve :: $lastCmd")
+                                lastCX = cx
+                                lastCY = cy
+                                quadTo(cx, cy, x2, y2)
                                 n++
                                 lastCurve = true
                             }
