@@ -1,15 +1,28 @@
 package com.soywiz.korim.vector.format
 
-import com.soywiz.kds.*
-import com.soywiz.korim.color.*
+import com.soywiz.kds.ListReader
+import com.soywiz.kds.expect
+import com.soywiz.kds.mapWhile
+import com.soywiz.korim.color.Colors
+import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.vector.*
 import com.soywiz.korim.vector.paint.*
-import com.soywiz.korio.lang.*
-import com.soywiz.korio.serialization.xml.*
-import com.soywiz.korio.util.*
-import com.soywiz.korma.geom.*
+import com.soywiz.korio.lang.invalidOp
+import com.soywiz.korio.lang.printStackTrace
+import com.soywiz.korio.lang.substr
+import com.soywiz.korio.serialization.xml.Xml
+import com.soywiz.korio.serialization.xml.allChildren
+import com.soywiz.korio.serialization.xml.isComment
+import com.soywiz.korio.util.StrReader
+import com.soywiz.korio.util.isDigit
+import com.soywiz.korio.util.isLetterOrUnderscore
+import com.soywiz.korio.util.isNumeric
+import com.soywiz.korma.geom.Matrix
+import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korma.geom.a
 import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
+import kotlin.math.*
 
 class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = null) : SizedDrawable {
 	//constructor(@Language("xml") str: String) : this(Xml(str))
@@ -179,7 +192,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
         }
 	}
 
-	fun drawElement(xml: Xml, c: Context2d): Context2d = c.keepApply {
+    private val t = DoubleArray(6)
+
+    fun drawElement(xml: Xml, c: Context2d): Context2d = c.keepApply {
 		val bounds = Rectangle()
 		val nodeName = xml.nameLC
 
@@ -220,8 +235,8 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				var edges = 0
 				path.moveTo(pps.read(), pps.read())
 				while (pps.hasMore) {
-					val x = pps.read();
-					val y = pps.read()
+					val x = pps.read()
+                    val y = pps.read()
 					path.lineTo(x, y)
 					edges++
 				}
@@ -277,11 +292,12 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				//dumpTokens()
 
 				beginPath()
-                moveTo(0, 0) // Supports relative positioning as first command
+                moveTo(0.0, 0.0) // Supports relative positioning as first command
                 var lastCX = 0.0
                 var lastCY = 0.0
                 var lastCmd = '-'
-				while (tl.hasMore) {
+
+                while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
                     val relative = cmd in 'a'..'z' // lower case
                     var lastCurve = when (lastCmd) {
@@ -357,7 +373,117 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                                 lastCurve = true
                             }
                         }
-                        'A', 'a' -> TODO("arcs not implemented")
+                        'A', 'a' -> {
+                            // Ported from nanosvg (https://github.com/memononen/nanosvg/blob/25241c5a8f8451d41ab1b02ab2d865b01600d949/src/nanosvg.h#L2067)
+                            // Ported from canvg (https://code.google.com/p/canvg/)
+                            var rx = readNumber().absoluteValue				// y radius
+                            var ry = readNumber().absoluteValue				// x radius
+                            val rotx = readNumber() / 180.0 * PI        // x rotation angle
+                            val fa = if ((readNumber().absoluteValue) > 1e-6) 1 else 0	// Large arc
+                            val fs = if ((readNumber().absoluteValue) > 1e-6) 1 else 0	// Sweep direction
+                            val x1 = lastX							// start point
+                            val y1 = lastY                          // end point
+                            val x2 = nX(relative)
+                            val y2 = nY(relative)
+
+                            var dx = x1 - x2
+                            var dy = y1 - y2
+
+                            val d = hypot(dx, dy)
+                            if (d < 1e-6f || rx < 1e-6f || ry < 1e-6f) {
+                                // The arc degenerates to a line
+                                lineTo(x2, y2)
+                            } else {
+                                val sinrx = kotlin.math.sin(rotx)
+                                val cosrx = kotlin.math.cos(rotx)
+
+                                // Convert to center point parameterization.
+                                // http://www.w3.org/TR/SVG11/implnote.html#ArcImplementationNotes
+                                // 1) Compute x1', y1'
+                                val x1p = cosrx * dx / 2.0f + sinrx * dy / 2.0f
+                                val y1p = -sinrx * dx / 2.0f + cosrx * dy / 2.0f
+                                var d = sqr(x1p) / sqr(rx) + sqr(y1p) / sqr(ry)
+                                if (d > 1) {
+                                    d = sqr(d)
+                                    rx *= d
+                                    ry *= d
+                                }
+                                // 2) Compute cx', cy'
+                                var s = 0.0
+                                var sa = sqr(rx) * sqr(ry) - sqr(rx) * sqr(y1p) - sqr(ry) * sqr(x1p)
+                                val sb = sqr(rx) * sqr(y1p) + sqr(ry) * sqr(x1p)
+                                if (sa < 0.0) sa = 0.0
+                                if (sb > 0.0)
+                                    s = sqrt(sa / sb)
+                                if (fa == fs)
+                                    s = -s
+                                val cxp = s * rx * y1p / ry
+                                val cyp = s * -ry * x1p / rx
+
+                                // 3) Compute cx,cy from cx',cy'
+                                val cx = (x1 + x2) / 2.0 + cosrx * cxp - sinrx * cyp
+                                val cy = (y1 + y2) / 2.0 + sinrx * cxp + cosrx * cyp
+
+                                // 4) Calculate theta1, and delta theta.
+                                val ux = (x1p - cxp) / rx
+                                val uy = (y1p - cyp) / ry
+                                val vx = (-x1p - cxp) / rx
+                                val vy = (-y1p - cyp) / ry
+                                val a1 = vecang(1.0, 0.0, ux, uy)    // Initial angle
+                                var da = vecang(ux, uy, vx, vy)        // Delta angle
+
+                                //	if (vecrat(ux,uy,vx,vy) <= -1.0f) da = NSVG_PI;
+                                //	if (vecrat(ux,uy,vx,vy) >= 1.0f) da = 0;
+
+                                if (fs == 0 && da > 0)
+                                    da -= 2 * PI
+                                else if (fs == 1 && da < 0)
+                                    da += 2 * PI
+
+
+                                // Approximate the arc using cubic spline segments.
+                                t[0] = cosrx
+                                t[1] = sinrx
+                                t[2] = -sinrx
+                                t[3] = cosrx
+                                t[4] = cx
+                                t[5] = cy
+
+                                // Split arc into max 90 degree segments.
+                                // The loop assumes an iteration per end point (including start and end), this +1.
+                                val ndivs = (abs(da) / (PI * 0.5) + 1.0).toInt()
+                                val hda = (da / ndivs.toDouble()) / 2.0
+                                var kappa = abs(4.0f / 3.0f * (1.0f - cos(hda)) / sin(hda))
+                                if (da < 0.0f) kappa = -kappa
+
+                                var ptanx = 0.0
+                                var ptany = 0.0
+                                var px = 0.0
+                                var py = 0.0
+
+                                for (i in 0..ndivs) {
+                                    val a = a1 + da * (i.toDouble() / ndivs.toDouble())
+                                    dx = cos(a)
+                                    dy = sin(a)
+                                    val x = xformPointX(dx*rx, dy*ry, t) // position
+                                    val y = xformPointY( dx*rx, dy*ry, t) // position
+                                    val tanx = xformVecX( -dy*rx * kappa, dx*ry * kappa, t) // tangent
+                                    val tany = xformVecY(-dy*rx * kappa, dx*ry * kappa, t) // tangent
+                                    if (i > 0) {
+                                        cubicTo(px + ptanx, py + ptany, x - tanx, y - tany, x, y)
+                                    }
+                                    px = x
+                                    py = y
+                                    ptanx = tanx
+                                    ptany = tany
+                                }
+
+                                lastX = x2
+                                lastY = y2
+                                //*cpx = x2;
+                                //*cpy = y2;
+                            }
+                        }
                         'Z', 'z' -> close()
 						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
 					}
@@ -421,6 +547,26 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
 		c.fillStroke()
 	}
+
+    private fun sqr(v: Double) = v * v
+    private fun vmag(x: Double, y: Double): Double {
+        return sqrt(x * x + y * y)
+    }
+
+    private fun vecrat(ux: Double, uy: Double, vx: Double, vy: Double): Double {
+        return (ux * vx + uy * vy) / (vmag(ux, uy) * vmag(vx, vy))
+    }
+
+    private fun vecang(ux: Double, uy: Double, vx: Double, vy: Double): Double {
+        var r = vecrat(ux, uy, vx, vy)
+        if (r < -1.0) r = -1.0
+        if (r > 1.0) r = 1.0
+        return (if (ux * vy < uy * vx) -1.0 else 1.0) * acos(r)
+    }
+    private fun xformPointX(x: Double, y: Double, t: DoubleArray) = x*t[0] + y*t[2] + t[4]
+    private fun xformPointY(x: Double, y: Double, t: DoubleArray) = x*t[1] + y*t[3] + t[5]
+    private fun xformVecX(x: Double, y: Double, t: DoubleArray) = x*t[0] + y*t[2]
+    private fun xformVecY(x: Double, y: Double, t: DoubleArray): Double = x*t[1] + y*t[3]
 
     fun parseSizeAsDouble(size: String): Double {
         return size.filter { it !in 'a'..'z' && it !in 'A'..'Z' }.toDoubleOrNull() ?: 16.0
