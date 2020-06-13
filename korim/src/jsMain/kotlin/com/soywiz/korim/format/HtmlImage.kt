@@ -5,6 +5,7 @@ import com.soywiz.korim.color.*
 import org.khronos.webgl.*
 import org.w3c.dom.*
 
+// @TODO: BrowserImage and HtmlImage should be combined!
 object HtmlImage {
 	fun createHtmlCanvas(width: Int, height: Int): HTMLCanvasElementLike {
 		return HtmlCanvas.createCanvas(width, height)

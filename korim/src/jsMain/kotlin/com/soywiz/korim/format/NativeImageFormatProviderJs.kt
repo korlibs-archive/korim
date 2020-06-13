@@ -159,6 +159,7 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 	}
 }
 
+// @TODO: BrowserImage and HtmlImage should be combined!
 @Suppress("unused")
 object BrowserImage {
     private fun toNodeJsBuffer(@Suppress("UNUSED_PARAMETER") ba: ByteArray): dynamic = js("(Buffer.from(ba.buffer))")
