@@ -1,5 +1,7 @@
 package com.soywiz.korim.format
 
+import com.soywiz.klock.*
+import com.soywiz.klock.hr.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
@@ -49,7 +51,7 @@ private fun bswap32(v: IntArray, offset: Int, size: Int) {
     for (n in offset until offset + size) v[n] = bswap32(v[n])
 }
 
-open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: Int) :
+open class HtmlNativeImage(val texSourceBase: TexImageSource, width: Int, height: Int) :
 	NativeImage(width, height, texSourceBase, true) {
 	override val name: String = "HtmlNativeImage"
     var texSource: TexImageSource = texSourceBase
@@ -61,17 +63,29 @@ open class HtmlNativeImage(texSourceBase: TexImageSource, width: Int, height: In
 
     val lazyCanvasElement: HTMLCanvasElementLike by lazy {
         if (texSource.asDynamic().src !== undefined) {
-            BrowserImage.imageToCanvas(texSource.unsafeCast<HTMLImageElementLike>())
+            BrowserImage.imageToCanvas(texSource.unsafeCast<HTMLImageElementLike>(), width, height)
         } else {
             texSource.unsafeCast<HTMLCanvasElementLike>()
         }.also { texSource = it }
 	}
 
-    val ctx by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
+    val ctx: CanvasRenderingContext2D by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
+    private var lastRefresh = 0.0.hrNanoseconds
     override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
         if (width <= 0 || height <= 0) return
         val size = width * height
+
+        if (texSourceBase is HTMLVideoElement) {
+            // Must refresh
+            val now = PerformanceCounter.hr
+            val elapsedTime = now - lastRefresh
+            if (elapsedTime >= 16.hrMilliseconds) {
+                lastRefresh = now
+                ctx.clearRect(0.0, 0.0, width.toDouble(), height.toDouble())
+                ctx.drawImage(texSourceBase, 0.0, 0.0)
+            }
+        }
         val idata = ctx.getImageData(x.toDouble(), y.toDouble(), width.toDouble(), height.toDouble())
         val data = idata.data.buffer.asInt32Buffer().unsafeCast<IntArray>()
         arraycopy(data, 0, out.ints, offset, size)
@@ -161,13 +175,17 @@ object BrowserImage {
 	}
 
 	fun imageToCanvas(img: HTMLImageElementLike): HTMLCanvasElementLike {
-        val canvas = HtmlCanvas.createCanvas(img.width, img.height)
+        return imageToCanvas(img, img.width, img.height)
+	}
+
+    fun imageToCanvas(img: HTMLImageElementLike, width: Int, height: Int): HTMLCanvasElementLike {
+        val canvas = HtmlCanvas.createCanvas(width, height)
         //println("[onload.b]")
         val ctx: CanvasRenderingContext2D = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
         //println("[onload.c]")
         ctx.drawImage(img.unsafeCast<CanvasImageSource>(), 0.0, 0.0)
         return canvas
-	}
+    }
 
 	suspend fun loadImage(jsUrl: String, premultiplied: Boolean = true): HTMLImageElementLike = suspendCancellableCoroutine { c ->
 		// Doesn't work with Kotlin.JS
