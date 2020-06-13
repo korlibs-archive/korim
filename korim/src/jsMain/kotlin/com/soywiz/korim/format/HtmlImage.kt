@@ -2,9 +2,7 @@ package com.soywiz.korim.format
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korio.lang.*
-import org.khronos.webgl.get
-import org.khronos.webgl.set
+import org.khronos.webgl.*
 import org.w3c.dom.*
 
 object HtmlImage {
@@ -46,15 +44,8 @@ object HtmlImage {
         if (width <= 0 || height <= 0) return
         val ctx = canvas.getContext("2d").unsafeCast<CanvasRenderingContext2D>()
         val data = ctx.getImageData(0.0, 0.0, width.toDouble(), height.toDouble())
-        val ddata = data.data
-        var m = 0
-        for (n in 0 until len) {
-            val r = ddata[m++].toInt() and 0xFF
-            val g = ddata[m++].toInt() and 0xFF
-            val b = ddata[m++].toInt() and 0xFF
-            val a = ddata[m++].toInt() and 0xFF
-            out[n] = RGBA(r, g, b, a)
-        }
+        val idata = Int32Array(data.data.buffer).unsafeCast<IntArray>()
+        com.soywiz.kmem.arraycopy(idata, 0, out.ints, 0, len)
         //console.log(out);
 	}
 
