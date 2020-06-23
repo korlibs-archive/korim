@@ -24,6 +24,10 @@ inline class YUVA(val value: Int) {
 
         override fun pack(r: Int, g: Int, b: Int, a: Int): Int = RGBA(r, g, b, a).toYUVA().value
 
+        //val R = (1.164f * (Y - 16) + 1.596f * (V - 128)).toInt()
+        //val G = (1.164f * (Y - 16) - 0.813f * (V - 128) - 0.391f * (U - 128)).toInt()
+        //val B = (1.164f * (Y - 16) + 2.018f * (U - 128)).toInt()
+
         fun getY(r: Int, g: Int, b: Int): Int = (((0.299 * r) + (0.587 * g) + (0.114 * b)).toInt()).clamp0_255()
         fun getU(r: Int, g: Int, b: Int): Int = ((0.492 * (b * getY(r, g, b))).toInt()).clamp0_255()
         fun getV(r: Int, g: Int, b: Int): Int = ((0.877 * (r * getY(r, g, b))).toInt()).clamp0_255()
