@@ -9,6 +9,8 @@ import com.soywiz.korio.util.encoding.*
 abstract class NativeImage(width: Int, height: Int, val data: Any?, premultiplied: Boolean) : Bitmap(width, height, 32, premultiplied, null) {
     /** Allow to force to use a texture id from OpenGL. For example a video texture from Android */
     open val forcedTexId: Int get() = -1
+    /** Allow to force to use a texture target from OpenGL. For example a video texture from Android (-1 means GL_TEXTURE_2D) */
+    open val forcedTexTarget: Int get() = -1
 
 	open val name: String = "NativeImage"
     open fun toUri(): String = "data:image/png;base64," + PNG.encode(this, ImageEncodingProps("out.png")).toBase64()
