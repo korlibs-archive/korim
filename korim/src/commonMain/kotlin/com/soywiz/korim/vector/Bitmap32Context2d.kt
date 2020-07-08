@@ -185,15 +185,15 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
         }
         fun select(x0: Int, x1: Int, y0: Int) {
             if (width1 < 1) return
-            val x0 = x0.coerceIn(0, width1 * RAST_FIXED_SCALE)
-            val x1 = x1.coerceIn(0, width1 * RAST_FIXED_SCALE)
-            val a = x0 / RAST_FIXED_SCALE
-            val b = x1 / RAST_FIXED_SCALE
-            val y = y0 / RAST_FIXED_SCALE
+            val x0 = x0.coerceIn(0, width1 * RastScale.RAST_FIXED_SCALE)
+            val x1 = x1.coerceIn(0, width1 * RastScale.RAST_FIXED_SCALE)
+            val a = x0 / RastScale.RAST_FIXED_SCALE
+            val b = x1 / RastScale.RAST_FIXED_SCALE
+            val y = y0 / RastScale.RAST_FIXED_SCALE
             val i0 = a.coerceIn(0, width1)
             val i1 = b.coerceIn(0, width1)
-            val i0m = x0 % RAST_FIXED_SCALE
-            val i1m = x1 % RAST_FIXED_SCALE
+            val i0m = x0 % RastScale.RAST_FIXED_SCALE
+            val i1m = x1 % RastScale.RAST_FIXED_SCALE
 
             if (ny != y) {
                 if (y >= 0) flush()
@@ -208,9 +208,9 @@ class Bitmap32Context2d(val bmp: Bitmap32, val antialiasing: Boolean) : com.soyw
                 segments.add(i0, i1)
                 //println("ROW[$y0]: $x0,$x1")
                 //println("i1=$i1, x1=$x1")
-                put(i0, 1f - i0m.toFloat() / RAST_FIXED_SCALE)
+                put(i0, 1f - i0m.toFloat() / RastScale.RAST_FIXED_SCALE)
                 for (x in i0 + 1 until i1) put(x, 1f)
-                if (i1m != 0) put(i1, i1m.toFloat() / RAST_FIXED_SCALE)
+                if (i1m != 0) put(i1, i1m.toFloat() / RastScale.RAST_FIXED_SCALE)
                 //alphaCount++
             }
         }
