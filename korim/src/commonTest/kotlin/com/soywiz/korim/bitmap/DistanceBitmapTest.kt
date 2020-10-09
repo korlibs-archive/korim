@@ -20,12 +20,12 @@ class DistanceBitmapTest {
                 3.6,2.8,2.2,2.0,2.2,2.8,3.6
                 2.8,2.2,1.4,1.0,1.4,2.2,2.8
                 2.2,1.4,1.0,0.0,1.0,1.4,2.2
-                2.0,1.0,0.0,-0.0,0.0,1.0,2.0
+                2.0,1.0,0.0,0.0,0.0,1.0,2.0
                 2.2,1.4,1.0,0.0,1.0,1.4,2.2
                 2.8,2.2,1.4,1.0,1.4,2.2,2.8
                 3.6,2.8,2.2,2.0,2.2,2.8,3.6
             """.trimIndent(),
-            (0 until distanceBmp.height).joinToString("\n") { y -> (0 until distanceBmp.width).joinToString(",") { x -> "${distanceBmp.getDist(x, y).toStringDecimal(1)}" } }
+            (0 until distanceBmp.height).joinToString("\n") { y -> (0 until distanceBmp.width).joinToString(",") { x -> distanceBmp.getDist(x, y).toStringDecimal(1) } }.replace("-", "")
         )
         //distanceBmp.toNormalizedDistanceBitmap8().showImageAndWait()
     }
