@@ -3,7 +3,6 @@ import com.soywiz.korlibs.*
 apply<KorlibsPlugin>()
 
 korlibs {
-    exposeVersion()
     dependencyCInterops("stb_image", (if (korlibs.linuxEnabled) listOf("linuxX64") else listOf()) + listOf("iosX64", "iosArm32", "iosArm64"))
 }
 
