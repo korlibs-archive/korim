@@ -3,6 +3,7 @@ package com.soywiz.korim.bitmap
 import com.soywiz.kmem.*
 import com.soywiz.korim.annotation.*
 import com.soywiz.korim.color.*
+import com.soywiz.korim.internal.*
 import com.soywiz.korim.vector.*
 import com.soywiz.korma.geom.*
 import kotlin.js.*
@@ -23,6 +24,8 @@ class Bitmap32(
 		if (data.size < width * height) throw RuntimeException("Bitmap data is too short: width=$width, height=$height, data=ByteArray(${data.size}), area=${width * height}")
 	}
 
+    val intData get() = data.ints
+
 	private val temp = RgbaArray(max(width, height))
     val bounds: IRectangleInt = RectangleInt(0, 0, width, height)
 
@@ -36,13 +39,13 @@ class Bitmap32(
 
     override fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
         if (dst !is Bitmap32) return super.copyUnchecked(srcX, srcY, dst, dstX, dstY, width, height)
-		val src = this
-		val srcArray = src.data
-		val dstArray = dst.data
-		for (y in 0 until height) {
-			arraycopy(srcArray.ints, src.index(srcX, srcY + y), dstArray.ints, dst.index(dstX, dstY + y), width)
-		}
-	}
+        val src = this
+        val srcArray = src.data
+        val dstArray = dst.data
+        for (y in 0 until height) {
+            arraycopy(srcArray.ints, src.index(srcX, srcY + y), dstArray.ints, dst.index(dstX, dstY + y), width)
+        }
+    }
 
     operator fun set(x: Int, y: Int, color: RGBA) = run { data[index(x, y)] = color }
 	operator fun get(x: Int, y: Int): RGBA = data[index(x, y)]
@@ -175,7 +178,7 @@ class Bitmap32(
 	fun copySliceWithBounds(left: Int, top: Int, right: Int, bottom: Int): Bitmap32 =
 		copySliceWithSize(left, top, right - left, bottom - top)
 
-	fun copySliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32 = Bitmap32(width, height).also { out ->
+	fun copySliceWithSize(x: Int, y: Int, width: Int, height: Int): Bitmap32 = Bitmap32(width, height, this[0, 0], premultiplied).also { out ->
         for (yy in 0 until height) {
             arraycopy(this.data, this.index(x, y + yy), out.data, out.index(0, yy), width)
         }
@@ -221,10 +224,10 @@ class Bitmap32(
 	fun depremultipliedIfRequired(): Bitmap32 = if (!this.premultiplied) this else depremultiplied()
 
     @JsName("copyPremultiplied")
-	fun premultiplied(): Bitmap32 = this.clone().apply { premultiplyInplace() }
+	fun premultiplied(): Bitmap32 = this.clone().apply { premultiplyInplaceIfRequired() }
 	fun depremultiplied(): Bitmap32 = this.clone().apply { depremultiplyInplace() }
 
-	fun premultiplyInplace() {
+	fun premultiplyInplaceIfRequired() {
 		if (premultiplied) return
 		premultiplied = true
         updateColors { it.premultiplied.asNonPremultiplied() }
@@ -249,7 +252,7 @@ class Bitmap32(
 
 	fun mipmap(levels: Int): Bitmap32 {
 		val temp = this.clone()
-		temp.premultiplyInplace()
+		temp.premultiplyInplaceIfRequired()
 		val dst = temp.data.asPremultiplied()
 
 		var twidth = width
@@ -263,7 +266,11 @@ class Bitmap32(
 				var m = temp.index(0, y * 2)
 
 				for (x in 0 until twidth) {
-					dst[n] = RGBAPremultiplied.blend(dst[m + 0], dst[m + 1], dst[m + width + 0], dst[m + width + 1])
+                    val c1 = dst[m + 0]
+                    val c2 = dst[m + 1]
+                    val c3 = dst[m + width + 0]
+                    val c4 = dst[m + width + 1]
+					dst[n] = RGBAPremultiplied.blend(c1, c2, c3, c4)
 					m += 2
 					n++
 				}
@@ -360,6 +367,7 @@ class Bitmap32(
     //override fun hashCode(): Int = (width * 31 + height) + data.ints.contentHashCode() + premultiplied.toInt()
 
     companion object {
+        operator fun invoke(width: Int, height: Int, premultiplied: Boolean) = Bitmap32(width, height, Colors.TRANSPARENT_BLACK, premultiplied)
         operator fun invoke(width: Int, height: Int, premultiplied: Boolean = false, generator: (x: Int, y: Int) -> RGBA): Bitmap32 {
             return Bitmap32(width, height, RgbaArray(width * height).also {
                 var n = 0

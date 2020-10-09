@@ -17,7 +17,7 @@ abstract class Bitmap(
     var premultiplied: Boolean,
     val backingArray: Any?
 ) : Sizeable, Extra by Extra.Mixin() {
-    @ThreadLocal
+    //@ThreadLocal
     protected val tempRgba: RgbaArray by lazy { RgbaArray(width * 2) }
 
     /** Version of the content. lock+unlock mutates this version to allow for example to re-upload the bitmap to the GPU when synchronizing bitmaps into textures */
@@ -110,7 +110,7 @@ abstract class Bitmap(
         copyUnchecked(srcX, srcY, dst, dstX, dstY, width, height)
     }
 
-	protected open fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
+	open fun copyUnchecked(srcX: Int, srcY: Int, dst: Bitmap, dstX: Int, dstY: Int, width: Int, height: Int) {
 		for (y in 0 until height) {
             readPixelsUnsafe(srcX, srcY + y, width, 1, tempRgba, 0)
             dst.writePixelsUnsafe(dstX, dstY + y, width, 1, tempRgba, 0)
@@ -216,3 +216,8 @@ fun <T : Bitmap> T.checkMatchDimensions(other: T): T {
 
 /** Enable or disable mipmap generation for this [Bitmap] (Not used directly by KorIM, but KorGE) */
 fun <T : Bitmap> T.mipmaps(enable: Boolean = true): T = this.apply { this.mipmaps = enable }
+
+
+fun <T : Bitmap> T.asumePremultiplied(): T = this.apply {
+    this.premultiplied = true
+}

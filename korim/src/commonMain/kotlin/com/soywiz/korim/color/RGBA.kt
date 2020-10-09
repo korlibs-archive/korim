@@ -7,11 +7,16 @@ import com.soywiz.korim.internal.*
 import com.soywiz.korim.internal.clamp0_255
 import com.soywiz.korim.internal.d2i
 import com.soywiz.korim.internal.f2i
+import com.soywiz.korim.vector.paint.*
 import com.soywiz.korio.lang.format
+import com.soywiz.korma.geom.*
 import com.soywiz.korma.interpolation.Interpolable
 import com.soywiz.korma.interpolation.interpolate
 
-inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
+inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA>, Paint {
+    override fun transformed(m: Matrix): Paint = this
+    val color: RGBA get() = this
+
     val r: Int get() = (value ushr 0) and 0xFF
 	val g: Int get() = (value ushr 8) and 0xFF
 	val b: Int get() = (value ushr 16) and 0xFF
@@ -40,6 +45,11 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     fun withBd(v: Double) = withB(d2i(v))
     fun withAd(v: Double) = withA(d2i(v))
 
+    fun withRf(v: Float) = withR(f2i(v))
+    fun withGf(v: Float) = withG(f2i(v))
+    fun withBf(v: Float) = withB(f2i(v))
+    fun withAf(v: Float) = withA(f2i(v))
+
     fun getComponent(c: Int): Int = when (c) {
         0 -> r
         1 -> g
@@ -57,8 +67,9 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
     }
 
     val hexString: String get() ="#%02x%02x%02x%02x".format(r, g, b, a)
+    val hexStringNoAlpha: String get() = "#%02x%02x%02x".format(r, g, b)
 	val htmlColor: String get() = "rgba($r, $g, $b, $af)"
-	val htmlStringSimple: String get() = "#%02x%02x%02x".format(r, g, b)
+	val htmlStringSimple: String get() = hexStringNoAlpha
 
 	override fun toString(): String = hexString
 
@@ -85,6 +96,7 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA> {
 		operator fun invoke(r: Int, g: Int, b: Int, a: Int): RGBA = RGBA(packIntClamped(r, g, b, a))
         operator fun invoke(r: Int, g: Int, b: Int): RGBA = RGBA(packIntClamped(r, g, b, 0xFF))
 		operator fun invoke(rgb: Int, a: Int): RGBA = RGBA((rgb and 0xFFFFFF) or (a shl 24))
+        operator fun invoke(rgba: RGBA): RGBA = rgba
 		override fun getR(v: Int): Int = RGBA(v).r
 		override fun getG(v: Int): Int = RGBA(v).g
 		override fun getB(v: Int): Int = RGBA(v).b
@@ -230,10 +242,6 @@ inline class RGBAPremultiplied(val value: Int) {
 
         operator fun invoke(rgba: RGBA): RGBAPremultiplied = rgba.premultiplied
 
-        @Deprecated("Use blendAlpha instead")
-        fun mix(c1: RGBAPremultiplied, c2: RGBAPremultiplied): RGBAPremultiplied =
-            RGBAPremultiplied(c1.r + c2.r, c1.g + c2.g, c1.b + c2.b, c1.a + c2.a)
-
         fun blendAlpha(dst: RGBAPremultiplied, src: RGBAPremultiplied): RGBAPremultiplied =
             RGBAPremultiplied(sumPacked4MulR(src.value, dst.value, 256 - src.a))
 
@@ -366,11 +374,5 @@ fun RGBA.mix(other: RGBA, ratio: Double) = RGBA.mixRgba(this, other, ratio)
 fun List<RGBA>.toRgbaArray(): RgbaArray = RgbaArray(IntArray(this.size) { this@toRgbaArray[it].value })
 
 fun arraycopy(src: RgbaArray, srcPos: Int, dst: RgbaArray, dstPos: Int, size: Int): Unit = arraycopy(src.ints, srcPos, dst.ints, dstPos, size)
-
-@Deprecated("", ReplaceWith("v.asPremultiplied().depremultiplied"))
-fun RGBA.Companion.depremultiplyFaster(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
-
-@Deprecated("", ReplaceWith("v.asPremultiplied().depremultiplied"))
-fun RGBA.Companion.depremultiplyFastest(v: RGBA): RGBA = v.asPremultiplied().depremultiplied
 
 fun Array<RGBA>.toRgbaArray() = RgbaArray(this.size) { this@toRgbaArray[it] }

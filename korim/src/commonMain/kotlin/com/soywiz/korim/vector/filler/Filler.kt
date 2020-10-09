@@ -79,9 +79,10 @@ class BitmapFiller : BaseFiller() {
         }
         */
         for (n in x0..x1) {
-            val tx = cycleX.apply(compTrans.transformX(n, y), texture.width.toDouble())
-            val ty = cycleY.apply(compTrans.transformY(n, y), texture.height.toDouble())
+            val tx = cycleX.apply(compTrans.transformX(n.toDouble(), y.toDouble()), texture.width.toDouble())
+            val ty = cycleY.apply(compTrans.transformY(n.toDouble(), y.toDouble()), texture.height.toDouble())
             val color = if (linear) lookupLinear(tx, ty) else lookupNearest(tx, ty)
+            //println("($tx, $ty)")
             data[offset + n] = color.premultiplied
         }
     }

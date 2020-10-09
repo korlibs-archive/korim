@@ -21,7 +21,7 @@ import org.khronos.webgl.set
 import org.w3c.dom.*
 import org.w3c.dom.url.*
 import org.w3c.files.*
-import kotlin.browser.*
+import kotlinx.browser.*
 import kotlin.coroutines.*
 import kotlin.js.*
 import kotlin.math.*
@@ -71,16 +71,16 @@ open class HtmlNativeImage(val texSourceBase: TexImageSource, width: Int, height
 
     val ctx: CanvasRenderingContext2D by lazy { lazyCanvasElement.getContext("2d").unsafeCast<CanvasRenderingContext2D>() }
 
-    private var lastRefresh = 0.0.hrNanoseconds
+    private var lastRefresh = 0.0.milliseconds
     override fun readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int, out: RgbaArray, offset: Int) {
         if (width <= 0 || height <= 0) return
         val size = width * height
 
         if (texSourceBase is HTMLVideoElement) {
             // Must refresh
-            val now = PerformanceCounter.hr
+            val now = PerformanceCounter.reference
             val elapsedTime = now - lastRefresh
-            if (elapsedTime >= 16.hrMilliseconds) {
+            if (elapsedTime >= 16.milliseconds) {
                 lastRefresh = now
                 ctx.clearRect(0.0, 0.0, width.toDouble(), height.toDouble())
                 ctx.drawImage(texSourceBase, 0.0, 0.0)
@@ -127,7 +127,7 @@ object HtmlNativeImageFormatProvider : NativeImageFormatProvider() {
 		}
 	}
 
-	override fun create(width: Int, height: Int): NativeImage {
+	override fun create(width: Int, height: Int, premultiplied: Boolean?): NativeImage {
 		return HtmlNativeImage(HtmlCanvas.createCanvas(width, height))
 	}
 
@@ -315,11 +315,10 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		ctx.globalAlpha = state.globalAlpha
         ctx.globalCompositeOperation = state.globalCompositeOperation.toJsStr()
 		setFont(state.font, state.fontSize)
-        //state.transform.let { t -> ctx.setTransform(t.a, t.b, t.c, t.d, t.tx, t.ty) } // @NOTE: Points are already transformed, so this shouldn't be executed
 		if (fill) {
 			ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
-			ctx.lineWidth = state.scaledLineWidth
+            ctx.lineWidth = state.lineWidth
 			ctx.lineJoin = when (state.lineJoin) {
 				LineJoin.BEVEL -> CanvasLineJoin.BEVEL
 				LineJoin.MITER -> CanvasLineJoin.MITER
@@ -337,6 +336,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 	private fun transformPaint(paint: Paint) {
 		if (paint is TransformedPaint) {
 			val m = paint.transform
+            //println("Transformed paint: $m")
 			ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)
 		}
 	}
@@ -372,8 +372,11 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 				close = { ctx.closePath() }
 			)
 
+            val m = state.transform
+            ctx.transform(m.a, m.b, m.c, m.d, m.tx, m.ty)
 			if (fill) {
 				transformPaint(state.fillStyle)
+                //println("       - Gadient: ${}")
 				ctx.fill(state.path.winding.toCanvasFillRule())
 				//println("fill: $s")
 			} else {

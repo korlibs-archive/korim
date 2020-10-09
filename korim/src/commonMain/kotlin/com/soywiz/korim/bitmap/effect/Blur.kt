@@ -9,7 +9,7 @@ import kotlin.math.*
 fun Bitmap32.blur(r: Int): Bitmap32 {
     val out = Bitmap32(width + r * 2, height + r * 2, premultiplied = this.premultiplied)
     Bitmap32.copyRect(this, 0, 0, out, r, r, width, height)
-    out.premultiplyInplace()
+    out.premultiplyInplaceIfRequired()
     out.blurInplace(r)
     if (!this.premultiplied) {
         out.depremultiplyInplace()
@@ -123,7 +123,7 @@ private fun boxBlurT(scl: UByteArray, tcl: UByteArray, w: Int, h: Int, r: Int) {
     }
 }
 
-private fun boxesForGaussN3(sigma: Int, emit: (a: Int, b: Int, c: Int) -> Unit) { // standard deviation, number of boxes
+private inline fun boxesForGaussN3(sigma: Int, emit: (a: Int, b: Int, c: Int) -> Unit) { // standard deviation, number of boxes
     val n = 3
     val wIdeal = sqrt((12.0 * sigma * sigma / n) + 1)  // Ideal averaging filter width
     var wl = wIdeal.toIntFloor()

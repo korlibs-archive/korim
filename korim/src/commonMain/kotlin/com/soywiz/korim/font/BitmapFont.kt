@@ -7,7 +7,7 @@ import com.soywiz.kmem.insert
 import com.soywiz.kmem.nextPowerOfTwo
 import com.soywiz.kmem.toIntCeil
 import com.soywiz.korim.bitmap.*
-import com.soywiz.korim.bitmap.atlas.MutableAtlas
+import com.soywiz.korim.atlas.MutableAtlas
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.format.ImageFormat
@@ -116,7 +116,7 @@ class BitmapFont(
     }
 
 
-	class Glyph(
+	data class Glyph(
         val fontSize: Double,
 		val id: Int,
 		val texture: BitmapSlice<Bitmap>,
@@ -222,7 +222,7 @@ private suspend fun readBitmapFontTxt(
 			line.startsWith("page") -> {
 				val id = map["id"]?.toInt() ?: 0
 				val file = map["file"]?.unquote() ?: error("page without file")
-				textures[id] = fntFile.parent[file].readBitmapSlice(imageFormat)
+				textures[id] = fntFile.parent[file].readBitmapSlice()
 			}
 			line.startsWith("common ") -> {
 				lineHeight = map["lineHeight"]?.toDoubleOrNull() ?: 16.0
@@ -283,7 +283,7 @@ private suspend fun readBitmapFontXml(
 		val id = page.int("id")
 		val file = page.str("file")
 		val texFile = fntFile.parent[file]
-		val tex = texFile.readBitmapSlice(imageFormat)
+		val tex = texFile.readBitmapSlice()
 		textures[id] = tex
 	}
 
@@ -339,3 +339,11 @@ fun Bitmap32.drawText(
     this.fillStyle = createColor(color)
     this.fillText(str, x, y)
 }
+
+fun Font.toBitmapFont(
+    fontSize: Number,
+    chars: CharacterSet = CharacterSet.LATIN_ALL,
+    fontName: String = this.name,
+    paint: Paint = ColorPaint(Colors.WHITE),
+    mipmaps: Boolean = true
+) = BitmapFont(this, fontSize, chars, fontName, paint, mipmaps)

@@ -61,12 +61,17 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
+	@PublishedApi
+	internal fun _rendererBufferingStart() = rendererBufferingStart()
+	@PublishedApi
+	internal fun _rendererBufferingEnd() = rendererBufferingEnd()
+
     inline fun <T> buffering(callback: () -> T): T {
-        rendererBufferingStart()
+        _rendererBufferingStart()
         try {
             return callback()
         } finally {
-            rendererBufferingEnd()
+            _rendererBufferingEnd()
         }
     }
 
@@ -90,7 +95,8 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
         var globalAlpha: Double = 1.0,
         var globalCompositeOperation: CompositeOperation = CompositeMode.SOURCE_OVER
 	) {
-        val scaledLineWidth get() = lineWidth * ((transform.a + transform.d) * 0.5).toFloat()
+        val transformTransform by lazy { transform.toTransform() }
+        val scaledLineWidth get() = lineWidth * transformTransform.scaleAvg.absoluteValue.toFloat()
 
         var lineCap: LineCap
             get() = startLineCap
@@ -173,8 +179,6 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-	inline fun fillStyle(color: RGBA, callback: () -> Unit) = fillStyle(createColor(color), callback)
-
 	inline fun keepApply(callback: Context2d.() -> Unit) = this.apply { keep { callback() } }
 
 	inline fun keep(callback: () -> Unit) {
@@ -208,6 +212,10 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 	inline fun translate(tx: Number, ty: Number) = translate(tx.toDouble(), ty.toDouble())
 	inline fun rotate(angle: Number) = rotate(angle.toDouble())
 	inline fun rotateDeg(degs: Number) = rotateDeg(degs.toDouble())
+
+    inline fun scale(sx: Double, sy: Double = sx, block: () -> Unit) = keep { scale(sx, sy).also { block() } }
+    inline fun rotate(angle: Angle, block: () -> Unit) = keep { rotate(angle).also { block() } }
+    inline fun translate(tx: Double, ty: Double, block: () -> Unit) = keep { translate(tx, ty).also { block() } }
 
 	fun scale(sx: Double, sy: Double = sx) = run { state.transform.prescale(sx, sy) }
     fun rotate(angle: Angle) = run { state.transform.prerotate(angle) }
@@ -362,7 +370,7 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
     }
 
     fun drawShape(
-		shape: Shape,
+		shape: Drawable,
 		rasterizerMethod: ShapeRasterizerMethod = ShapeRasterizerMethod.X4
 	) {
 		when (rasterizerMethod) {
@@ -371,24 +379,23 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 			}
 			ShapeRasterizerMethod.X1, ShapeRasterizerMethod.X2, ShapeRasterizerMethod.X4 -> {
 				val scale = rasterizerMethod.scale
-				val newBi = NativeImage(ceil(rendererWidth * scale).toInt(), ceil(rendererHeight * scale).toInt())
-				val bi = newBi.getContext2d(antialiasing = false)
-				//val bi = Context2d(AwtContext2dRender(newBi, antialiasing = true))
-				//val oldLineScale = bi.lineScale
-				//try {
-				bi.scale(scale, scale)
-				bi.transform(state.transform)
-				bi.draw(shape)
-				val renderBi = when (rasterizerMethod) {
-					ShapeRasterizerMethod.X1 -> newBi
-					ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
-					ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
-					else -> newBi
-				}
-				keepTransform {
-					setTransform(Matrix())
-					this.rendererDrawImage(renderBi, 0.0, 0.0)
-				}
+                val oldState = state
+				val newBi = NativeImage(ceil(rendererWidth * scale).toInt(), ceil(rendererHeight * scale).toInt(), premultiplied = false).context2d(antialiased = false) {
+                //val newBi = Bitmap32(ceil(rendererWidth * scale).toInt(), ceil(rendererHeight * scale).toInt(), premultiplied = false).context2d(antialiased = false) {
+                    scale(scale)
+                    transform(oldState.transform)
+                    draw(shape)
+                }
+                val renderBi = when (rasterizerMethod) {
+                    ShapeRasterizerMethod.X1 -> newBi
+                    ShapeRasterizerMethod.X2 -> newBi.mipmap(1)
+                    ShapeRasterizerMethod.X4 -> newBi.mipmap(2)
+                    else -> newBi
+                }
+                keepTransform {
+                    setTransform(Matrix())
+                    this.rendererDrawImage(renderBi, 0.0, 0.0)
+                }
 				//} finally {
 				//	bi.lineScale = oldLineScale
 				//}
@@ -396,14 +403,15 @@ open class Context2d constructor(val renderer: Renderer) : Disposable, VectorBui
 		}
 	}
 
-    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, block: GradientPaint.() -> Unit = {}) =
-        LinearGradientPaint(x0, y0, x1, y1, cycle, block)
-    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, block: GradientPaint.() -> Unit = {}) =
-        RadialGradientPaint(x0, y0, r0, x1, y1, r1, cycle, block)
-    inline fun createSweepGradient(x0: Number, y0: Number, block: GradientPaint.() -> Unit = {}) =
-        SweepGradientPaint(x0, y0, block)
+    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix = Matrix(), block: GradientPaint.() -> Unit) = LinearGradientPaint(x0, y0, x1, y1, cycle, transform, block)
+    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix = Matrix(), block: GradientPaint.() -> Unit) = RadialGradientPaint(x0, y0, r0, x1, y1, r1, cycle, transform, block)
+    inline fun createSweepGradient(x0: Number, y0: Number, transform: Matrix = Matrix(), block: GradientPaint.() -> Unit) = SweepGradientPaint(x0, y0, transform, block)
 
-    fun createColor(color: RGBA) = ColorPaint(color)
+    inline fun createLinearGradient(x0: Number, y0: Number, x1: Number, y1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix = Matrix()) = LinearGradientPaint(x0, y0, x1, y1, cycle, transform)
+    inline fun createRadialGradient(x0: Number, y0: Number, r0: Number, x1: Number, y1: Number, r1: Number, cycle: CycleMethod = CycleMethod.NO_CYCLE, transform: Matrix = Matrix()) = RadialGradientPaint(x0, y0, r0, x1, y1, r1, cycle, transform)
+    inline fun createSweepGradient(x0: Number, y0: Number, transform: Matrix = Matrix()) = SweepGradientPaint(x0, y0, transform)
+
+    fun createColor(color: RGBA): RGBA = color
 	fun createPattern(
 		bitmap: Bitmap,
 		repeat: Boolean = false,
