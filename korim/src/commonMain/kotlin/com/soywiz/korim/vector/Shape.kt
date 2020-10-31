@@ -4,8 +4,8 @@ import com.soywiz.kds.iterators.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
-import com.soywiz.korim.format.SVG
-import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.paint.*
+import com.soywiz.korim.text.*
 import com.soywiz.korio.serialization.xml.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
@@ -301,10 +301,10 @@ object EmptyShape : Shape {
 }
 
 data class FillShape(
-	override val path: GraphicsPath,
-	override val clip: GraphicsPath?,
-	override val paint: Paint,
-	override val transform: Matrix = Matrix()
+        override val path: GraphicsPath,
+        override val clip: GraphicsPath?,
+        override val paint: Paint,
+        override val transform: Matrix = Matrix()
 ) : StyledShape {
 	override fun drawInternal(c: Context2d) {
 		c.fill(paint)
@@ -323,17 +323,17 @@ data class FillShape(
 }
 
 data class PolylineShape(
-    override val path: GraphicsPath,
-    override val clip: GraphicsPath?,
-    override val paint: Paint,
-    override val transform: Matrix,
-    val thickness: Double,
-    val pixelHinting: Boolean,
-    val scaleMode: LineScaleMode,
-    val startCaps: LineCap,
-    val endCaps: LineCap,
-    val lineJoin: LineJoin,
-    val miterLimit: Double
+        override val path: GraphicsPath,
+        override val clip: GraphicsPath?,
+        override val paint: Paint,
+        override val transform: Matrix,
+        val thickness: Double,
+        val pixelHinting: Boolean,
+        val scaleMode: LineScaleMode,
+        val startCaps: LineCap,
+        val endCaps: LineCap,
+        val lineJoin: LineJoin,
+        val miterLimit: Double
 ) : StyledShape {
     private val tempBB = BoundsBuilder()
     private val tempRect = Rectangle()

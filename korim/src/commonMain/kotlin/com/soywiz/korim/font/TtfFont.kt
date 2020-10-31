@@ -9,9 +9,9 @@ import com.soywiz.korim.vector.*
 import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.*
 import com.soywiz.korio.stream.*
-import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
+import com.soywiz.krypto.encoding.*
 import kotlin.collections.set
 
 @Suppress("MemberVisibilityCanBePrivate", "UNUSED_VARIABLE", "LocalVariableName", "unused")
@@ -22,8 +22,8 @@ import kotlin.collections.set
 // - https://en.wikipedia.org/wiki/Em_(typography)
 // - http://stevehanov.ca/blog/index.php?id=143 (Let's read a Truetype font file from scratch)
 // - http://chanae.walon.org/pub/ttf/ttf_glyphs.htm
-class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, private val extName: String? = null) : VectorFont {
-    constructor(d: ByteArray, freeze: Boolean = false, extName: String? = null) : this(d.openSync(), freeze, extName)
+class TtfFont(private val s: FastByteArrayInputStream, private val freeze: Boolean = false, private val extName: String? = null) : VectorFont {
+    constructor(d: ByteArray, freeze: Boolean = false, extName: String? = null) : this(d.openFastStream(), freeze, extName)
 
     override fun getFontMetrics(size: Double, metrics: FontMetrics): FontMetrics =
         metrics.copyFromNewSize(this.fontMetrics1px, size)
@@ -52,6 +52,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 
     private fun getTextScale(size: Double) = size / unitsPerEm.toDouble()
 
+    private val names = LinkedHashMap<Int, String>()
     private val tempContours = Array(3) { Contour() }
     private val lineHeight get() = yMax - yMin
 
@@ -128,7 +129,11 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
         frozen = true
     }
 
-    override val name: String get() = extName ?: "TtfFont" // @TODO: Use loaded name
+    val ttfName: String get() = getName(NameId.NAME) ?: getName(NameId.COMPLETE_NAME) ?: "TtfFont"
+    val ttfCompleteName: String get() = getName(NameId.COMPLETE_NAME) ?: ttfName
+    override val name: String get() = extName ?: ttfName
+
+    override fun toString(): String = "TtfFont(name=$name)"
 
     private val fontMetrics1px = FontMetrics().also {
         val scale = getTextScale(1.0)
@@ -143,7 +148,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
     }
 
     private data class Table(val id: String, val checksum: Int, val offset: Int, val length: Int) {
-		lateinit var s: SyncStream
+		lateinit var s: FastByteArrayInputStream
 
 		fun open() = s.clone()
 	}
@@ -163,7 +168,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		}
 	}
 
-	fun SyncStream.readFixed() = Fixed(readS16LE(), readS16LE())
+    fun FastByteArrayInputStream.readFixed() = Fixed(readS16LE(), readS16LE())
 	data class HorMetric(val advanceWidth: Int, val lsb: Int)
 
     @PublishedApi
@@ -189,11 +194,43 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		//for (table in tables) println(table)
 	}
 
-    private inline fun runTableUnit(name: String, callback: SyncStream.() -> Unit) {
+    private inline fun runTableUnit(name: String, callback: FastByteArrayInputStream.() -> Unit) {
 		openTable(name)?.callback()
 	}
 
-    private inline fun <T> runTable(name: String, callback: SyncStream.(Table) -> T): T? = openTable(name)?.let { callback(it, tablesByName[name]!!) }
+    private inline fun <T> runTable(name: String, callback: FastByteArrayInputStream.(Table) -> T): T? = openTable(name)?.let { callback(it, tablesByName[name]!!) }
+
+    enum class NameId(val id: Int) {
+        COPYRIGHT(0),
+        NAME(1),
+        STYLE(2),
+        UNAME(3),
+        COMPLETE_NAME(4),
+        RELEASE_VERSION(5),
+        POSTSCRIPT_NAME(6),
+        TRADEMARK(7),
+        MANUFACTURER(8),
+        DESIGNER(9),
+        DESCRIPTION(10),
+        URL_VENDOR(11),
+        URL_DESIGNER(12),
+        LICENSE_DESCRIPTION(13),
+        LICENSE_URL(14),
+        RESERVED_15(15),
+        PREFERRED_FAMILY(16),
+        PREFERRED_SUBFAMILY(17),
+        COMPATIBLE_FULL(18),
+        SAMPLE_TEXT(19),
+        POSTSCRIPT_CID(20),
+        WWS_FAMILY_NAME(21),
+        WWS_SUBFAMILY_NAME(22),
+        LIGHT_BACKGROUND(23),
+        DARK_BACKGROUND(23),
+        VARIATION_POSTSCRIPT_PREFIX(25),
+    }
+
+    fun getName(nameId: Int): String? = names[nameId]
+    fun getName(nameId: NameId): String? = getName(nameId.id)
 
     private fun readNames() = runTableUnit("name") {
 		val format = readU16BE()
@@ -213,9 +250,11 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 				else -> UTF16_BE
 			}
 			//println("" + (stringOffset.toLong() + offset) + " : " + length + " : " + charset)
-			val string =
-				this.clone().sliceWithSize(stringOffset.toLong() + offset, length.toLong()).readAll().toString(charset)
-			//println(string)
+			val string = this.clone().sliceWithSize(stringOffset + offset, length).readAll().toString(charset)
+            if ((platformId == 0 && languageId == 0) || nameId !in names) {
+                names[nameId] = string
+            }
+			//println("p=$platformId, e=$encodingId, l=$languageId, n=$nameId, l=$length, o=$offset: $string")
 		}
 	}
 
@@ -331,7 +370,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		val tables = (0 until numTables).map { EncodingRecord(readU16BE(), readU16BE(), readS32BE()) }
 
 		for (table in tables) {
-			sliceStart(table.offset.toLong()).run {
+			sliceStart(table.offset).run {
 				val format = readU16BE()
 				when (format) {
 					4 -> {
@@ -364,7 +403,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 									var glyphIndexOffset = rangeOffsetPos + n * 2
 									glyphIndexOffset += iro
 									glyphIndexOffset += (c - sc) * 2
-									index = sliceStart(glyphIndexOffset.toLong()).readU16BE()
+									index = sliceStart(glyphIndexOffset).readU16BE()
 									if (index != 0) {
 										index += delta
 									}
@@ -415,12 +454,12 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
     private operator fun get(codePoint: Int) = getGlyphByCodePoint(codePoint)
 
     private fun getGlyphByIndex(index: Int, cache: Boolean = true): Glyph? {
-        val start = locs.getOrNull(index)?.unsigned ?: 0
-        val end = locs.getOrNull(index + 1)?.unsigned ?: start
+        val start = locs.getOrNull(index) ?: 0
+        val end = locs.getOrNull(index + 1) ?: start
         val size = end - start
         //println("GLYPH INDEX: $index")
         val glyph = when {
-            size != 0L -> this.glyphCache[index] ?: runTable("glyf") { table ->
+            size != 0 -> this.glyphCache[index] ?: runTable("glyf") { table ->
                 //println("READ GLYPH[$index]: start=$start, end=$end, size=$size, table=$table")
                 sliceStart(start).readGlyph(index)
             }
@@ -593,7 +632,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
         }
     }
 
-    private fun SyncStream.readF2DOT14(): Float {
+    private fun FastByteArrayInputStream.readF2DOT14(): Float {
 		val v = readS16BE()
 		val i = v shr 14
 		val f = v and 0x3FFF
@@ -601,7 +640,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 	}
 
 	@Suppress("FunctionName")
-    private fun SyncStream.readMixBE(signed: Boolean, word: Boolean): Int {
+    private fun FastByteArrayInputStream.readMixBE(signed: Boolean, word: Boolean): Int {
 		return when {
 			!word && signed -> readS8()
 			!word && !signed -> readU8()
@@ -611,7 +650,7 @@ class TtfFont(private val s: SyncStream, private val freeze: Boolean = false, pr
 		}
 	}
 
-    private fun SyncStream.readGlyph(index: Int): Glyph {
+    private fun FastByteArrayInputStream.readGlyph(index: Int): Glyph {
 		val ncontours = readS16BE()
 		val xMin = readS16BE()
 		val yMin = readS16BE()

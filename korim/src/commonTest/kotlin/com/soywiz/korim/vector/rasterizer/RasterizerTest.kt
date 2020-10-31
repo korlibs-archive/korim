@@ -2,13 +2,11 @@ package com.soywiz.korim.vector.rasterizer
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.format.showImageAndWait
-import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.paint.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
-import kotlin.math.*
 import kotlin.test.*
 
 class RasterizerTest {
@@ -39,9 +37,8 @@ class RasterizerTest {
     }
 
     @Test
-    @Ignore
     fun test2() = suspendTest {
-        Bitmap32(100, 100).context2d {
+        val bmp1 = Bitmap32(100, 100).context2d {
             //debug = true
             fill(
                 createLinearGradient(0, 0, 0, 100) {
@@ -55,9 +52,9 @@ class RasterizerTest {
                 lineToH(-100)
                 close()
             }
-        }.showImageAndWait()
+        }
         val shipSize = 24
-        Bitmap32(shipSize, shipSize).context2d {
+        val bmp2 = Bitmap32(shipSize, shipSize).context2d {
             stroke(Colors.RED, lineWidth = shipSize * 0.05, lineCap = LineCap.ROUND) {
                 moveTo(shipSize * 0.5, 0.0)
                 lineTo(shipSize, shipSize)
@@ -65,30 +62,21 @@ class RasterizerTest {
                 lineTo(0, shipSize)
                 close()
             }
-        }.showImageAndWait()
-        Bitmap32(3, (shipSize * 0.3).toInt()).context2d {
+        }
+        val bmp3 = Bitmap32(3, (shipSize * 0.3).toInt()).context2d {
             lineWidth = 1.0
             lineCap = LineCap.ROUND
             stroke(Colors.WHITE) {
                 moveTo(width / 2, 0)
                 lineToV(height)
             }
-        }.showImageAndWait()
-        //bulletBitmap.showImageAndWait()
-
-        /*
-        Bitmap32(128, 128).context2d {
-            moveTo(0, 100)
-            lineTo(30, 10)
-            lineTo(60, 100)
-            close()
-            fill()
-        }.showImageAndWait()
-         */
+        }
+        //bmp1.showImageAndWait()
+        //bmp2.showImageAndWait()
+        //bmp3.showImageAndWait()
     }
 
     @Test
-    @Ignore
     fun testLineJoin() = suspendTest {
         // https://developer.mozilla.org/en-US/docs/Web/API/CanvasRenderingContext2D/lineJoin
         val bmp = NativeImageOrBitmap32(500, 500, native = false).context2d {
@@ -174,7 +162,7 @@ class RasterizerTest {
                 lineWidth = 1.0
                 for (i in 0 until 6) {
                     for (j in 0 until 6) {
-                        strokeStyle = ColorPaint(RGBA(0, (255 - 42.5 * i).toInt(), (255 - 42.5 * j).toInt(), 255))
+                        strokeStyle = com.soywiz.korim.paint.ColorPaint(RGBA(0, (255 - 42.5 * i).toInt(), (255 - 42.5 * j).toInt(), 255))
                         beginPath();
                         //arc(12.5 + j * 25, 12.5 + i * 25, 10.0, 0.0, PI * 2, true)
                         arc(12.5 + j * 25, 12.5 + i * 25, 10.0, 0.degrees, 360.degrees)
@@ -183,19 +171,19 @@ class RasterizerTest {
                 }
             }
         }
-        bmp.showImageAndWait()
+        //bmp.showImageAndWait()
     }
 
     @Test
-    @Ignore
     fun testLineJoin2() = suspendTest {
-        NativeImageOrBitmap32(500, 500, native = false).context2d {
+        val bmp = NativeImageOrBitmap32(500, 500, native = false).context2d {
             beginPath()
             lineCap = LineCap.SQUARE
             lineWidth = 30.0
             moveTo(200, 200)
             lineTo(300, 100)
             stroke()
-        }.showImageAndWait()
+        }
+        //bmp.showImageAndWait()
     }
 }

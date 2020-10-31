@@ -7,11 +7,11 @@ import com.soywiz.korim.internal.*
 import com.soywiz.korim.internal.clamp0_255
 import com.soywiz.korim.internal.d2i
 import com.soywiz.korim.internal.f2i
-import com.soywiz.korim.vector.paint.*
-import com.soywiz.korio.lang.format
+import com.soywiz.korim.paint.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.interpolation.Interpolable
 import com.soywiz.korma.interpolation.interpolate
+import com.soywiz.krypto.encoding.*
 
 inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA>, Paint {
     override fun transformed(m: Matrix): Paint = this
@@ -66,8 +66,21 @@ inline class RGBA(val value: Int) : Comparable<RGBA>, Interpolable<RGBA>, Paint 
         else -> r
     }
 
-    val hexString: String get() ="#%02x%02x%02x%02x".format(r, g, b, a)
-    val hexStringNoAlpha: String get() = "#%02x%02x%02x".format(r, g, b)
+    val hexString: String get() = buildString {
+        // "#%02x%02x%02x%02x".format(r, g, b, a)
+        append('#')
+        appendHexByte(r)
+        appendHexByte(g)
+        appendHexByte(b)
+        appendHexByte(a)
+    }
+    val hexStringNoAlpha: String get() = buildString {
+        //"#%02x%02x%02x".format(r, g, b)
+        append('#')
+        appendHexByte(r)
+        appendHexByte(g)
+        appendHexByte(b)
+    }
 	val htmlColor: String get() = "rgba($r, $g, $b, $af)"
 	val htmlStringSimple: String get() = hexStringNoAlpha
 

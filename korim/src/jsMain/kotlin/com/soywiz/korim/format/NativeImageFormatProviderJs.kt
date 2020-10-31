@@ -1,20 +1,19 @@
 package com.soywiz.korim.format
 
 import com.soywiz.klock.*
-import com.soywiz.klock.hr.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.font.Font
+import com.soywiz.korim.paint.*
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.paint.*
 import com.soywiz.korim.vector.renderer.Renderer
 import com.soywiz.korio.file.*
 import com.soywiz.korio.file.std.*
 import com.soywiz.korio.util.*
-import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
+import com.soywiz.krypto.encoding.*
 import kotlinx.coroutines.*
 import org.khronos.webgl.*
 import org.khronos.webgl.set
@@ -267,7 +266,12 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 		}
 	}
 
+    private var cachedFontSize: Double = Double.NaN
+    private var cachedFontName: String = ""
 	private fun setFont(font: Font, fontSize: Double) {
+        if (font.name == cachedFontName && fontSize == cachedFontSize) return
+        cachedFontName = font.name
+        cachedFontSize = fontSize
 		ctx.font = "${fontSize}px '${font.name}'"
 	}
 
@@ -311,12 +315,14 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
         else -> "source-over" // Default
     }
 
-	private fun setState(state: Context2d.State, fill: Boolean, fontSize: Double) {
+	private fun setState(state: Context2d.State, fill: Boolean, doSetFont: Boolean) {
 		ctx.globalAlpha = state.globalAlpha
         ctx.globalCompositeOperation = state.globalCompositeOperation.toJsStr()
-		setFont(state.font, state.fontSize)
+        if (doSetFont) {
+            setFont(state.font, state.fontSize)
+        }
 		if (fill) {
-			ctx.fillStyle = state.fillStyle.toJsStr()
+            ctx.fillStyle = state.fillStyle.toJsStr()
 		} else {
             ctx.lineWidth = state.lineWidth
 			ctx.lineJoin = when (state.lineJoin) {
@@ -329,7 +335,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
 				LineCap.ROUND -> CanvasLineCap.ROUND
 				LineCap.SQUARE -> CanvasLineCap.SQUARE
 			}
-			ctx.strokeStyle = state.strokeStyle.toJsStr()
+            ctx.strokeStyle = state.strokeStyle.toJsStr()
 		}
 	}
 
@@ -361,7 +367,7 @@ class CanvasContext2dRenderer(private val canvas: HTMLCanvasElementLike) : Rende
         //println("RENDER: $width,$height,fill=$fill")
         //println(" fillStyle=${ctx.fillStyle}, transform=${state.transform}")
 		keep {
-			setState(state, fill, state.fontSize)
+			setState(state, fill, doSetFont = false)
 			ctx.beginPath()
 
 			state.path.visitCmds(

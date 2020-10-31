@@ -5,12 +5,19 @@ import com.soywiz.korim.bitmap.Bitmap
 import com.soywiz.korim.bitmap.Bitmap32
 import com.soywiz.korim.bitmap.NativeImage
 import com.soywiz.korim.bitmap.context2d
+import com.soywiz.korim.bitmap.effect.BitmapEffect
+import com.soywiz.korim.bitmap.effect.applyEffect
 import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.paint.DefaultPaint
-import com.soywiz.korim.vector.paint.Paint
+import com.soywiz.korim.paint.DefaultPaint
+import com.soywiz.korim.paint.Paint
+import com.soywiz.korim.text.*
+import com.soywiz.korio.resources.*
 import com.soywiz.korma.geom.*
 
-interface Font {
+interface Font : Resourceable<Font> {
+    override fun getOrNull() = this
+    override suspend fun get() = this
+
     val name: String
 
     // Metrics
@@ -32,8 +39,9 @@ data class TextToBitmapResult(
 }
 
 fun Font.renderGlyphToBitmap(
-    size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true,
-    border: Int = 1, nativeRendering: Boolean = true
+        size: Double, codePoint: Int, paint: Paint = DefaultPaint, fill: Boolean = true,
+        effect: BitmapEffect? = null,
+        border: Int = 1, nativeRendering: Boolean = true
 ): TextToBitmapResult {
     val font = this
     val fmetrics = getFontMetrics(size)
@@ -49,19 +57,29 @@ fun Font.renderGlyphToBitmap(
         font.renderGlyph(this, size, codePoint, gx + border, gy + border, fill = true, metrics = gmetrics)
         if (fill) fill() else stroke()
     }
-    return TextToBitmapResult(image, fmetrics, TextMetrics(), listOf(
+    val imageOut = image.toBMP32IfRequired().applyEffect(effect)
+    return TextToBitmapResult(imageOut, fmetrics, TextMetrics(), listOf(
         TextToBitmapResult.PlacedGlyph(codePoint, gx + border, gy + border, gmetrics, Matrix())
     ))
 }
 
 // @TODO: Fix metrics
-fun <T> Font.renderTextToBitmap(size: Double, text: T, paint: Paint = DefaultPaint, fill: Boolean = true, border: Int = 0, renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>, returnGlyphs: Boolean = true, nativeRendering: Boolean = true): TextToBitmapResult {
+fun <T> Font.renderTextToBitmap(
+    size: Double,
+    text: T,
+    paint: Paint = DefaultPaint,
+    fill: Boolean = true,
+    border: Int = 0,
+    renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>,
+    returnGlyphs: Boolean = true,
+    nativeRendering: Boolean = true
+): TextToBitmapResult {
     val font = this
     val bounds = getTextBounds(size, text, renderer = renderer)
     //println("BOUNDS: $bounds")
     val glyphs = arrayListOf<TextToBitmapResult.PlacedGlyph>()
-    val iwidth = bounds.width.toInt() + border * 2 + 1
-    val iheight = bounds.height.toInt() + border * 2 + 1
+    val iwidth = bounds.width.toIntCeil() + border * 2 + 1
+    val iheight = bounds.height.toIntCeil() + border * 2 + 1
     val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight, premultiplied = true)
     image.context2d {
         font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->

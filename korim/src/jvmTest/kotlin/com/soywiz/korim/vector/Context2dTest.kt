@@ -2,17 +2,14 @@ package com.soywiz.korim.vector
 
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
-import com.soywiz.korim.format.*
 import com.soywiz.korim.vector.format.SVG
-import com.soywiz.korim.vector.paint.ColorPaint
 import com.soywiz.korio.async.*
-import com.soywiz.korio.file.std.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.test.*
 
 class Context2dTest {
 	init {
-		//System.setProperty("java.awt.headless", "true");
+		System.setProperty("java.awt.headless", "true");
 	}
 
 	@Test
@@ -36,7 +33,6 @@ class Context2dTest {
 	}
 
 	@Test
-	@Ignore
 	fun name2(): Unit = suspendTest {
 		val img = NativeImage(256, 256)
         //val img = Bitmap32(256, 256)
@@ -56,11 +52,11 @@ class Context2dTest {
 					fill();                     // Draw it
 				}
 
-				fillStyle = ColorPaint(Colors.GREEN)
+				fillStyle = Colors.GREEN
 				fillRect(0.0, 0.0, 50.0, 50.0)
 
 				beginPath()
-				fillStyle = ColorPaint(Colors.GREEN)
+				fillStyle = Colors.GREEN
 				lineWidth = 10.0
 				lineCap = LineCap.ROUND
 				moveTo(100.0, 100.0)
@@ -74,13 +70,13 @@ class Context2dTest {
 		//LocalVfs("c:/temp/c2dreference.png").writeBitmap(ResourcesVfs["c2dreference.png"].readBitmap().toBMP32())
 		//img.toBmp32()
 
-        img.showImageAndWait()
-		assertTrue(
-			Bitmap32.matches(
-				resourcesVfs["c2dreference.png"].readBitmap(PNG).toBMP32().depremultiplied(),
-				img.toBMP32().depremultiplied()
-			)
-		)
+        //img.showImageAndWait()
+		//assertTrue(
+		//	Bitmap32.matches(
+		//		resourcesVfs["c2dreference.png"].readBitmap(PNG).toBMP32().depremultiplied(),
+		//		img.toBMP32().depremultiplied()
+		//	)
+		//)
 
 		//LocalVfs("/tmp/file.png").writeBitmap(img.toBmp32())
 	}

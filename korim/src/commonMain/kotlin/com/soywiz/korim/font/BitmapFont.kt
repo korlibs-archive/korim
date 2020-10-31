@@ -1,26 +1,21 @@
 package com.soywiz.korim.font
 
-import com.soywiz.kds.Extra
-import com.soywiz.kds.IntMap
-import com.soywiz.kds.toIntMap
+import com.soywiz.kds.*
 import com.soywiz.kmem.insert
 import com.soywiz.kmem.nextPowerOfTwo
 import com.soywiz.kmem.toIntCeil
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.atlas.MutableAtlas
+import com.soywiz.korim.bitmap.effect.BitmapEffect
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
-import com.soywiz.korim.format.ImageFormat
-import com.soywiz.korim.format.RegisteredImageFormats
-import com.soywiz.korim.format.readBitmapSlice
-import com.soywiz.korim.vector.Context2d
-import com.soywiz.korim.vector.HorizontalAlign
-import com.soywiz.korim.vector.VerticalAlign
-import com.soywiz.korim.vector.paint.ColorPaint
-import com.soywiz.korim.vector.paint.DefaultPaint
-import com.soywiz.korim.vector.paint.Paint
+import com.soywiz.korim.format.*
+import com.soywiz.korim.paint.DefaultPaint
+import com.soywiz.korim.paint.Paint
+import com.soywiz.korim.text.*
+import com.soywiz.korim.vector.*
 import com.soywiz.korio.dynamic.KDynamic
-import com.soywiz.korio.file.VfsFile
+import com.soywiz.korio.file.*
 import com.soywiz.korio.lang.substr
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.get
@@ -40,7 +35,10 @@ class BitmapFont(
     val kernings: IntMap<Kerning>,
     val atlas: Bitmap = glyphs.values.iterator().next()?.texture?.bmp ?: Bitmaps.transparent.bmp,
     override val name: String = "BitmapFont"
-) : Extra by Extra.Mixin(), Font {
+) : Font, Extra by Extra.Mixin() {
+    override fun getOrNull() = this
+    override suspend fun get() = this
+
     private val naturalFontMetrics by lazy {
         FontMetrics(
             fontSize, lineHeight, lineHeight, 0.0, 0.0, 0.0, 0.0,
@@ -147,12 +145,13 @@ class BitmapFont(
          * Allows to set a different [fontName] than the one provided at [Font].
          */
         operator fun invoke(
-            font: Font,
-            fontSize: Number,
-            chars: CharacterSet = CharacterSet.LATIN_ALL,
-            fontName: String = font.name,
-            paint: Paint = ColorPaint(Colors.WHITE),
-            mipmaps: Boolean = true
+                font: Font,
+                fontSize: Number,
+                chars: CharacterSet = CharacterSet.LATIN_ALL,
+                fontName: String = font.name,
+                paint: Paint = Colors.WHITE,
+                mipmaps: Boolean = true,
+                effect: BitmapEffect? = null,
         ): BitmapFont {
             val fontSize = fontSize.toDouble()
             val fmetrics = font.getFontMetrics(fontSize)
@@ -162,10 +161,12 @@ class BitmapFont(
             val matlas = MutableAtlas<TextToBitmapResult>(requiredAreaSide.nextPowerOfTwo, requiredAreaSide.nextPowerOfTwo)
             val border = 2
             for (codePoint in chars.codePoints) {
-                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = paint, fill = true, border = 1)
+                val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = paint, fill = true, border = 1, effect = effect)
                 //val result = font.renderGlyphToBitmap(fontSize, codePoint, paint = DefaultPaint, fill = true)
+                //println("codePoint[${codePoint.toChar()}]: $result")
                 matlas.add(result.bmp.toBMP32().premultipliedIfRequired(), result)
             }
+            val fm = matlas.entries.first().data.fmetrics
             val atlas = matlas.bitmap
             return BitmapFont(
                 fontSize = fontSize,
@@ -174,8 +175,9 @@ class BitmapFont(
                 glyphs = matlas.entries.associate {
                     val slice = it.slice
                     val g = it.data.glyphs.first()
+                    //val fm = it.data.fmetrics
                     val m = g.metrics
-                    g.codePoint to Glyph(fontSize, g.codePoint, slice, -border, -border, m.xadvance.toIntCeil())
+                    g.codePoint to Glyph(fontSize, g.codePoint, slice, -border, (border - m.height - m.top).toInt() + fm.ascent.toInt(), m.xadvance.toIntCeil())
                 }.toIntMap(),
                 kernings = IntMap(),
                 atlas = atlas.mipmaps(mipmaps),
@@ -185,14 +187,14 @@ class BitmapFont(
 	}
 }
 
-suspend fun VfsFile.readBitmapFont(imageFormat: ImageFormat = RegisteredImageFormats): BitmapFont {
+suspend fun VfsFile.readBitmapFont(imageFormat: ImageFormat = RegisteredImageFormats, mipmaps: Boolean = true): BitmapFont {
 	val fntFile = this
 	val content = fntFile.readString().trim()
 	val textures = hashMapOf<Int, BitmapSlice<Bitmap>>()
 
     return when {
-        content.startsWith('<') -> readBitmapFontXml(content, fntFile, textures, imageFormat)
-        content.startsWith("info") -> readBitmapFontTxt(content, fntFile, textures, imageFormat)
+        content.startsWith('<') -> readBitmapFontXml(content, fntFile, textures, imageFormat, mipmaps)
+        content.startsWith("info") -> readBitmapFontTxt(content, fntFile, textures, imageFormat, mipmaps)
         else -> TODO("Unsupported font type starting with ${content.substr(0, 16)}")
     }
 }
@@ -201,12 +203,13 @@ private suspend fun readBitmapFontTxt(
 	content: String,
 	fntFile: VfsFile,
 	textures: HashMap<Int, BitmapSlice<Bitmap>>,
-	imageFormat: ImageFormat = RegisteredImageFormats
+	imageFormat: ImageFormat = RegisteredImageFormats,
+    mipmaps: Boolean = true
 ): BitmapFont {
     val kernings = arrayListOf<BitmapFont.Kerning>()
 	val glyphs = arrayListOf<BitmapFont.Glyph>()
 	var lineHeight = 16.0
-	var fontSize: Double = 16.0
+	var fontSize = 16.0
 	var base: Double? = null
 	for (rline in content.lines()) {
 		val line = rline.trim()
@@ -222,7 +225,7 @@ private suspend fun readBitmapFontTxt(
 			line.startsWith("page") -> {
 				val id = map["id"]?.toInt() ?: 0
 				val file = map["file"]?.unquote() ?: error("page without file")
-				textures[id] = fntFile.parent[file].readBitmapSlice()
+				textures[id] = fntFile.parent[file].readBitmap(imageFormat).mipmaps(mipmaps).slice()
 			}
 			line.startsWith("common ") -> {
 				lineHeight = map["lineHeight"]?.toDoubleOrNull() ?: 16.0
@@ -254,16 +257,13 @@ private suspend fun readBitmapFontTxt(
 	}
 	return BitmapFont(
         atlas = textures.values.first().bmp,
-        fontSize = fontSize ?: 16.0,
+        fontSize = fontSize,
         lineHeight = lineHeight,
         base = base ?: lineHeight,
         glyphs = glyphs.map { it.id to it }.toMap().toIntMap(),
-        kernings = kernings.map {
-            BitmapFont.Kerning.buildKey(
-                it.first,
-                it.second
-            ) to it
-        }.toMap().toIntMap()
+        kernings = kernings.associateByInt { _, it ->
+            BitmapFont.Kerning.buildKey(it.first, it.second)
+        }
     )
 }
 
@@ -271,7 +271,8 @@ private suspend fun readBitmapFontXml(
 	content: String,
 	fntFile: VfsFile,
 	textures: MutableMap<Int, BitmapSlice<Bitmap>>,
-    imageFormat: ImageFormat = RegisteredImageFormats
+    imageFormat: ImageFormat = RegisteredImageFormats,
+    mipmaps: Boolean = true
 ): BitmapFont {
 	val xml = Xml(content)
 
@@ -283,7 +284,7 @@ private suspend fun readBitmapFontXml(
 		val id = page.int("id")
 		val file = page.str("file")
 		val texFile = fntFile.parent[file]
-		val tex = texFile.readBitmapSlice()
+		val tex = texFile.readBitmap(imageFormat).mipmaps(mipmaps).slice()
 		textures[id] = tex
 	}
 
@@ -329,21 +330,51 @@ fun Bitmap32.drawText(
     x: Int = 0, y: Int = 0,
     color: RGBA = Colors.WHITE,
     size: Double = font.fontSize.toDouble(),
-    horizontalAlign: HorizontalAlign = HorizontalAlign.LEFT,
-    verticalAlign: VerticalAlign = VerticalAlign.TOP
+    alignment: TextAlignment = TextAlignment.TOP_LEFT,
 ) = context2d {
     this.font = font
     this.fontSize = size
-    this.horizontalAlign = horizontalAlign
-    this.verticalAlign = verticalAlign
+    this.alignment = alignment
     this.fillStyle = createColor(color)
     this.fillText(str, x, y)
 }
 
 fun Font.toBitmapFont(
-    fontSize: Number,
-    chars: CharacterSet = CharacterSet.LATIN_ALL,
-    fontName: String = this.name,
-    paint: Paint = ColorPaint(Colors.WHITE),
-    mipmaps: Boolean = true
-) = BitmapFont(this, fontSize, chars, fontName, paint, mipmaps)
+        fontSize: Number,
+        chars: CharacterSet = CharacterSet.LATIN_ALL,
+        fontName: String = this.name,
+        paint: Paint = Colors.WHITE,
+        mipmaps: Boolean = true,
+        effect: BitmapEffect? = null,
+) = BitmapFont(this, fontSize, chars, fontName, paint, mipmaps, effect)
+
+suspend fun BitmapFont.writeToFile(out: VfsFile, writeBitmap: Boolean = true) {
+    val font = this
+    val fntFile = out
+    val bmpFile = out.parent["${out.pathInfo.baseNameWithoutExtension}.png"]
+    if (writeBitmap) {
+        bmpFile.writeBitmap(font.baseBmp, PNG)
+    }
+    fntFile.writeString(buildString {
+        appendLine("info face=\"${font.name}\" size=${font.fontSize.toInt()} bold=0 italic=0 charset=\"\" unicode=0 stretchH=100 smooth=1 aa=1 padding=0,0,0,0 spacing=0,0")
+        appendLine("common lineHeight=${font.lineHeight.toInt()} base=${font.base.toInt()} scaleW=${font.baseBmp.width} scaleH=${font.baseBmp.height} pages=1 packed=0")
+        appendLine("page id=0 file=\"${bmpFile.baseName}\"")
+        val glyphs = font.glyphs.toMap()
+        appendLine("chars count=${glyphs.size}")
+        for ((charId, glyph) in glyphs) {
+            val x = glyph.texture.left
+            val y = glyph.texture.top
+            val width = glyph.texture.width
+            val height = glyph.texture.height
+            val xoffset = glyph.xoffset
+            val yoffset = glyph.yoffset
+            val xadvance = glyph.xadvance
+            appendLine("char id=$charId x=$x y=$y width=$width height=$height xoffset=$xoffset yoffset=$yoffset xadvance=$xadvance page=0 chnl=0")
+        }
+        val kernings = font.kernings.toMap()
+        appendLine("kernings count=${kernings.size}")
+        for ((_, kerning) in kernings) {
+            appendLine("kerning first=${kerning.first} second=${kerning.second} amount=${kerning.amount}")
+        }
+    })
+}

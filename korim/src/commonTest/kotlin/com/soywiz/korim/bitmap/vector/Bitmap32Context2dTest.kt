@@ -1,17 +1,21 @@
+@file:Suppress("UnusedImport")
+
 package com.soywiz.korim.bitmap.vector
 
 import com.soywiz.kds.*
 import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
-import com.soywiz.korim.vector.*
-import com.soywiz.korim.vector.filler.*
-import com.soywiz.korim.vector.paint.*
+import com.soywiz.korim.paint.*
 import com.soywiz.korio.async.*
 import com.soywiz.korio.util.*
 import com.soywiz.korio.util.encoding.*
 import com.soywiz.korma.geom.*
+import com.soywiz.korim.bitmap.*
+import com.soywiz.korio.async.*
+import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.vector.*
+import com.soywiz.krypto.encoding.*
 import kotlin.test.*
 
 class Bitmap32Context2dTest {
