@@ -1,10 +1,8 @@
 package com.soywiz.korim.font
 
+import com.soywiz.kds.*
 import com.soywiz.kmem.toIntCeil
-import com.soywiz.korim.bitmap.Bitmap
-import com.soywiz.korim.bitmap.Bitmap32
-import com.soywiz.korim.bitmap.NativeImage
-import com.soywiz.korim.bitmap.context2d
+import com.soywiz.korim.bitmap.*
 import com.soywiz.korim.bitmap.effect.BitmapEffect
 import com.soywiz.korim.bitmap.effect.applyEffect
 import com.soywiz.korim.vector.*
@@ -82,7 +80,7 @@ fun <T> Font.renderTextToBitmap(
     val iheight = bounds.height.toIntCeil() + border * 2 + 1
     val image = if (nativeRendering) NativeImage(iwidth, iheight) else Bitmap32(iwidth, iheight, premultiplied = true)
     image.context2d {
-        font.drawText(this, size, text, paint, -bounds.left, -bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
+        font.drawText(this, size, text, paint, -bounds.left, bounds.height + bounds.top, fill, renderer = renderer, placed = { codePoint, x, y, size, metrics, transform ->
             if (returnGlyphs) {
                 glyphs += TextToBitmapResult.PlacedGlyph(codePoint, x, y, metrics.clone(), transform.clone())
             }
@@ -92,7 +90,7 @@ fun <T> Font.renderTextToBitmap(
 }
 
 fun <T> Font.drawText(
-    ctx: Context2d, size: Double,
+    ctx: Context2d?, size: Double,
     text: T, paint: Paint,
     x: Double = 0.0, y: Double = 0.0,
     fill: Boolean = true,
@@ -101,54 +99,29 @@ fun <T> Font.drawText(
 ) {
     val actions = object : TextRendererActions() {
         override fun put(codePoint: Int): GlyphMetrics {
-            ctx.keepTransform {
-                val m = getGlyphMetrics(codePoint)
-                ctx.translate(this.x + x, this.y + y)
-                //ctx.translate(-m.width * transformAnchor.sx, +m.height * transformAnchor.sy)
-                ctx.transform(this.transform)
-                //ctx.translate(+m.width * transformAnchor.sx, -m.height * transformAnchor.sy)
-                ctx.fillStyle = this.paint ?: paint
-                font.renderGlyph(ctx, size, codePoint, 0.0, 0.0, true, glyphMetrics)
+            if (ctx != null) {
+                ctx.keepTransform {
+                    val m = getGlyphMetrics(codePoint)
+                    ctx.translate(this.x + x, this.y + y)
+                    //ctx.translate(-m.width * transformAnchor.sx, +m.height * transformAnchor.sy)
+                    ctx.transform(this.transform)
+                    //ctx.translate(+m.width * transformAnchor.sx, -m.height * transformAnchor.sy)
+                    ctx.fillStyle = this.paint ?: paint
+                    font.renderGlyph(ctx, size, codePoint, 0.0, 0.0, true, glyphMetrics)
+                    placed?.invoke(codePoint, this.x + x, this.y + y, size, glyphMetrics, this.transform)
+                    if (fill) ctx.fill() else ctx.stroke()
+                }
+            } else {
                 placed?.invoke(codePoint, this.x + x, this.y + y, size, glyphMetrics, this.transform)
-                if (fill) ctx.fill() else ctx.stroke()
             }
             return glyphMetrics
         }
     }
-    renderer(actions, text, size, this)
+    renderer.invoke(actions, text, size, this)
 }
 fun <T> Font.getTextBounds(size: Double, text: T, out: TextMetrics = TextMetrics(), renderer: TextRenderer<T> = DefaultStringTextRenderer as TextRenderer<T>): TextMetrics {
     val actions = BoundBuilderTextRendererActions()
-    renderer(actions, text, size, this)
+    renderer.invoke(actions, text, size, this)
     actions.bb.getBounds(out.bounds)
     return out
-}
-
-class BoundBuilderTextRendererActions : TextRendererActions() {
-    val bb = BoundsBuilder()
-
-    private fun add(x: Double, y: Double) {
-        //val itransform = transform.inverted()
-        val rx = this.x + transform.transformX(x, y)
-        val ry = this.y + transform.transformY(x, y)
-        //println("P: $rx, $ry [$x, $y]")
-        bb.add(rx, ry)
-    }
-
-    override fun put(codePoint: Int): GlyphMetrics {
-        val g = getGlyphMetrics(codePoint)
-
-        val fx = g.bounds.left
-        val fy = g.bounds.top
-        val w = g.bounds.width
-        val h = -g.bounds.height
-
-        //println("------: [$x,$y] -- ($fx, $fy)-($w, $h)")
-        add(fx, fy)
-        add(fx + w, fy)
-        add(fx + w, fy + h)
-        add(fx, fy + h)
-
-        return g
-    }
 }
