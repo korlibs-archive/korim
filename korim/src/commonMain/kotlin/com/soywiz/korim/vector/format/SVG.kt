@@ -1,8 +1,6 @@
 package com.soywiz.korim.vector.format
 
-import com.soywiz.kds.ListReader
-import com.soywiz.kds.expect
-import com.soywiz.kds.mapWhile
+import com.soywiz.kds.*
 import com.soywiz.korim.color.Colors
 import com.soywiz.korim.color.RGBA
 import com.soywiz.korim.paint.*
@@ -14,12 +12,8 @@ import com.soywiz.korio.lang.substr
 import com.soywiz.korio.serialization.xml.Xml
 import com.soywiz.korio.serialization.xml.allChildren
 import com.soywiz.korio.serialization.xml.isComment
-import com.soywiz.korio.util.StrReader
-import com.soywiz.korio.util.isDigit
-import com.soywiz.korio.util.isLetterOrUnderscore
-import com.soywiz.korio.util.isNumeric
-import com.soywiz.korma.geom.Matrix
-import com.soywiz.korma.geom.Rectangle
+import com.soywiz.korio.util.*
+import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
 import kotlin.collections.set
 import kotlin.math.*
@@ -28,7 +22,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 	//constructor(@Language("xml") str: String) : this(Xml(str))
 	constructor(str: String) : this(Xml(str))
 
-	val x = root.int("x", 0)
+    override fun toString(): String = "SVG($width, $height)"
+
+    val x = root.int("x", 0)
 	val y = root.int("y", 0)
 
 	val dwidth = root.double("width", 128.0)
@@ -49,53 +45,35 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		val props = hashMapOf<String, Any?>()
 	}
 
-	enum class GradientUnits {
-		USER_SPACE_ON_USER,
-		OBJECT_BOUNDING_BOX,
-	}
-
 	val defs = hashMapOf<String, Paint>()
 
 	//interface Def
-
-	fun parsePercent(str: String): Double {
-		return if (str.endsWith("%")) {
-			str.substr(0, -1).toDouble() / 100.0
-		} else {
-			str.toDouble()
-		}
-	}
-
-	fun parseStops(xml: Xml): List<Pair<Double, RGBA>> {
-		val out = arrayListOf<Pair<Double, RGBA>>()
-		for (stop in xml.children("stop")) {
-			val offset = parsePercent(stop.str("offset"))
-			val colorStop = Colors.Default[stop.str("stop-color")]
-			val alphaStop = stop.double("stop-opacity", 1.0)
-			out += Pair(offset, RGBA(colorStop.rgb, (alphaStop * 255).toInt()))
-		}
-		return out
-	}
 
 	fun parseDef(def: Xml) {
 		val type = def.nameLC
 		when (type) {
 			"lineargradient", "radialgradient" -> {
 				val id = def.str("id").toLowerCase()
-				val x0 = def.double("x1", 0.0)
-				val y0 = def.double("y1", 0.0)
-				val x1 = def.double("x2", 1.0)
-				val y1 = def.double("y2", 1.0)
 				val stops = parseStops(def)
-				val href = def.strNull("xlink:href")
+                val gradientUnits = when (def.getString("gradientUnits") ?: "objectBoundingBox") {
+                    "userSpaceOnUse" -> GradientUnits.USER_SPACE_ON_USE
+                    else -> GradientUnits.OBJECT_BOUNDING_BOX
+                }
 
 				val g: GradientPaint = if (type == "lineargradient") {
 					//println("Linear: ($x0,$y0)-($x1-$y1)")
-					GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0)
+                    val x0 = def.double("x1", 0.0)
+                    val y0 = def.double("y1", 0.0)
+                    val x1 = def.double("x2", 1.0)
+                    val y1 = def.double("y2", 1.0)
+					GradientPaint(GradientKind.LINEAR, x0, y0, 0.0, x1, y1, 0.0, units = gradientUnits)
 				} else {
-					val r0 = def.double("r0", 0.0)
-					val r1 = def.double("r1", 0.0)
-					GradientPaint(GradientKind.RADIAL, x0, y0, r0, x1, y1, r1)
+                    val cx = def.double("cx", 0.0)
+                    val cy = def.double("cy", 0.0)
+					val r = def.double("r", 16.0)
+					val fx = def.double("fx", 0.0)
+                    val fy = def.double("fy", 0.0)
+					GradientPaint(GradientKind.RADIAL, cx, cy, 0.0, fx, fy, r, units = gradientUnits)
 				}
 
 				def.strNull("xlink:href")?.let {
@@ -112,6 +90,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 					//println(" - $offset: $color")
 					g.addColorStop(offset, color)
 				}
+
 				//println("Gradient: $g")
 				def.getString("gradientTransform")?.let {
 					g.transform.premultiply(parseTransform(it))
@@ -129,25 +108,17 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		}
 	}
 
-	fun parseDefs() {
-		for (def in root["defs"].allChildren.filter { !it.isComment }) parseDef(def)
-	}
-
-	init {
-		parseDefs()
-	}
-
 	override fun draw(c: Context2d) {
 		c.keep {
 			c.strokeStyle = NonePaint
-			c.fillStyle = NonePaint //ColorPaint(Colors.BLACK)
-			drawElement(root, c)
+			c.fillStyle = Colors.BLACK
+			drawElement(root, c, true)
 		}
 	}
 
-	fun drawChildren(xml: Xml, c: Context2d) {
+	fun drawChildren(xml: Xml, c: Context2d, render: Boolean) {
 		for (child in xml.allChildren) {
-			drawElement(child, c)
+			drawElement(child, c, render)
 		}
 	}
 
@@ -155,7 +126,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		val str = str2.toLowerCase().trim()
 		val res = when {
             str.startsWith("url(") -> {
-                val urlPattern = str.substr(4, -1)
+                val urlPattern = str.substr(4, -1).substringBefore(')')
+                val extra = str.substringAfter(')')
+
                 if (urlPattern.startsWith("#")) {
                     val idName = urlPattern.substr(1).toLowerCase()
                     val def = defs[idName]
@@ -163,6 +136,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                         println(defs)
                         println("Can't find svg definition '$idName'")
                     }
+                    //println("URL: def=$def")
                     def ?: NonePaint
                 } else {
                     println("Unsupported $str")
@@ -175,7 +149,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
             }
             else -> when (str) {
                 "none" -> NonePaint
-                else -> c.createColor(Colors.Default[str])
+                else -> c.createColor(ColorDefaultBlack[str])
             }
         }
         return when (res) {
@@ -194,13 +168,30 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
     private val t = DoubleArray(6)
 
-    fun drawElement(xml: Xml, c: Context2d): Context2d = c.keepApply {
+    fun drawElement(xml: Xml, c: Context2d, render: Boolean): Context2d = c.keepApply {
 		val bounds = Rectangle()
 		val nodeName = xml.nameLC
 
+        var drawChildren = false
+        var render = render
+
+        val attributes = parseAttributesAndStyles(xml)
+
+        attributes["transform"]?.let {
+            applyTransform(state, parseTransform(it))
+        }
+
 		when (nodeName) {
-			"_text_" -> Unit
-			"svg" -> drawChildren(xml, c)
+            "g", "a", "svg" -> {
+                drawChildren = true
+            }
+            "defs" -> {
+                drawChildren = true
+                render = false
+            }
+            "_text_" -> Unit
+            "_comment_" -> Unit
+            "title" -> Unit
 			"lineargradient", "radialgradient" -> {
 				parseDef(xml)
 			}
@@ -209,8 +200,8 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				val y = xml.double("y")
 				val width = xml.double("width")
 				val height = xml.double("height")
-				val rx = xml.double("rx")
-				val ry = xml.double("ry")
+                val ry = xml.double("ry", xml.double("rx"))
+				val rx = xml.double("rx", xml.double("ry"))
 				bounds.setTo(x, y, width, height)
 				roundRect(x, y, width, height, rx, ry)
 			}
@@ -221,6 +212,14 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				circle(cx, cy, radius)
 				bounds.setBounds(cx - radius, cy - radius, cx + radius, cy + radius)
 			}
+            "ellipse" -> {
+                val cx = xml.double("cx")
+                val cy = xml.double("cy")
+                val rx = xml.double("rx")
+                val ry = xml.double("ry")
+                ellipse(cx - rx, cy - ry, rx * 2, ry * 2)
+                bounds.setBounds(cx - rx, cy - ry, cx + rx, cy + ry)
+            }
 			"polyline", "polygon" -> {
 				beginPath()
 				val ss = StrReader(xml.str("points"))
@@ -254,8 +253,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 				moveTo(x1, y1)
 				lineTo(x2, y2)
 				bounds.setBounds(x1, y1, x2, y2)
-			}
-			"g" -> {
 			}
 			"text" -> {
 			}
@@ -299,6 +296,7 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 
                 while (tl.hasMore) {
 					val cmd = readNextTokenCmd() ?: break
+                    if (cmd == '\u0000' || cmd.isWhitespaceFast()) continue
                     val relative = cmd in 'a'..'z' // lower case
                     var lastCurve = when (lastCmd) {
                         'S', 'C', 'T', 'Q', 's', 'c', 't', 'q' -> true
@@ -485,7 +483,9 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                             }
                         }
                         'Z', 'z' -> close()
-						else -> TODO("Unsupported command '$cmd' : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
+						else -> {
+                            TODO("Unsupported command '$cmd' (${cmd.toInt()}) : Parsed: '${state.path.toSvgPathString()}', Original: '$d'")
+                        }
 					}
                     lastCmd = cmd
 				}
@@ -494,52 +494,46 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
                 warningProcessor?.invoke("Points: ${state.path.getPoints()}")
 				getBounds(bounds)
 			}
+            else -> {
+                warningProcessor?.invoke("Unhandled SVG node '$nodeName'")
+                drawChildren = true
+            }
 		}
 
-		if (xml.hasAttribute("stroke-width")) {
-			lineWidth = xml.double("stroke-width", 1.0)
-		}
-		if (xml.hasAttribute("stroke")) {
-			strokeStyle = parseFillStroke(c, xml.str("stroke"), bounds)
-		}
-		if (xml.hasAttribute("fill")) applyFill(c, xml.str("fill"), bounds)
-		if (xml.hasAttribute("font-size")) {
-            fontSize = parseSizeAsDouble(xml.str("font-size"))
-		}
-		if (xml.hasAttribute("font-family")) {
-			font = fontRegistry[xml.str("font-family")]
-		}
-		if (xml.hasAttribute("style")) {
-			applyStyle(c, SvgStyle.parse(xml.str("style"), warningProcessor), bounds)
-		}
-		if (xml.hasAttribute("transform")) {
-			applyTransform(state, parseTransform(xml.str("transform")))
-		}
-		if (xml.hasAttribute("text-anchor")) {
-			horizontalAlign = when (xml.str("text-anchor").toLowerCase().trim()) {
-				"left" -> HorizontalAlign.LEFT
-				"center", "middle" -> HorizontalAlign.CENTER
-				"right", "end" -> HorizontalAlign.RIGHT
-				else -> horizontalAlign
-			}
-		}
-        if (xml.hasAttribute("alignment-baseline")) {
-            verticalAlign = when (xml.str("alignment-baseline").toLowerCase().trim()) {
-                "hanging" -> VerticalAlign.TOP
-                "center", "middle" -> VerticalAlign.MIDDLE
-                "baseline" -> VerticalAlign.BASELINE
-                "bottom" -> VerticalAlign.BOTTOM
-                else -> verticalAlign
+        for ((key, it) in attributes) {
+            when (key) {
+                "stroke-width" -> lineWidth = it.toDoubleOrNull() ?: 1.0
+                "stroke-linejoin" -> lineJoin = LineJoin[it]
+                "stroke-linecap" -> lineCap = LineCap[it]
+                "stroke" -> strokeStyle = parseFillStroke(c, it, bounds)
+                "opacity" -> globalAlpha *= it.toDoubleOrNull() ?: 1.0
+                "fill-opacity" -> globalAlpha *= it.toDoubleOrNull() ?: 1.0 // @TODO: Do this properly
+                "stroke-opacity" -> globalAlpha *= it.toDoubleOrNull() ?: 1.0 // @TODO: Do this properly
+                "fill" -> applyFill(c, it, bounds)
+                "font-size" -> fontSize = parseSizeAsDouble(it)
+                "font-family" -> font = fontRegistry[it]
+                "text-anchor" -> horizontalAlign = when (it.toLowerCase().trim()) {
+                    "left" -> HorizontalAlign.LEFT
+                    "center", "middle" -> HorizontalAlign.CENTER
+                    "right", "end" -> HorizontalAlign.RIGHT
+                    else -> horizontalAlign
+                }
+                "alignment-baseline" ->  verticalAlign = when (it.toLowerCase().trim()) {
+                    "hanging" -> VerticalAlign.TOP
+                    "center", "middle" -> VerticalAlign.MIDDLE
+                    "baseline" -> VerticalAlign.BASELINE
+                    "bottom" -> VerticalAlign.BOTTOM
+                    else -> verticalAlign
+                }
+                "fill-rule" -> Unit // @TODO
             }
         }
-		if (xml.hasAttribute("fill-opacity")) {
-			globalAlpha = xml.double("fill-opacity", 1.0)
-		}
+
+        if (drawChildren) {
+            drawChildren(xml, c, render)
+        }
 
 		when (nodeName) {
-			"g" -> {
-				drawChildren(xml, c)
-			}
             "text" -> {
                 fillText(xml.text.trim(), xml.double("x") + xml.double("dx"), xml.double("y") + xml.double("dy"))
             }
@@ -581,17 +575,6 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		state.transform.premultiply(transform)
 	}
 
-	private fun applyStyle(c: Context2d, style: SvgStyle, bounds: Rectangle) {
-		//println("Apply style $style to $c")
-		for ((k, v) in style.styles) {
-			//println("$k <-- $v")
-			when (k) {
-				"fill" -> applyFill(c, v, bounds)
-				else -> warningProcessor?.invoke("Unsupported style $k in css")
-			}
-		}
-	}
-
 	fun parseTransform(str: String): Matrix {
 		val tokens = SvgStyle.tokenize(str)
 		val tr = ListReader(tokens)
@@ -618,8 +601,13 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 			fun double(index: Int) = doubleArgs.getOrElse(index) { 0.0 }
 			when (id) {
 				"translate" -> out.pretranslate(double(0), double(1))
-				"scale" -> out.prescale(double(0), double(1))
+				"scale" -> out.prescale(double(0), if (doubleArgs.size >= 2) double(1) else double(0))
 				"matrix" -> out.premultiply(double(0), double(1), double(2), double(3), double(4), double(5))
+                "rotate" -> {
+                    if (doubleArgs.size >= 3) out.pretranslate(double(1), double(2))
+                    out.prerotate(double(0).degrees)
+                    if (doubleArgs.size >= 3) out.pretranslate(-double(1), -double(2))
+                }
 				else -> invalidOp("Unsupported transform $id : $args : $doubleArgs ($str)")
 			}
 			//println("ID: $id, args=$args")
@@ -627,7 +615,77 @@ class SVG(val root: Xml, val warningProcessor: ((message: String) -> Unit)? = nu
 		return out
 	}
 
+    class CSSDeclarations {
+        val props = LinkedHashMap<String, String>()
+
+        companion object {
+            fun parseToMap(str: String): Map<String, String> = CSSDeclarations().parse(str).props
+        }
+
+        fun parse(str: String): CSSDeclarations = str.reader().parse()
+
+        fun StrReader.parse(): CSSDeclarations {
+            while (!eof) {
+                parseCssDecl()
+            }
+            return this@CSSDeclarations
+        }
+
+        fun StrReader.parseCssDecl() {
+            skipSpaces()
+            val id = readCssId()
+            skipSpaces()
+            expect(':')
+            skipSpaces()
+            //readStringLit()
+            // @TODO: Proper parsing
+            val value = readUntil { it == ';' }.trim()
+            props[id] = value
+            if (!eof) {
+                expect(';')
+            }
+        }
+
+        fun StrReader.readCssId() = readWhile { it.isLetterOrDigit() || it == '-' }
+    }
+
 	companion object {
+        val ColorDefaultBlack = Colors.WithDefault(Colors.BLACK)
+
+        fun parseAttributesAndStyles(node: Xml): Map<String, String> {
+            val out = node.attributes.toMutableMap()
+            node.getString("style")?.let { out.putAll(CSSDeclarations.parseToMap(it)) }
+            return out
+        }
+
+        fun parsePercent(str: String, default: Double = 0.0): Double {
+            return if (str.endsWith("%")) {
+                str.substr(0, -1).toDouble() / 100.0
+            } else {
+                str.toDoubleOrNull() ?: default
+            }
+        }
+
+        fun parseStops(xml: Xml): List<Pair<Double, RGBA>> {
+            val out = arrayListOf<Pair<Double, RGBA>>()
+            for (stop in xml.children("stop")) {
+                val info = parseAttributesAndStyles(stop)
+                var offset = 0.0
+                var colorStop = ColorDefaultBlack.defaultColor
+                var alphaStop = 1.0
+                for ((key, value) in info) {
+                    when (key) {
+                        "offset" -> offset = parsePercent(value)
+                        "stop-color" -> colorStop = ColorDefaultBlack[value]
+                        "stop-opacity" -> alphaStop = value.toDoubleOrNull() ?: 1.0
+                    }
+                }
+                out += Pair(offset, RGBA(colorStop.rgb, (alphaStop * 255).toInt()))
+            }
+            return out
+        }
+
+        // @TODO: Do not allocate PathToken!
 		fun tokenizePath(str: String): List<PathToken> {
 			val sr = StrReader(str)
 			fun StrReader.skipSeparators() {
