@@ -1,6 +1,7 @@
 package com.soywiz.korim.bitmap
 
 import com.soywiz.kds.*
+import com.soywiz.kds.iterators.*
 import com.soywiz.kmem.*
 import com.soywiz.korim.color.*
 import com.soywiz.korim.format.*
@@ -10,7 +11,6 @@ import com.soywiz.korio.file.*
 import com.soywiz.korio.util.*
 import com.soywiz.korma.geom.*
 import com.soywiz.korma.geom.vector.*
-import kotlin.math.*
 
 class NinePatchInfo(
 	val xranges: List<Pair<Boolean, IntRange>>,
@@ -74,8 +74,14 @@ class NinePatchInfo(
 		}
 	}
 
+    fun computeScale(
+        bounds: RectangleInt,
+        new: Boolean = true,
+        callback: (segment: Segment, x: Int, y: Int, width: Int, height: Int) -> Unit
+    ) = if (new) computeScaleNew(bounds, callback) else computeScaleOld(bounds, callback)
+
 	// Can be reused for textures using AG
-	fun computeScale(
+	fun computeScaleOld(
 		bounds: RectangleInt,
 		callback: (segment: Segment, x: Int, y: Int, width: Int, height: Int) -> Unit
 	) {
@@ -100,24 +106,128 @@ class NinePatchInfo(
 		}
 	}
 
+    private val xComputed = IntArray(64)
+    private val yComputed = IntArray(64)
+
+    fun computeScaleNew(
+        bounds: RectangleInt,
+        callback: (segment: NinePatchInfo.Segment, x: Int, y: Int, width: Int, height: Int) -> Unit
+    ) {
+        //println("scaleFixed=($scaleFixedX,$scaleFixedY)")
+
+        ysegments.fastForEachWithIndex { index, _ -> yComputed[index] = Int.MAX_VALUE }
+        xsegments.fastForEachWithIndex { index, _ -> xComputed[index] = Int.MAX_VALUE }
+
+        ysegments.fastForEachWithIndex { yindex, y ->
+            val segHeight = y.computedLength(this.yaxis, bounds.height)
+            xsegments.fastForEachWithIndex { xindex, x ->
+                val segWidth = x.computedLength(this.xaxis, bounds.width)
+                if (x.fixed && y.fixed) {
+                    val xScale = segWidth / x.length.toDouble()
+                    val yScale = segHeight / y.length.toDouble()
+                    val minScale = min2(xScale, yScale)
+                    xComputed[xindex] = min2(xComputed[xindex], (x.length * minScale).toInt())
+                    yComputed[yindex] = min2(yComputed[yindex], (y.length * minScale).toInt())
+                } else {
+                    xComputed[xindex] = min2(xComputed[xindex], segWidth.toInt())
+                    yComputed[yindex] = min2(yComputed[yindex], segHeight.toInt())
+                }
+            }
+        }
+
+        val denormalizedWidth = xComputed.sum()
+        val denormalizedHeight = yComputed.sum()
+        val denormalizedScaledWidth = xsegments.mapIndexed { index, it -> if (it.scaled) xComputed[index] else 0 }.sum()
+        val denormalizedScaledHeight = ysegments.mapIndexed { index, it -> if (it.scaled) yComputed[index] else 0 }.sum()
+        val xScaledRatio = if (denormalizedWidth > 0) denormalizedScaledWidth.toDouble() / denormalizedWidth.toDouble() else 1.0
+        val yScaledRatio = if (denormalizedWidth > 0) denormalizedScaledHeight.toDouble() / denormalizedHeight.toDouble() else 1.0
+
+        for (n in 0 until 2) {
+            val segments = if (n == 0) ysegments else xsegments
+            val computed = if (n == 0) yComputed else xComputed
+            val denormalizedScaledLen = if (n == 0) denormalizedScaledHeight else denormalizedScaledWidth
+            val side = if (n == 0) bounds.height else bounds.width
+            val scaledRatio = if (n == 0) yScaledRatio else xScaledRatio
+            val scaledSide = side * scaledRatio
+
+            segments.fastForEachWithIndex { index, v ->
+                if (v.scaled) {
+                    computed[index] = (scaledSide * (computed[index].toDouble() / denormalizedScaledLen.toDouble())).toInt()
+                }
+            }
+        }
+
+        val xRemaining = bounds.width - xComputed.sum()
+        val yRemaining = bounds.height - yComputed.sum()
+        val xScaledFirst = xsegments.indexOfFirst { it.scaled }
+        val yScaledFirst = ysegments.indexOfFirst { it.scaled }
+        if (xRemaining > 0 && xScaledFirst >= 0) xComputed[xScaledFirst] += xRemaining
+        if (yRemaining > 0 && yScaledFirst >= 0) yComputed[yScaledFirst] += yRemaining
+
+        var ry = 0
+        for (yindex in ysegments.indices) {
+            val segHeight = yComputed[yindex].toInt()
+            var rx = 0
+            for (xindex in xsegments.indices) {
+                val segWidth = xComputed[xindex].toInt()
+
+                val seg = segments[yindex][xindex]
+                val segLeft = (rx + bounds.left).toInt()
+                val segTop = (ry + bounds.top).toInt()
+
+                //println("($x,$y):($segWidth,$segHeight)")
+                callback(seg, segLeft, segTop, segWidth.toInt(), segHeight.toInt())
+
+                rx += segWidth
+            }
+            ry += segHeight
+        }
+    }
 }
 
-class NinePatchBitmap32(val bmp: Bitmap32) {
-	val width get() = bmp.width
-	val height get() = bmp.height
+open class NinePatchBmpSlice(
+    val content: BmpSlice,
+    val info: NinePatchInfo,
+    val bmpSlice: BmpSlice = content
+) {
+    companion object {
+        fun createSimple(bmp: BmpSlice, left: Int, top: Int, right: Int, bottom: Int): NinePatchBmpSlice {
+            return NinePatchBmpSlice(bmp, NinePatchInfo(bmp.width, bmp.height, left, top, right, bottom))
+        }
+
+        operator fun invoke(bmp: Bitmap) = invoke(bmp.slice())
+        operator fun invoke(bmpSlice: BmpSlice): NinePatchBmpSlice {
+            val content = bmpSlice.sliceWithBounds(1, 1, bmpSlice.width - 1, bmpSlice.height - 1)
+            return NinePatchBmpSlice(
+                content = content,
+                info = run {
+                    val topPixels = bmpSlice.readPixels(0, 0, bmpSlice.width, 1)
+                    val leftPixels = bmpSlice.readPixels(0, 0, 1, bmpSlice.height)
+                    NinePatchInfo(
+                        (1 until bmpSlice.width - 1).computeRle { topPixels[it].a != 0 },
+                        (1 until bmpSlice.height - 1).computeRle { leftPixels[it].a != 0 },
+                        content.width, content.height
+                    )
+                },
+                bmpSlice = bmpSlice
+            )
+        }
+    }
+
+	val width get() = bmpSlice.width
+	val height get() = bmpSlice.height
 	val dwidth get() = width.toDouble()
 	val dheight get() = height.toDouble()
-	val content = bmp.sliceWithBounds(1, 1, bmp.width - 1, bmp.height - 1)
 
-	val info = NinePatchInfo(
-		(1 until bmp.width - 1).computeRle { bmp[it, 0].a != 0 },
-		(1 until bmp.height - 1).computeRle { bmp[0, it].a != 0 },
-		content.width, content.height
-	)
+    val NinePatchInfo.Segment.bmpSlice by Extra.PropertyThis<NinePatchInfo.Segment, BmpSlice> {
+        this@NinePatchBmpSlice.content.slice(this.rect)
+    }
 
-	val NinePatchInfo.Segment.bmp by Extra.PropertyThis<NinePatchInfo.Segment, Bitmap32> {
-		this@NinePatchBitmap32.content.slice(this.rect).extract()
+    val NinePatchInfo.Segment.bmp by Extra.PropertyThis<NinePatchInfo.Segment, Bitmap> {
+		this@NinePatchBmpSlice.bmpSlice.extract()
 	}
+
+    fun getSegmentBmpSlice(segment: NinePatchInfo.Segment) = segment.bmpSlice
 
 	fun <T : Bitmap> drawTo(
 		other: T,
@@ -136,18 +246,29 @@ class NinePatchBitmap32(val bmp: Bitmap32) {
 		return other
 	}
 
-	fun rendered(width: Int, height: Int, antialiased: Boolean = true, drawRegions: Boolean = false): Bitmap32 {
-		return drawTo(
-			NativeImage(width, height),
-			//Bitmap32(width, height),
-			RectangleInt(0, 0, width, height),
-			antialiased = antialiased,
-			drawRegions = drawRegions
-		).toBMP32()
-	}
+	fun renderedNative(width: Int, height: Int, antialiased: Boolean = true, drawRegions: Boolean = false): NativeImage = drawTo(
+        NativeImage(width, height),
+        //Bitmap32(width, height),
+        RectangleInt(0, 0, width, height),
+        antialiased = antialiased,
+        drawRegions = drawRegions
+    )
+
+    fun rendered(width: Int, height: Int, antialiased: Boolean = true, drawRegions: Boolean = false): Bitmap32 = renderedNative(width, height, antialiased, drawRegions).toBMP32IfRequired()
 }
 
-fun Bitmap.asNinePatch() = NinePatchBitmap32(this.toBMP32())
+typealias NinePatchBitmap32 = NinePatchBmpSlice
+
+fun BmpSlice.asNinePatch() = NinePatchBmpSlice(this)
+fun Bitmap.asNinePatch() = NinePatchBitmap32(this.toBMP32IfRequired())
+
+fun BmpSlice.asNinePatchSimpleRatio(left: Double, top: Double, right: Double, bottom: Double) = this.asNinePatchSimple(
+    (left * width).toInt(), (top * height).toInt(),
+    (right * width).toInt(), (bottom * height).toInt()
+)
+fun BmpSlice.asNinePatchSimple(left: Int, top: Int, right: Int, bottom: Int) = NinePatchBmpSlice(this, NinePatchInfo(width, height, left, top, right, bottom))
+fun Bitmap.asNinePatchSimple(left: Int, top: Int, right: Int, bottom: Int) = this.slice().asNinePatchSimple(left, top, right, bottom)
+
 suspend fun VfsFile.readNinePatch(format: ImageFormat = RegisteredImageFormats) = NinePatchBitmap32(readBitmap(format).toBMP32())
 
 private inline fun <T, R : Any> Iterable<T>.computeRle(callback: (T) -> R): List<Pair<R, IntRange>> {
