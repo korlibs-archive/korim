@@ -37,6 +37,7 @@ abstract class Bitmap(
 	val stride: Int get() = (width * bpp) / 8
 	val area: Int get() = width * height
 	fun index(x: Int, y: Int) = y * width + x
+    fun inside(x: Int, y: Int) = x in 0 until width && y in 0 until height
 	override val size: Size get() = Size(width, height)
 
     open fun lock() = Unit
@@ -133,11 +134,14 @@ abstract class Bitmap(
     fun clampWidth(x: Int) = x.clamp(0, width)
     fun clampHeight(y: Int) = y.clamp(0, height)
 
-    fun flipY() = this.apply {
+    open fun flipY(): Bitmap {
 		for (y in 0 until height / 2) swapRows(y, height - y - 1)
+        return this
 	}
-	fun flipX() = this.apply {
+
+    open fun flipX(): Bitmap {
 		for (x in 0 until width / 2) swapColumns(x, width - x - 1)
+        return this
 	}
 	
 	open fun swapRows(y0: Int, y1: Int) {
@@ -192,6 +196,12 @@ abstract class Bitmap(
         copyUnchecked(0, 0, out, 0, 0, width, height)
         return out
     }
+}
+
+fun Bitmap.readPixelsUnsafe(x: Int, y: Int, width: Int, height: Int): RgbaArray {
+    val out = RgbaArray(width * height)
+    readPixelsUnsafe(x, y, width, height, out, 0)
+    return out
 }
 
 fun <T : Bitmap> T.createWithThisFormatTyped(width: Int, height: Int): T = this.createWithThisFormat(width, height).fastCastTo<T>()
